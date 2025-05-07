@@ -1,0 +1,41 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  // Remove or comment out the output line:
+  // output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Album {
+  id         String   @id
+  title      String
+  sortTitle  String?      // Optional, not all albums have this
+  year       Int
+  cover      String
+  tracks     Track[]      // Relation to Track
+}
+
+model Track {
+  id              Int      @id @default(autoincrement())
+  albumId         String
+  title           String
+  type            String
+  originalSong    String?  // Optional, only for parodies/covers
+  originalArtist  String?  // Optional, only for parodies/covers/style parodies
+  featuredSongs   String[] // For polka medleys, can be empty
+  searchAliases   String[] // For tracks with alternate names, can be empty
+  details         String?
+
+  album           Album    @relation(fields: [albumId], references: [id])
+
+  @@index([albumId])
+}
