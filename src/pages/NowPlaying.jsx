@@ -1,8 +1,21 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import LogoHeader from '../components/LogoHeader';
 import HamburgerMenu from '../components/HamburgerMenu';
-import SongCard from '../components/SongCard';
-import { FaSpotify } from 'react-icons/fa';
+import { FaSpotify, FaStar } from 'react-icons/fa';
+
+function StarDisplay({ rating, size = 40 }) {
+  return (
+    <div className="flex gap-1 mt-2 mb-4">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <FaStar
+          key={star}
+          className={star <= rating ? 'text-yellow-400' : 'text-gray-600'}
+          size={size}
+        />
+      ))}
+    </div>
+  );
+}
 
 export default function NowPlaying() {
   const [error, setError] = useState('');
@@ -62,7 +75,6 @@ export default function NowPlaying() {
         <HamburgerMenu />
       </LogoHeader>
       <div className="max-w-2xl mx-auto w-full p-4 flex flex-col items-center pt-8">
-        <FaSpotify className="text-green-500 w-20 h-20 mb-6" />
         {initialLoading ? (
           <p className="text-gray-300">Loading...</p>
         ) : !isAuthenticated ? (
@@ -76,21 +88,31 @@ export default function NowPlaying() {
           <p className="text-gray-300">No track currently playing.</p>
         ) : dbSong ? (
           <div className="w-full flex flex-col items-center">
-            {dbSong.artworkUrl && (
-              <img src={dbSong.artworkUrl} alt={dbSong.title} className="w-64 h-64 rounded-xl mb-6 object-cover shadow-lg" />
-            )}
-            <div className="w-full">
-              <SongCard key={dbSong.id} song={dbSong} playlistName={dbSong.playlist?.name} />
+            <div className="relative mb-8">
+              {dbSong.artworkUrl && (
+                <img src={dbSong.artworkUrl} alt={dbSong.title} className="w-72 h-72 rounded-2xl object-cover shadow-lg" />
+              )}
+              <FaSpotify className="absolute bottom-3 left-3 text-green-500 opacity-50 w-12 h-12 pointer-events-none" />
+            </div>
+            <h2 className="text-3xl font-bold text-white mb-2 text-center">{dbSong.title}</h2>
+            <p className="text-xl text-gray-200 mb-1 text-center">{dbSong.artist}</p>
+            <p className="text-lg text-gray-400 mb-2 text-center">{dbSong.playlist?.name}</p>
+            <StarDisplay rating={dbSong.rating} size={40} />
+            <div className="bg-gray-800 rounded-lg p-4 w-full max-w-lg mt-2 text-gray-200 text-center min-h-[60px]">
+              {dbSong.notes ? dbSong.notes : <em className="text-gray-400">No notes</em>}
             </div>
           </div>
         ) : (
           <div className="flex flex-col items-center w-full">
-            {track.album.images?.[0]?.url && (
-              <img src={track.album.images[0].url} alt={track.name} className="w-64 h-64 rounded-xl mb-6 object-cover shadow-lg" />
-            )}
-            <h3 className="text-2xl font-bold text-white mb-1">{track.name}</h3>
-            <p className="text-lg text-gray-200 mb-1">{track.artists.map(a => a.name).join(', ')}</p>
-            <p className="text-gray-400 mb-2">{track.album.name}</p>
+            <div className="relative mb-8">
+              {track.album.images?.[0]?.url && (
+                <img src={track.album.images[0].url} alt={track.name} className="w-72 h-72 rounded-2xl object-cover shadow-lg" />
+              )}
+              <FaSpotify className="absolute bottom-3 left-3 text-green-500 opacity-50 w-12 h-12 pointer-events-none" />
+            </div>
+            <h3 className="text-3xl font-bold text-white mb-2 text-center">{track.name}</h3>
+            <p className="text-xl text-gray-200 mb-1 text-center">{track.artists.map(a => a.name).join(', ')}</p>
+            <p className="text-lg text-gray-400 mb-2 text-center">{track.album.name}</p>
             <a href={track.external_urls.spotify} target="_blank" rel="noopener noreferrer" className="text-green-400 underline">Open in Spotify</a>
           </div>
         )}
