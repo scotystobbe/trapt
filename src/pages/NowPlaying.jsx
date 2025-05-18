@@ -141,6 +141,11 @@ export default function NowPlaying() {
       <LogoHeader logoClassName={dimClass}>
         <HamburgerMenu className={dimClass} />
       </LogoHeader>
+      <style>{`
+        .night-mode .logo-header {
+          background: #000 !important;
+        }
+      `}</style>
       <div className="max-w-2xl mx-auto w-full p-4 flex flex-col items-center pt-8">
         {initialLoading ? (
           <div className="w-full flex flex-col items-center">
@@ -176,10 +181,10 @@ export default function NowPlaying() {
             <h2 className={"text-4xl font-bold mb-2 text-center " + (nightMode ? 'text-red-800' : 'text-white')}>{dbSong.title}</h2>
             <p className={"text-3xl mb-1 text-center " + (nightMode ? 'text-red-800' : 'text-white')}>{dbSong.artist}</p>
             <p className={"text-lg mb-2 text-center " + (nightMode ? 'text-red-900' : 'text-gray-500')}>{dbSong.album || track?.album?.name}</p>
-            <EditableStarRating rating={dbSong.rating} onRatingChange={handleRatingChange} size={72} nightMode={nightMode} />
+            <EditableStarRating rating={dbSong.rating} onRatingChange={handleRatingChange} size={72} nightMode={nightMode} emptyColor={nightMode ? '#18181b' : undefined} />
             <div
               className={"rounded-lg p-4 w-full max-w-lg mt-2 min-h-[60px] text-left " + textClass}
-              style={{ backgroundColor: '#27272a', cursor: editingNotes ? 'auto' : 'text' }}
+              style={{ backgroundColor: nightMode ? '#18181b' : '#27272a', cursor: editingNotes ? 'auto' : 'text' }}
               onClick={() => !editingNotes && setEditingNotes(true)}
             >
               {editingNotes ? (
