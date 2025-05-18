@@ -76,7 +76,7 @@ export default function NowPlaying() {
             <p className="text-gray-300">No track currently playing.</p>
           ) : dbSong ? (
             <div className="w-full">
-              <SongCard song={dbSong} playlistName={dbSong.playlist?.name} />
+              <SongCard key={dbSong.id} song={dbSong} playlistName={dbSong.playlist?.name} />
             </div>
           ) : (
             <div className="flex flex-col items-center">
