@@ -15,6 +15,11 @@ function getCookie(req, name) {
 }
 
 module.exports = (req, res) => {
+  if (req.url === '/currently-playing') {
+    res.statusCode = 200;
+    res.end('Subroute works!');
+    return;
+  }
   res.statusCode = 200;
   res.end('Spotify proxy root works!');
 }; 
