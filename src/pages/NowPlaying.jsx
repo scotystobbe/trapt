@@ -18,7 +18,7 @@ function EditableStarRating({ rating, onRatingChange, size = 56, nightMode }) {
                 : 'text-yellow-400 cursor-pointer'
               : nightMode
                 ? 'text-red-900 cursor-pointer'
-                : 'text-gray-800 cursor-pointer'
+                : 'text-[#27272a] cursor-pointer'
           }
           size={size}
           onClick={() => onRatingChange(star)}
@@ -173,12 +173,12 @@ export default function NowPlaying() {
                   <textarea
                     value={notes}
                     onChange={e => setNotes(e.target.value)}
-                    className={"w-full p-2 rounded bg-neutral-900 border border-neutral-800 text-white placeholder-gray-500 focus:ring-0 focus:border-neutral-700 " + textClass}
+                    className={"w-full p-2 rounded bg-[#27272a] border border-[#3f3f46] text-white placeholder-gray-500 focus:ring-0 focus:border-[#3f3f46] " + textClass}
                     autoFocus
                   />
                   <button
                     onClick={handleNoteSave}
-                    className={"self-end px-3 py-1 bg-neutral-700 text-white rounded hover:bg-neutral-600 " + dimClass}
+                    className={"self-end px-3 py-1 bg-[#3f3f46] text-white rounded hover:bg-[#27272a] " + dimClass}
                     disabled={saving}
                   >{saving ? 'Saving...' : 'Save'}</button>
                 </div>
