@@ -16,11 +16,15 @@ function getCookie(req, name) {
 }
 
 module.exports = (req, res) => {
-  // Vercel puts the catch-all param in the query
-  const parsed = url.parse(req.url, true);
-  const subroute = parsed.query['spotify-proxy'];
+  const parsed = url.parse(req.url);
+  const fullPath = parsed.pathname;
 
-  console.log('SUBROUTE:', subroute);
+  // Strip off the known prefix
+  const matchedPath = fullPath.replace(/^\/api\//, '').split('/').filter(Boolean);
+
+  console.log('Matched path segments:', matchedPath);
+
+  const subroute = matchedPath[0]; // e.g. 'currently-playing', 'login', 'callback'
 
   if (subroute === 'currently-playing') {
     res.statusCode = 200;
@@ -40,5 +44,4 @@ module.exports = (req, res) => {
 
   res.statusCode = 200;
   res.end('Spotify proxy root works!');
-}; 
-
+};
