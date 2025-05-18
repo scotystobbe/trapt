@@ -116,7 +116,7 @@ export default function NowPlaying() {
 
   return (
     <div className={"bg-gray-900 min-h-screen " + (nightMode ? 'night-mode' : '')}>
-      <LogoHeader>
+      <LogoHeader logoClassName={dimClass}>
         <HamburgerMenu className={dimClass} />
       </LogoHeader>
       <div className="max-w-2xl mx-auto w-full p-4 flex flex-col items-center pt-8">
