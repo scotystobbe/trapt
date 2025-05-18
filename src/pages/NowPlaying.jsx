@@ -201,24 +201,12 @@ export default function NowPlaying() {
               )}
             </div>
           </div>
-        ) : (
-          <div className="flex flex-col items-center w-full">
-            <div className={"relative mb-8 " + dimClass}>
-              {track.album.images?.[0]?.url && (
-                <img src={track.album.images[0].url} alt={track.name} className={"w-72 h-72 rounded-2xl object-cover shadow-lg " + dimClass} />
-              )}
-            </div>
-            <h3 className={"text-3xl font-bold mb-2 text-center " + textClass}>{track.name}</h3>
-            <p className={"text-2xl mb-1 text-center " + textClass}>{track.artists.map(a => a.name).join(', ')}</p>
-            <p className={"text-lg mb-2 text-center " + (nightMode ? 'text-red-900' : 'text-gray-500')}>{track.album.name}</p>
-            <a href={track.external_urls.spotify} target="_blank" rel="noopener noreferrer" className={"text-green-400 underline " + dimClass}>Open in Spotify</a>
-          </div>
-        )}
+        ) : null}
         {error && <div className={"text-red-400 mt-4 " + textClass}>{error}</div>}
       </div>
       {/* Previous Song Card */}
       {prevDbSong && prevTrack && (
-        <div className="fixed left-1/2 bottom-4 transform -translate-x-1/2 bg-[#27272a] rounded-xl shadow-lg p-2 flex flex-col items-center z-50 w-[320px] max-w-full min-h-[64px] relative">
+        <div className="fixed left-1/2 bottom-4 transform -translate-x-1/2 bg-[#27272a] rounded-xl shadow-lg p-2 flex flex-col items-center z-[100] w-[320px] max-w-full min-h-[64px]" style={{ pointerEvents: 'auto' }}>
           <FaHistory className="absolute top-2 right-3 text-gray-400" size={18} title="Previous Song" />
           <div className="flex flex-col flex-1 justify-center w-full items-center">
             <div className="font-bold text-white text-base truncate leading-tight text-center w-full">{prevDbSong.title}</div>
