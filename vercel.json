@@ -6,7 +6,7 @@
     },
     {
       "source": "/api/(.*)",
-      "destination": "/api/[...spotify-proxy].js"
+      "destination": "/api/[...spotify-proxy].js?proxyPath=$1"
     }
   ]
 }

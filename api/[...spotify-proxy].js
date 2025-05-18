@@ -2,29 +2,14 @@ const fetch = require('node-fetch');
 require('dotenv').config();
 const url = require('url');
 
-function setCookie(res, name, value, options = {}) {
-  let cookie = `${name}=${value}; Path=/; HttpOnly; SameSite=Lax`;
-  if (options.maxAge) cookie += `; Max-Age=${options.maxAge}`;
-  if (options.secure) cookie += '; Secure';
-  res.setHeader('Set-Cookie', [...(res.getHeader('Set-Cookie') || []), cookie]);
-}
-
-function getCookie(req, name) {
-  const cookies = req.headers.cookie || '';
-  const match = cookies.match(new RegExp('(^| )' + name + '=([^;]+)'));
-  return match ? match[2] : null;
-}
-
 module.exports = (req, res) => {
-  const parsed = url.parse(req.url);
-  const fullPath = parsed.pathname;
+  const parsed = url.parse(req.url, true);
+  const proxyPath = parsed.query.proxyPath; // e.g., "login" or "callback/foo"
 
-  // Strip off the known prefix
-  const matchedPath = fullPath.replace(/^\/api\//, '').split('/').filter(Boolean);
+  const segments = proxyPath?.split('/') || [];
+  const subroute = segments[0];
 
-  console.log('Matched path segments:', matchedPath);
-
-  const subroute = matchedPath[0]; // e.g. 'currently-playing', 'login', 'callback'
+  console.log('Segments:', segments);
 
   if (subroute === 'currently-playing') {
     res.statusCode = 200;
