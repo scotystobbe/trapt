@@ -17,6 +17,8 @@ function getCookie(req, name) {
 module.exports = async (req, res) => {
   const { pathname, searchParams } = new URL(req.url, `http://${req.headers.host}`);
 
+  console.log('PATHNAME:', pathname);
+
   // 1. Login: /api/spotify-proxy/login
   if (pathname.endsWith('/login')) {
     const scopes = [
