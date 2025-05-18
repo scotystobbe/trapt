@@ -1,5 +1,6 @@
 const fetch = require('node-fetch');
 require('dotenv').config();
+const url = require('url');
 
 function setCookie(res, name, value, options = {}) {
   let cookie = `${name}=${value}; Path=/; HttpOnly; SameSite=Lax`;
@@ -15,12 +16,28 @@ function getCookie(req, name) {
 }
 
 module.exports = (req, res) => {
-  console.log('REQ.URL:', req.url);
-  if (req.url === '/currently-playing') {
+  // Vercel puts the catch-all param in the query
+  const parsed = url.parse(req.url, true);
+  const subroute = parsed.query['spotify-proxy'];
+
+  console.log('SUBROUTE:', subroute);
+
+  if (subroute === 'currently-playing') {
     res.statusCode = 200;
     res.end('Subroute works!');
     return;
   }
+  if (subroute === 'login') {
+    res.statusCode = 200;
+    res.end('Login works!');
+    return;
+  }
+  if (subroute === 'callback') {
+    res.statusCode = 200;
+    res.end('Callback works!');
+    return;
+  }
+
   res.statusCode = 200;
   res.end('Spotify proxy root works!');
 }; 
