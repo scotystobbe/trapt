@@ -209,9 +209,9 @@ export default function NowPlaying() {
         <div className="fixed left-1/2 bottom-4 transform -translate-x-1/2 bg-[#27272a] rounded-xl shadow-lg p-2 flex flex-col items-center z-[100] w-[320px] max-w-full min-h-[64px]" style={{ pointerEvents: 'auto' }}>
           <FaHistory className="absolute top-2 right-3 text-gray-400" size={18} title="Previous Song" />
           <div className="flex flex-col flex-1 justify-center w-full items-center">
-            <div className="font-bold text-white text-base truncate leading-tight text-center w-full">{prevDbSong.title}</div>
+            <div className="font-bold text-white text-base leading-tight text-center w-full pr-8 truncate" style={{maxWidth: 'calc(100% - 2.5rem)'}}>{prevDbSong.title}</div>
             <div className="mt-2 text-xs text-gray-300 truncate leading-tight text-center w-full">{prevDbSong.artist}</div>
-            <div className="mt-1 mb-0 flex justify-center w-full">
+            <div className="mt-1 mb-[-4px] flex justify-center w-full">
               <EditableStarRating
                 rating={typeof prevDbSong.rating === 'number' ? prevDbSong.rating : 0}
                 onRatingChange={async (newRating) => {
