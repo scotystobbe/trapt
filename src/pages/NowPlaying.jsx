@@ -207,25 +207,10 @@ export default function NowPlaying() {
       {/* Previous Song Card */}
       {prevDbSong && prevTrack && !editingNotes && (
         <div className="fixed left-1/2 bottom-4 transform -translate-x-1/2 bg-[#27272a] rounded-xl shadow-lg p-2 flex flex-col items-center z-[100] w-[320px] max-w-full min-h-[64px]" style={{ pointerEvents: 'auto' }}>
-          <FaHistory className="absolute top-2 right-3 text-gray-400" size={18} title="Previous Song" />
-          <div className="flex flex-col flex-1 justify-center w-full items-center">
-            <div className="font-bold text-white text-base leading-tight text-center w-full pr-8 truncate" style={{maxWidth: 'calc(100% - 2.5rem)'}}>{prevDbSong.title}</div>
-            <div className="mt-2 text-xs text-gray-300 truncate leading-tight text-center w-full">{prevDbSong.artist}</div>
-            <div className="mt-1 mb-[-4px] flex justify-center w-full">
-              <EditableStarRating
-                rating={typeof prevDbSong.rating === 'number' ? prevDbSong.rating : 0}
-                onRatingChange={async (newRating) => {
-                  setPrevDbSong({ ...prevDbSong, rating: newRating });
-                  await fetch('/api/songs', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: prevDbSong.id, rating: newRating }),
-                  });
-                }}
-                size={40}
-                nightMode={nightMode}
-                emptyColor="#18181b"
-              />
+          <div className="relative w-full flex flex-col flex-1 justify-center items-center">
+            <FaHistory className="absolute top-0 right-0 text-gray-400" size={18} title="Previous Song" />
+            <div className="flex justify-center w-full">
+              <span className="font-bold text-white text-base leading-tight text-center truncate" style={{maxWidth: 'calc(100% - 2.5rem)'}}>{prevDbSong.title}</span>
             </div>
           </div>
         </div>
