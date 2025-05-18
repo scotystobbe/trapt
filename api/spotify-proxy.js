@@ -15,6 +15,7 @@ function getCookie(req, name) {
 }
 
 module.exports = (req, res) => {
+  console.log('REQ.URL:', req.url);
   if (req.url === '/currently-playing') {
     res.statusCode = 200;
     res.end('Subroute works!');
