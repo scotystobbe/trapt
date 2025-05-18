@@ -5,7 +5,7 @@
       "destination": "/api/test/[...catchall].js"
     },
     {
-      "source": "/api/(.*)",
+      "source": "/api/spotify-proxy/(.*)",
       "destination": "/api/[...spotify-proxy].js?proxyPath=$1"
     }
   ]
