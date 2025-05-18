@@ -157,7 +157,6 @@ export default function NowPlaying() {
               {dbSong.artworkUrl && (
                 <img src={dbSong.artworkUrl} alt={dbSong.title} className={"w-56 h-56 rounded-2xl object-cover shadow-lg " + dimClass} />
               )}
-              <FaSpotify className={"absolute bottom-3 left-3 text-green-500 opacity-50 w-12 h-12 pointer-events-none " + dimClass} />
             </div>
             <h2 className="text-4xl font-bold mb-2 text-center text-white">{dbSong.title}</h2>
             <p className="text-3xl mb-1 text-center text-white">{dbSong.artist}</p>
@@ -173,7 +172,7 @@ export default function NowPlaying() {
                   <textarea
                     value={notes}
                     onChange={e => setNotes(e.target.value)}
-                    className={"w-full p-2 rounded bg-[#27272a] border border-[#3f3f46] text-white placeholder-gray-500 focus:ring-0 focus:border-[#3f3f46] " + textClass}
+                    className={"w-full p-2 rounded bg-[#27272a] border border-[#3f3f46] text-white placeholder-gray-500 focus:ring-0 focus:border-[#3f3f46] focus:outline-none caret-white selection:bg-[#3f3f46] selection:text-white autofill:bg-[#27272a] autofill:text-white " + textClass}
                     autoFocus
                   />
                   <button
@@ -195,7 +194,6 @@ export default function NowPlaying() {
               {track.album.images?.[0]?.url && (
                 <img src={track.album.images[0].url} alt={track.name} className={"w-72 h-72 rounded-2xl object-cover shadow-lg " + dimClass} />
               )}
-              <FaSpotify className={"absolute bottom-3 left-3 text-green-500 opacity-50 w-12 h-12 pointer-events-none " + dimClass} />
             </div>
             <h3 className={"text-3xl font-bold mb-2 text-center " + textClass}>{track.name}</h3>
             <p className={"text-2xl mb-1 text-center " + textClass}>{track.artists.map(a => a.name).join(', ')}</p>
