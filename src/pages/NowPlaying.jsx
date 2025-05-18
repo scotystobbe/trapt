@@ -1,51 +1,53 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import LogoHeader from '../components/LogoHeader';
 import HamburgerMenu from '../components/HamburgerMenu';
 import SongCard from '../components/SongCard';
 
 export default function NowPlaying() {
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [track, setTrack] = useState(null);
   const [dbSong, setDbSong] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const lastTrackId = useRef(null);
 
   // Helper to check auth and fetch currently playing
-  const fetchCurrentlyPlaying = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    setDbSong(null);
+  const fetchCurrentlyPlaying = useCallback(async (isInitial = false) => {
     try {
       const res = await fetch('/api/spotify-proxy/currently-playing');
       if (res.status === 401) {
         setIsAuthenticated(false);
-        setTrack(null);
-        setLoading(false);
+        if (isInitial) setInitialLoading(false);
         return;
       }
       setIsAuthenticated(true);
       const data = await res.json();
       if (!data || data.playing === false || !data.item) {
-        setTrack(null);
-        setLoading(false);
+        if (isInitial) setTrack(null);
+        if (isInitial) setDbSong(null);
+        if (isInitial) setInitialLoading(false);
         return;
       }
-      setTrack(data.item);
-      // Try to match with DB by spotifyLink
-      const songRes = await fetch('/api/songs');
-      const songs = await songRes.json();
-      const match = songs.find(s => s.spotifyLink && s.spotifyLink.includes(data.item.id));
-      setDbSong(match || null);
+      // Only update if the track has changed
+      if (lastTrackId.current !== data.item.id) {
+        setTrack(data.item);
+        lastTrackId.current = data.item.id;
+        // Try to match with DB by spotifyLink
+        const songRes = await fetch('/api/songs');
+        const songs = await songRes.json();
+        const match = songs.find(s => s.spotifyLink && s.spotifyLink.includes(data.item.id));
+        setDbSong(match || null);
+      }
+      if (isInitial) setInitialLoading(false);
     } catch (err) {
       setError('Failed to fetch currently playing track.');
-    } finally {
-      setLoading(false);
+      if (isInitial) setInitialLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchCurrentlyPlaying();
-    const interval = setInterval(fetchCurrentlyPlaying, 5000);
+    fetchCurrentlyPlaying(true);
+    const interval = setInterval(() => fetchCurrentlyPlaying(false), 5000);
     return () => clearInterval(interval);
   }, [fetchCurrentlyPlaying]);
 
@@ -61,7 +63,7 @@ export default function NowPlaying() {
       <div className="max-w-2xl mx-auto w-full p-4 flex flex-col items-center justify-center min-h-[70vh]">
         <div className="bg-green-900 rounded-2xl p-8 shadow-lg w-full flex flex-col items-center">
           <h2 className="text-3xl font-bold text-white mb-4">Now Playing</h2>
-          {loading ? (
+          {initialLoading ? (
             <p className="text-gray-300">Loading...</p>
           ) : !isAuthenticated ? (
             <button
