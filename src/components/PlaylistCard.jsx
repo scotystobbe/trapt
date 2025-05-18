@@ -3,13 +3,13 @@ import { Link } from 'react-router-dom';
 
 export default function PlaylistCard({ playlist }) {
   return (
-    <Link to={`/playlist/${playlist.id}`} className="block bg-gray-800 p-4 rounded-xl hover:bg-gray-700 transition">
+    <Link to={`/browse/playlist/${playlist.id}`} className="block" style={{ backgroundColor: '#27272a', borderRadius: '0.75rem', padding: '1rem', transition: 'background 0.2s' }}>
       {playlist.artworkUrl ? (
         <img src={playlist.artworkUrl} alt={playlist.name} className="aspect-square w-full rounded-md mb-2 object-cover" />
       ) : (
-        <div className="aspect-square bg-gray-700 rounded-md mb-2"></div>
+        <div style={{ backgroundColor: '#3f3f46' }} className="aspect-square rounded-md mb-2"></div>
       )}
-      <h2 className="text-lg font-semibold">{playlist.name}</h2>
+      <h2 className="text-lg font-semibold text-white">{playlist.name}</h2>
     </Link>
   );
 }

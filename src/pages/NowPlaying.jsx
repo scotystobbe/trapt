@@ -3,10 +3,11 @@ import LogoHeader from '../components/LogoHeader';
 import HamburgerMenu from '../components/HamburgerMenu';
 import { FaSpotify, FaStar, FaRegEdit } from 'react-icons/fa';
 import { useNightMode } from '../App';
+import Skeleton from '../components/Skeleton';
 
-function EditableStarRating({ rating, onRatingChange, size = 40, nightMode }) {
+function EditableStarRating({ rating, onRatingChange, size = 56, nightMode }) {
   return (
-    <div className="flex gap-1 mt-2 mb-4">
+    <div className="flex gap-2 mt-2 mb-4 w-full max-w-lg justify-center sm:gap-1">
       {[1, 2, 3, 4, 5].map((star) => (
         <FaStar
           key={star}
@@ -123,13 +124,24 @@ export default function NowPlaying() {
   const textClass = nightMode ? 'text-red-800' : '';
 
   return (
-    <div className={"bg-gray-900 min-h-screen " + (nightMode ? 'night-mode' : '')}>
+    <div style={{ backgroundColor: '#18181b' }} className={"min-h-screen " + (nightMode ? 'night-mode' : '')}>
       <LogoHeader logoClassName={dimClass}>
         <HamburgerMenu className={dimClass} />
       </LogoHeader>
       <div className="max-w-2xl mx-auto w-full p-4 flex flex-col items-center pt-8">
         {initialLoading ? (
-          <p className={"text-gray-300 " + textClass}>Loading...</p>
+          <div className="flex flex-col items-center w-full">
+            <Skeleton className="w-72 h-72 mb-8" />
+            <Skeleton className="w-48 h-8 mb-2" />
+            <Skeleton className="w-32 h-6 mb-1" />
+            <Skeleton className="w-40 h-5 mb-4" />
+            <div className="flex gap-2 mb-4">
+              {[...Array(5)].map((_, i) => (
+                <Skeleton key={i} className="w-10 h-10 rounded-full" />
+              ))}
+            </div>
+            <Skeleton className="w-full max-w-lg h-16" />
+          </div>
         ) : !isAuthenticated ? (
           <button
             onClick={handleConnect}
@@ -150,14 +162,19 @@ export default function NowPlaying() {
             <h2 className={"text-3xl font-bold mb-2 text-center " + textClass}>{dbSong.title}</h2>
             <p className={"text-2xl mb-1 text-center " + textClass}>{dbSong.artist}</p>
             <p className={"text-lg mb-2 text-center " + (nightMode ? 'text-red-900' : 'text-gray-500')}>{dbSong.album || track?.album?.name}</p>
-            <EditableStarRating rating={dbSong.rating} onRatingChange={handleRatingChange} size={40} nightMode={nightMode} />
-            <div className={"bg-gray-800 rounded-lg p-4 w-full max-w-lg mt-2 min-h-[60px] text-left " + textClass}>
+            <EditableStarRating rating={dbSong.rating} onRatingChange={handleRatingChange} size={72} nightMode={nightMode} />
+            <div
+              className={"bg-gray-800 rounded-lg p-4 w-full max-w-lg mt-2 min-h-[60px] text-left " + textClass}
+              onClick={() => !editingNotes && setEditingNotes(true)}
+              style={{ cursor: editingNotes ? 'auto' : 'text' }}
+            >
               {editingNotes ? (
                 <div className="flex flex-col gap-2">
                   <textarea
                     value={notes}
                     onChange={e => setNotes(e.target.value)}
                     className={"w-full p-2 rounded bg-gray-900 border border-gray-700 " + textClass}
+                    autoFocus
                   />
                   <button
                     onClick={handleNoteSave}
@@ -166,11 +183,8 @@ export default function NowPlaying() {
                   >{saving ? 'Saving...' : 'Save'}</button>
                 </div>
               ) : (
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between w-full">
                   <p className={"whitespace-pre-wrap flex-1 " + textClass}>{dbSong.notes || <em className="text-gray-400">No notes</em>}</p>
-                  <button onClick={() => setEditingNotes(true)} className={"ml-2 text-gray-400 hover:text-white " + dimClass}>
-                    <FaRegEdit />
-                  </button>
                 </div>
               )}
             </div>

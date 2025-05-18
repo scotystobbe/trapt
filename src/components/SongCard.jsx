@@ -35,8 +35,8 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
   };
 
   return (
-    <div className="bg-gray-800 p-4 rounded-xl flex flex-row gap-4 items-start">
-      <div className="flex-shrink-0 w-24 h-24 bg-gray-700 rounded-md overflow-hidden flex items-center justify-center">
+    <div style={{ backgroundColor: '#27272a' }} className="p-4 rounded-xl flex flex-row gap-4 items-start">
+      <div className="flex-shrink-0 w-24 h-24 rounded-md overflow-hidden flex items-center justify-center" style={{ backgroundColor: '#3f3f46' }}>
         {song.artworkUrl ? (
           <img src={song.artworkUrl} alt={song.title} className="object-cover w-full h-full" />
         ) : (
@@ -46,7 +46,7 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
       <div className="flex-1 flex flex-col justify-between w-full">
         <div className="flex flex-col sm:flex-row sm:items-center gap-2">
           <div className="flex-1">
-            <h2 className="text-lg font-semibold">{song.title}</h2>
+            <h2 className="text-lg font-semibold text-white">{song.title}</h2>
             <p className="text-sm text-gray-300">{song.artist}</p>
             <p className="text-sm text-gray-400 italic">{playlistName}</p>
           </div>

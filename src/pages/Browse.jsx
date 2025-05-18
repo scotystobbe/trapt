@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import PlaylistCard from '../components/PlaylistCard';
 import HamburgerMenu from '../components/HamburgerMenu';
 import LogoHeader from '../components/LogoHeader';
+import Skeleton from '../components/Skeleton';
 
 export default function Browse() {
   const [playlists, setPlaylists] = useState([]);
@@ -20,7 +21,7 @@ export default function Browse() {
   const sortedPlaylists = [...filteredPlaylists].sort((a, b) => b.name.localeCompare(a.name));
 
   return (
-    <div className="bg-gray-900 min-h-screen">
+    <div style={{ backgroundColor: '#18181b' }} className="min-h-screen">
       <LogoHeader>
         <HamburgerMenu />
       </LogoHeader>
@@ -31,7 +32,7 @@ export default function Browse() {
             placeholder="Search playlists..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full p-2 rounded bg-gray-800 text-white border border-gray-700 pr-8"
+            className="w-full p-2 rounded" style={{ backgroundColor: '#27272a', color: 'white', border: '1px solid #3f3f46' }}
           />
           {query && (
             <button
@@ -45,9 +46,18 @@ export default function Browse() {
           )}
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {sortedPlaylists.map(playlist => (
-            <PlaylistCard key={playlist.id} playlist={playlist} />
-          ))}
+          {playlists.length === 0 ? (
+            [...Array(6)].map((_, i) => (
+              <div key={i} style={{ backgroundColor: '#27272a' }} className="p-4 rounded-xl">
+                <Skeleton className="aspect-square w-full rounded-md mb-2" />
+                <Skeleton className="h-6 w-3/4" />
+              </div>
+            ))
+          ) : (
+            sortedPlaylists.map(playlist => (
+              <PlaylistCard key={playlist.id} playlist={playlist} />
+            ))
+          )}
         </div>
       </div>
     </div>

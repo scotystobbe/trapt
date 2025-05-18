@@ -38,9 +38,8 @@ function NightModeToggle() {
 export default function App() {
   return (
     <NightModeProvider>
-      <NightModeToggle />
       <NightModeBodyWrapper>
-        <div className="dark bg-gray-900 text-white min-h-screen">
+        <div className="dark" style={{ backgroundColor: '#18181b' }}>
           <Router>
             <Routes>
               <Route path="/" element={<Home />} />

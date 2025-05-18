@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import HamburgerMenu from '../components/HamburgerMenu';
 import LogoHeader from '../components/LogoHeader';
 import { FaTrash } from 'react-icons/fa';
+import Skeleton from '../components/Skeleton';
 
 function extractPlaylistId(url) {
   // Handles URLs like https://open.spotify.com/playlist/{id} or spotify:playlist:{id}
@@ -130,7 +131,7 @@ export default function Admin() {
   }, [importResult]);
 
   return (
-    <div className="bg-gray-900 min-h-screen">
+    <div style={{ backgroundColor: '#18181b' }} className="min-h-screen">
       <LogoHeader>
         <HamburgerMenu />
       </LogoHeader>
@@ -142,17 +143,24 @@ export default function Admin() {
             placeholder="Paste Spotify playlist URL here..."
             value={playlistUrl}
             onChange={e => setPlaylistUrl(e.target.value)}
-            className="p-2 rounded bg-gray-800 text-white border border-gray-700"
+            className="p-2 rounded" style={{ backgroundColor: '#27272a', color: 'white', border: '1px solid #3f3f46' }}
           />
           <button
             type="submit"
             className="px-4 py-2 bg-green-600 rounded text-white hover:bg-green-500"
             disabled={loading || !playlistUrl.trim()}
           >
-            {loading ? 'Fetching...' : 'Fetch Playlist'}
+            {loading ? <Skeleton className="w-24 h-6" /> : 'Fetch Playlist'}
           </button>
         </form>
         {error && <div className="text-red-500 mb-4">{error}</div>}
+        {loading && (
+          <div className="mt-4 space-y-2">
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="w-full h-6 rounded" />
+            ))}
+          </div>
+        )}
         {tracks.length > 0 && (
           <div>
             <h2 className="text-lg font-semibold mb-2">Tracks to Import from <span className='italic'>{playlistName}</span></h2>
@@ -164,15 +172,15 @@ export default function Admin() {
             {existingPlaylist ? (
               <div className="flex gap-4 mt-4">
                 <button className="px-4 py-2 bg-blue-600 rounded text-white hover:bg-blue-500" onClick={() => handleImport(false)} disabled={importing}>
-                  {importing ? 'Updating...' : 'Update Playlist'}
+                  {importing ? <Skeleton className="w-20 h-6" /> : 'Update Playlist'}
                 </button>
                 <button className="px-4 py-2 bg-red-600 rounded text-white hover:bg-red-500" onClick={() => handleImport(true)} disabled={importing}>
-                  {importing ? 'Overwriting...' : 'Overwrite Playlist'}
+                  {importing ? <Skeleton className="w-24 h-6" /> : 'Overwrite Playlist'}
                 </button>
               </div>
             ) : (
               <button className="mt-4 px-4 py-2 bg-blue-600 rounded text-white hover:bg-blue-500" onClick={() => handleImport(false)} disabled={importing}>
-                {importing ? 'Importing...' : 'Import to Database'}
+                {importing ? <Skeleton className="w-28 h-6" /> : 'Import to Database'}
               </button>
             )}
           </div>

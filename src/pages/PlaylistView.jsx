@@ -1,9 +1,9 @@
-import React from "react";
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { useEffect, useState } from 'react';
 import SongCard from '../components/SongCard';
 import HamburgerMenu from '../components/HamburgerMenu';
 import LogoHeader from '../components/LogoHeader';
+import Skeleton from '../components/Skeleton';
 
 export default function PlaylistView() {
   const { id } = useParams();
@@ -11,6 +11,8 @@ export default function PlaylistView() {
   const [sort, setSort] = useState('sortOrder');
   const [search, setSearch] = useState('');
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
+  const sortButtonRef = useRef(null);
+  const sortDropdownRef = useRef(null);
 
   useEffect(() => {
     fetch('/api/playlists')
@@ -21,6 +23,22 @@ export default function PlaylistView() {
       });
   }, [id]);
 
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!sortDropdownOpen) return;
+    function handleClick(e) {
+      if (
+        sortButtonRef.current && sortButtonRef.current.contains(e.target)
+      ) return;
+      if (
+        sortDropdownRef.current && sortDropdownRef.current.contains(e.target)
+      ) return;
+      setSortDropdownOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [sortDropdownOpen]);
+
   const refreshPlaylist = () => {
     fetch('/api/playlists')
       .then(res => res.json())
@@ -30,7 +48,44 @@ export default function PlaylistView() {
       });
   };
 
-  if (!playlist) return <div className="p-4">Loading...</div>;
+  if (!playlist) return (
+    <div style={{ backgroundColor: '#18181b' }} className="min-h-screen">
+      <LogoHeader>
+        <HamburgerMenu />
+      </LogoHeader>
+      <div className="max-w-4xl mx-auto w-full p-4 space-y-4">
+        <div className="flex flex-col items-center gap-3 mb-4">
+          <Skeleton className="w-32 h-32 rounded-xl mb-2" />
+          <Skeleton className="w-56 h-7" />
+        </div>
+        <div className="space-y-4">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} style={{ backgroundColor: '#27272a' }} className="p-4 rounded-xl flex flex-row gap-4 items-start">
+              <Skeleton className="flex-shrink-0 w-24 h-24 rounded-md" />
+              <div className="flex-1 flex flex-col justify-between w-full">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <div className="flex-1">
+                    <Skeleton className="h-6 w-32 mb-2" />
+                    <Skeleton className="h-4 w-24 mb-1" />
+                    <Skeleton className="h-4 w-20" />
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-col gap-2">
+                  <div className="flex items-center gap-2 mb-2">
+                    {[...Array(5)].map((_, j) => (
+                      <Skeleton key={j} className="w-8 h-8 rounded-full" />
+                    ))}
+                  </div>
+                  <Skeleton className="h-5 w-full max-w-xs mb-1" />
+                  <Skeleton className="h-4 w-20" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 
   const sortedSongs = [...playlist.songs]
     .filter(song => song.title.toLowerCase().includes(search.toLowerCase()) || song.artist.toLowerCase().includes(search.toLowerCase()))
@@ -41,7 +96,7 @@ export default function PlaylistView() {
     });
 
   return (
-    <div className="bg-gray-900 min-h-screen">
+    <div style={{ backgroundColor: '#18181b' }} className="min-h-screen">
       <LogoHeader>
         <HamburgerMenu />
       </LogoHeader>
@@ -66,7 +121,7 @@ export default function PlaylistView() {
                 placeholder="Search songs..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="w-full p-2 rounded bg-gray-800 text-white border border-gray-700 pr-8"
+                className="w-full p-2 rounded" style={{ backgroundColor: '#27272a', color: 'white', border: '1px solid #3f3f46' }}
               />
               {search && (
                 <button
@@ -81,25 +136,33 @@ export default function PlaylistView() {
             </div>
             <div className="relative flex items-center">
               <button
+                ref={sortButtonRef}
                 type="button"
-                className="flex items-center gap-1 px-2 py-1 rounded bg-gray-800 border border-gray-700 text-gray-300 hover:bg-gray-700 focus:outline-none"
+                className="flex items-center gap-1 px-2 py-1 rounded text-gray-300 focus:outline-none"
+                style={{ backgroundColor: '#232326', border: '1px solid #3f3f46' }}
+                onMouseOver={e => e.currentTarget.style.backgroundColor = '#27272a'}
+                onMouseOut={e => e.currentTarget.style.backgroundColor = '#232326'}
                 onClick={() => setSortDropdownOpen((open) => !open)}
                 title="Sort"
               >
                 <img src="/sort_icon.svg" alt="Sort" className="w-5 h-5" style={{ filter: 'invert(80%)' }} />
               </button>
               {sortDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-36 bg-gray-800 border border-gray-700 rounded shadow-lg z-10">
+                <div
+                  ref={sortDropdownRef}
+                  className="absolute right-0 top-full mt-2 w-36 rounded shadow-lg z-10"
+                  style={{ backgroundColor: '#27272a', border: '1px solid #3f3f46' }}
+                >
                   <button
-                    className={`block w-full text-left px-4 py-2 text-gray-200 hover:bg-gray-700 ${sort === 'sortOrder' ? 'font-bold' : ''}`}
+                    className={`block w-full text-left px-4 py-2 text-gray-200 hover:bg-[#3f3f46] ${sort === 'sortOrder' ? 'font-bold' : ''}`}
                     onClick={() => { setSort('sortOrder'); setSortDropdownOpen(false); }}
-                  >Sort Order</button>
+                  >Original Order</button>
                   <button
-                    className={`block w-full text-left px-4 py-2 text-gray-200 hover:bg-gray-700 ${sort === 'title' ? 'font-bold' : ''}`}
+                    className={`block w-full text-left px-4 py-2 text-gray-200 hover:bg-[#3f3f46] ${sort === 'title' ? 'font-bold' : ''}`}
                     onClick={() => { setSort('title'); setSortDropdownOpen(false); }}
                   >Title</button>
                   <button
-                    className={`block w-full text-left px-4 py-2 text-gray-200 hover:bg-gray-700 ${sort === 'artist' ? 'font-bold' : ''}`}
+                    className={`block w-full text-left px-4 py-2 text-gray-200 hover:bg-[#3f3f46] ${sort === 'artist' ? 'font-bold' : ''}`}
                     onClick={() => { setSort('artist'); setSortDropdownOpen(false); }}
                   >Artist</button>
                 </div>
