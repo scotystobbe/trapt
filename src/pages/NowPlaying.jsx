@@ -184,7 +184,7 @@ export default function NowPlaying() {
             <EditableStarRating rating={dbSong.rating} onRatingChange={handleRatingChange} size={72} nightMode={nightMode} emptyColor={nightMode ? '#18181b' : undefined} />
             <div
               className={"rounded-lg p-4 w-full max-w-lg mt-2 min-h-[60px] text-left " + textClass}
-              style={{ backgroundColor: nightMode ? '#18181b' : '#27272a', cursor: editingNotes ? 'auto' : 'text' }}
+              style={{ backgroundColor: nightMode ? '#141416' : '#27272a', cursor: editingNotes ? 'auto' : 'text' }}
               onClick={() => !editingNotes && setEditingNotes(true)}
             >
               {editingNotes ? (
@@ -203,7 +203,7 @@ export default function NowPlaying() {
                 </div>
               ) : (
                 <div className="flex items-center justify-between w-full">
-                  <p className={"whitespace-pre-wrap flex-1 " + (dbSong.notes ? 'text-gray-400' : textClass)}>{dbSong.notes || <em className="text-gray-400">No notes</em>}</p>
+                  <p className={"whitespace-pre-wrap flex-1 " + (dbSong.notes ? (nightMode ? 'text-red-800' : 'text-gray-400') : textClass)}>{dbSong.notes || <em className="text-gray-400">No notes</em>}</p>
                 </div>
               )}
             </div>
