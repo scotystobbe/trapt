@@ -2,6 +2,8 @@ import React from "react";
 import { useEffect, useState } from 'react';
 import PlaylistCard from '../components/PlaylistCard';
 import SongCard from '../components/SongCard';
+import { Link } from 'react-router-dom';
+import HamburgerMenu from '../components/HamburgerMenu';
 
 export default function Home() {
   const [playlists, setPlaylists] = useState([]);
@@ -13,6 +15,12 @@ export default function Home() {
       .then(data => setPlaylists(data));
   }, []);
 
+  const refreshPlaylists = () => {
+    fetch('/api/playlists')
+      .then(res => res.json())
+      .then(data => setPlaylists(data));
+  };
+
   const allSongs = playlists.flatMap(p => p.songs.map(s => ({ ...s, playlistName: p.name })));
   const filteredSongs = allSongs.filter(song =>
     song.title.toLowerCase().includes(query.toLowerCase()) ||
@@ -21,6 +29,9 @@ export default function Home() {
 
   return (
     <div className="p-4 space-y-6">
+      <div className="flex justify-end">
+        <HamburgerMenu />
+      </div>
       <h1 className="text-3xl font-bold text-center">My Playlists</h1>
 
       <input
@@ -35,7 +46,7 @@ export default function Home() {
         <div className="space-y-4">
           {filteredSongs.length === 0 && <p className="text-gray-400">No matching songs found.</p>}
           {filteredSongs.map(song => (
-            <SongCard key={song.id} song={song} playlistName={song.playlistName} />
+            <SongCard key={song.id} song={song} playlistName={song.playlistName} onSongUpdate={refreshPlaylists} />
           ))}
         </div>
       ) : (

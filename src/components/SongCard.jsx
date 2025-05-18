@@ -3,25 +3,51 @@ import { useState } from 'react';
 import StarRating from './StarRating';
 import { FaRegEdit } from 'react-icons/fa';
 
-export default function SongCard({ song, playlistName }) {
+export default function SongCard({ song, playlistName, onSongUpdate }) {
   const [rating, setRating] = useState(song.rating);
   const [editing, setEditing] = useState(false);
   const [notes, setNotes] = useState(song.notes || '');
+  const [error, setError] = useState('');
+
+  const saveSongUpdate = async (fields) => {
+    setError('');
+    try {
+      const res = await fetch('/api/songs', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: song.id, ...fields }),
+      });
+      if (!res.ok) throw new Error('Failed to save');
+      if (onSongUpdate) onSongUpdate();
+    } catch (err) {
+      setError('Could not save changes.');
+    }
+  };
+
+  const handleRatingChange = (newRating) => {
+    setRating(newRating);
+    saveSongUpdate({ rating: newRating });
+  };
 
   const handleNoteSave = () => {
     setEditing(false);
+    saveSongUpdate({ notes });
   };
 
   return (
     <div className="bg-gray-800 p-4 rounded-xl flex flex-col sm:flex-row gap-4">
-      <div className="w-full sm:w-32 h-32 bg-gray-700 rounded-md flex-shrink-0"></div>
+      <div className="w-full sm:w-32 h-32 bg-gray-700 rounded-md flex-shrink-0">
+        {song.artworkUrl && (
+          <img src={song.artworkUrl} alt="Album Art" className="w-full h-full object-cover rounded-md" />
+        )}
+      </div>
       <div className="flex-1">
         <h2 className="text-lg font-semibold">{song.title}</h2>
         <p className="text-sm text-gray-300">{song.artist}</p>
         <p className="text-sm text-gray-400 italic">{playlistName}</p>
 
         <div className="mt-2">
-          <StarRating rating={rating} onRatingChange={setRating} />
+          <StarRating rating={rating} onRatingChange={handleRatingChange} />
         </div>
 
         <div className="mt-3 text-sm text-gray-300">
@@ -46,6 +72,8 @@ export default function SongCard({ song, playlistName }) {
             </div>
           )}
         </div>
+
+        {error && <div className="text-red-500 text-xs mt-1">{error}</div>}
       </div>
     </div>
   );

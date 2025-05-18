@@ -27,8 +27,9 @@ model Song {
   album       String?
   playlist    Playlist @relation(fields: [playlistId], references: [id])
   playlistId  Int
-  rating      Int
+  rating      Int?
   sortOrder   Int
   notes       String?
   spotifyLink String?
+  artworkUrl  String?
 }

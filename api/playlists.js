@@ -4,6 +4,11 @@ const prisma = new PrismaClient();
 module.exports = async (req, res) => {
   if (req.method === 'GET') {
     try {
+      // If ?admin=1, return all playlists (id and name only)
+      if (req.query.admin === '1') {
+        const playlists = await prisma.playlist.findMany({ select: { id: true, name: true } });
+        return res.status(200).json(playlists);
+      }
       const playlists = await prisma.playlist.findMany({
         include: { songs: true },
         orderBy: { name: 'asc' },
@@ -39,6 +44,9 @@ module.exports = async (req, res) => {
   } else if (req.method === 'DELETE') {
     try {
       const { id } = req.body;
+      // Delete all songs in the playlist first
+      await prisma.song.deleteMany({ where: { playlistId: id } });
+      // Then delete the playlist
       await prisma.playlist.delete({ where: { id } });
       res.status(204).end();
     } catch (error) {

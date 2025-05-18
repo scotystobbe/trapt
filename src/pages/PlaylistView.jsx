@@ -2,6 +2,7 @@ import React from "react";
 import { useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import SongCard from '../components/SongCard';
+import HamburgerMenu from '../components/HamburgerMenu';
 
 export default function PlaylistView() {
   const { id } = useParams();
@@ -18,6 +19,15 @@ export default function PlaylistView() {
       });
   }, [id]);
 
+  const refreshPlaylist = () => {
+    fetch('/api/playlists')
+      .then(res => res.json())
+      .then(data => {
+        const p = data.find(p => p.id === parseInt(id));
+        setPlaylist(p);
+      });
+  };
+
   if (!playlist) return <div className="p-4">Loading...</div>;
 
   const sortedSongs = [...playlist.songs]
@@ -30,7 +40,10 @@ export default function PlaylistView() {
 
   return (
     <div className="p-4 space-y-4">
-      <h1 className="text-2xl font-bold text-center">{playlist.name}</h1>
+      <div className="flex justify-end mb-2">
+        <HamburgerMenu />
+      </div>
+      <h1 className="text-2xl font-bold text-center">{playlist.name} <span className="text-base font-normal text-gray-400">({playlist.songs.length} tracks)</span></h1>
       <div className="flex flex-col sm:flex-row items-center gap-2 justify-between">
         <input
           type="text"
@@ -51,7 +64,7 @@ export default function PlaylistView() {
       </div>
       <div className="space-y-4">
         {sortedSongs.map(song => (
-          <SongCard key={song.id} song={song} playlistName={playlist.name} />
+          <SongCard key={song.id} song={song} playlistName={playlist.name} onSongUpdate={refreshPlaylist} />
         ))}
       </div>
     </div>
