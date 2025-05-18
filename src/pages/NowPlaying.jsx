@@ -141,7 +141,7 @@ export default function NowPlaying() {
             </div>
             <h2 className={"text-3xl font-bold mb-2 text-center " + textClass}>{dbSong.title}</h2>
             <p className={"text-xl mb-1 text-center " + textClass}>{dbSong.artist}</p>
-            <p className={"text-lg mb-2 text-center " + textClass}>{dbSong.playlist?.name}</p>
+            <p className={"text-lg mb-2 text-center " + textClass}>{dbSong.album || track?.album?.name}</p>
             <EditableStarRating rating={dbSong.rating} onRatingChange={handleRatingChange} size={40} nightMode={nightMode} />
             <div className={"bg-gray-800 rounded-lg p-4 w-full max-w-lg mt-2 min-h-[60px] text-left " + textClass}>
               {editingNotes ? (
