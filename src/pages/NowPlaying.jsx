@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import LogoHeader from '../components/LogoHeader';
 import HamburgerMenu from '../components/HamburgerMenu';
-import { FaSpotify, FaStar, FaRegEdit } from 'react-icons/fa';
+import { FaSpotify, FaStar, FaRegEdit, FaHistory } from 'react-icons/fa';
 import { useNightMode } from '../App';
 import Skeleton from '../components/Skeleton';
 
@@ -218,8 +218,8 @@ export default function NowPlaying() {
       </div>
       {/* Previous Song Card */}
       {prevDbSong && prevTrack && (
-        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-[#27272a] rounded-xl shadow-lg p-2 flex flex-col items-center z-50 w-[320px] max-w-full min-h-[64px] relative">
-          <span className="absolute top-2 right-3 inline-block align-middle text-gray-400 text-xs font-semibold px-2 py-0.5 rounded bg-[#18181b]">Previous Song</span>
+        <div className="fixed left-1/2 bottom-4 transform -translate-x-1/2 bg-[#27272a] rounded-xl shadow-lg p-2 flex flex-col items-center z-50 w-[320px] max-w-full min-h-[64px] relative">
+          <FaHistory className="absolute top-2 right-3 text-gray-400" size={18} title="Previous Song" />
           <div className="flex flex-col flex-1 justify-center w-full items-center">
             <div className="font-bold text-white text-base truncate leading-tight text-center w-full">{prevDbSong.title}</div>
             <div className="text-xs text-gray-300 truncate mb-1 leading-tight text-center w-full">{prevDbSong.artist}</div>
