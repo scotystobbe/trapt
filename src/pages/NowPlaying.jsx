@@ -21,7 +21,13 @@ function EditableStarRating({ rating, onRatingChange, size = 56, nightMode }) {
                 : 'text-[#27272a] cursor-pointer'
           }
           size={size}
-          onClick={() => onRatingChange(star)}
+          onClick={() => {
+            if (star === 1 && rating === 1) {
+              onRatingChange(null);
+            } else {
+              onRatingChange(star);
+            }
+          }}
         />
       ))}
     </div>
@@ -39,6 +45,8 @@ export default function NowPlaying() {
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const lastTrackId = useRef(null);
+  const [prevTrack, setPrevTrack] = useState(null);
+  const [prevDbSong, setPrevDbSong] = useState(null);
 
   // Helper to check auth and fetch currently playing
   const fetchCurrentlyPlaying = useCallback(async (isInitial = false) => {
@@ -59,6 +67,12 @@ export default function NowPlaying() {
       }
       // Only update if the track has changed
       if (lastTrackId.current !== data.item.id) {
+        if (editingNotes) {
+          // Don't update if editing notes
+          return;
+        }
+        setPrevTrack(track);
+        setPrevDbSong(dbSong);
         setTrack(data.item);
         lastTrackId.current = data.item.id;
         // Try to match with DB by spotifyLink
@@ -74,7 +88,7 @@ export default function NowPlaying() {
       setError('Failed to fetch currently playing track.');
       if (isInitial) setInitialLoading(false);
     }
-  }, []);
+  }, [editingNotes, track, dbSong]);
 
   useEffect(() => {
     fetchCurrentlyPlaying(true);
@@ -203,6 +217,46 @@ export default function NowPlaying() {
         )}
         {error && <div className={"text-red-400 mt-4 " + textClass}>{error}</div>}
       </div>
+      {/* Previous Song Card */}
+      {prevDbSong && prevTrack && (
+        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-[#23232a] rounded-xl shadow-lg p-3 flex items-center gap-4 z-50 w-[340px] max-w-full cursor-pointer" onClick={() => {
+          setTrack(prevTrack);
+          setDbSong(prevDbSong);
+          setNotes(prevDbSong.notes || '');
+          setEditingNotes(false);
+        }}>
+          {prevDbSong.artworkUrl && (
+            <img src={prevDbSong.artworkUrl} alt={prevDbSong.title} className="w-12 h-12 rounded object-cover" />
+          )}
+          <div className="flex-1">
+            <div className="font-bold text-white text-sm truncate">{prevDbSong.title}</div>
+            <div className="text-xs text-gray-300 truncate">{prevDbSong.artist}</div>
+            <EditableStarRating rating={prevDbSong.rating} onRatingChange={async (newRating) => {
+              setPrevDbSong({ ...prevDbSong, rating: newRating });
+              await fetch('/api/songs', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: prevDbSong.id, rating: newRating }),
+              });
+            }} size={24} nightMode={nightMode} />
+            <div className="mt-1">
+              <textarea
+                value={prevDbSong.notes || ''}
+                onChange={e => setPrevDbSong({ ...prevDbSong, notes: e.target.value })}
+                className="w-full p-1 rounded bg-[#27272a] border border-[#3f3f46] text-white text-xs"
+                placeholder="Notes..."
+                onBlur={async (e) => {
+                  await fetch('/api/songs', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: prevDbSong.id, notes: e.target.value }),
+                  });
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 

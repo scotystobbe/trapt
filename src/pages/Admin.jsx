@@ -136,7 +136,7 @@ export default function Admin() {
         <HamburgerMenu />
       </LogoHeader>
       <div className="max-w-4xl mx-auto w-full p-6">
-        <h1 className="text-2xl font-bold mb-4">Admin: Import Spotify Playlist</h1>
+        <h1 className="text-2xl font-bold mb-4 text-white">Admin: Import Spotify Playlist</h1>
         <form onSubmit={handleFetch} className="flex flex-col gap-4 mb-6">
           <input
             type="text"
@@ -163,7 +163,7 @@ export default function Admin() {
         )}
         {tracks.length > 0 && (
           <div>
-            <h2 className="text-lg font-semibold mb-2">Tracks to Import from <span className='italic'>{playlistName}</span></h2>
+            <h2 className="text-lg font-semibold mb-2 text-white">Tracks to Import from <span className='italic text-white'>{playlistName}</span></h2>
             <ul className="space-y-1 max-h-64 overflow-y-auto">
               {tracks.map((track, idx) => (
                 <li key={idx}>{track.title} - {track.artist}</li>
@@ -194,7 +194,7 @@ export default function Admin() {
           <div className="text-red-500 mt-4">Failed to import playlist.</div>
         )}
         <div className="mt-10">
-          <h2 className="text-lg font-bold mb-2">Manage Playlists</h2>
+          <h2 className="text-lg font-bold mb-2 text-white">Manage Playlists</h2>
           <ul className="space-y-2">
             {playlists.map(p => (
               <li key={p.id} className="flex items-center gap-4">
@@ -203,7 +203,7 @@ export default function Admin() {
                 ) : (
                   <div className="w-8 h-8 bg-gray-700 rounded mr-2" />
                 )}
-                <span>{p.name}</span>
+                <span className="text-white">{p.name}</span>
                 <button className="px-2 py-1 bg-blue-600 text-white rounded" onClick={async () => {
                   if (!p.spotifyLink) {
                     setError('No Spotify link available for this playlist.');
