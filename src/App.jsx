@@ -26,7 +26,7 @@ function NightModeToggle() {
   return (
     <button
       onClick={() => setNightMode((v) => !v)}
-      className="fixed top-4 right-4 z-50 bg-gray-800 bg-opacity-80 rounded-full p-3 shadow-lg border border-gray-700 hover:bg-gray-700 transition"
+      className="fixed top-4 left-4 z-50 bg-gray-800 bg-opacity-80 rounded-full p-3 shadow-lg border border-gray-700 hover:bg-gray-700 transition"
       title={nightMode ? 'Disable Night Mode' : 'Enable Night Mode'}
       aria-label="Toggle Night Mode"
     >
