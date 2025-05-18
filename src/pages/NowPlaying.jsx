@@ -219,21 +219,23 @@ export default function NowPlaying() {
       </div>
       {/* Previous Song Card */}
       {prevDbSong && prevTrack && (
-        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-[#27272a] rounded-xl shadow-lg p-3 flex items-center gap-4 z-50 w-[340px] max-w-full">
-          <div className="flex flex-col flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="inline-block align-middle text-gray-400 text-xs font-semibold px-2 py-0.5 rounded bg-[#23232a]">Previous Song</span>
+        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-[#232323] rounded-xl shadow-lg p-2 flex items-center gap-3 z-50 w-[320px] max-w-full min-h-[56px]">
+          <div className="flex flex-col flex-1 justify-center">
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="inline-block align-middle text-gray-400 text-xs font-semibold px-2 py-0.5 rounded bg-[#18181b]">Previous Song</span>
             </div>
-            <div className="font-bold text-white text-base truncate">{prevDbSong.title}</div>
-            <div className="text-xs text-gray-300 truncate mb-1">{prevDbSong.artist}</div>
-            <EditableStarRating rating={prevDbSong.rating} onRatingChange={async (newRating) => {
-              setPrevDbSong({ ...prevDbSong, rating: newRating });
-              await fetch('/api/songs', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: prevDbSong.id, rating: newRating }),
-              });
-            }} size={36} nightMode={nightMode} />
+            <div className="font-bold text-white text-base truncate leading-tight">{prevDbSong.title}</div>
+            <div className="text-xs text-gray-300 truncate mb-0.5 leading-tight">{prevDbSong.artist}</div>
+            <div className="mt-0.5">
+              <EditableStarRating rating={typeof prevDbSong.rating === 'number' ? prevDbSong.rating : 0} onRatingChange={async (newRating) => {
+                setPrevDbSong({ ...prevDbSong, rating: newRating });
+                await fetch('/api/songs', {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ id: prevDbSong.id, rating: newRating }),
+                });
+              }} size={32} nightMode={nightMode} />
+            </div>
           </div>
         </div>
       )}
