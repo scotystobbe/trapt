@@ -15,13 +15,12 @@ function getCookie(req, name) {
 }
 
 module.exports = async (req, res) => {
-
   const { pathname, searchParams } = new URL(req.url, `http://${req.headers.host}`);
 
   console.log('PATHNAME:', pathname);
 
   // 1. Login: /api/spotify-proxy/login
-  if (pathname.endsWith('/login')) {
+  if (pathname === '/login') {
     const scopes = [
       'user-read-currently-playing',
       'user-read-playback-state',
@@ -39,7 +38,7 @@ module.exports = async (req, res) => {
   }
 
   // 2. Callback: /api/spotify-proxy/callback
-  if (pathname.endsWith('/callback')) {
+  if (pathname === '/callback') {
     const code = searchParams.get('code');
     if (!code) {
       res.statusCode = 400;
@@ -78,7 +77,7 @@ module.exports = async (req, res) => {
   }
 
   // 3. Currently Playing: /api/spotify-proxy/currently-playing
-  if (pathname.endsWith('/currently-playing')) {
+  if (pathname === '/currently-playing') {
     let access_token = getCookie(req, 'spotify_access_token');
     let refresh_token = getCookie(req, 'spotify_refresh_token');
     let expires_at = parseInt(getCookie(req, 'spotify_expires_at'), 10);
