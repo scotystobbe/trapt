@@ -163,9 +163,9 @@ export default function NowPlaying() {
             <p className={"text-lg mb-2 text-center " + (nightMode ? 'text-red-900' : 'text-gray-500')}>{dbSong.album || track?.album?.name}</p>
             <EditableStarRating rating={dbSong.rating} onRatingChange={handleRatingChange} size={72} nightMode={nightMode} />
             <div
-              className={"bg-gray-800 rounded-lg p-4 w-full max-w-lg mt-2 min-h-[60px] text-left " + textClass}
+              className={"rounded-lg p-4 w-full max-w-lg mt-2 min-h-[60px] text-left " + textClass}
+              style={{ backgroundColor: '#27272a', cursor: editingNotes ? 'auto' : 'text' }}
               onClick={() => !editingNotes && setEditingNotes(true)}
-              style={{ cursor: editingNotes ? 'auto' : 'text' }}
             >
               {editingNotes ? (
                 <div className="flex flex-col gap-2">
