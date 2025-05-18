@@ -198,7 +198,7 @@ export default function NowPlaying() {
                 </div>
               ) : (
                 <div className="flex items-center justify-between w-full">
-                  <p className={"whitespace-pre-wrap flex-1 " + textClass}>{dbSong.notes || <em className="text-gray-400">No notes</em>}</p>
+                  <p className={"whitespace-pre-wrap flex-1 " + (dbSong.notes ? 'text-gray-400' : textClass)}>{dbSong.notes || <em className="text-gray-400">No notes</em>}</p>
                 </div>
               )}
             </div>
