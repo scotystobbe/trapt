@@ -212,9 +212,9 @@ export default function NowPlaying() {
           <div className="relative w-full flex flex-col flex-1 justify-center items-center">
             <FaHistory className="absolute top-0 right-0 text-gray-400" size={18} title="Previous Song" />
             <div className="flex justify-center w-full">
-              <span className="font-bold text-white text-base leading-tight text-center truncate" style={{maxWidth: 'calc(100% - 2.5rem)'}}>{prevDbSong.title}</span>
+              <span className="font-bold text-gray-400 text-base leading-tight text-center truncate" style={{maxWidth: 'calc(100% - 2.5rem)'}}>{prevDbSong.title}</span>
             </div>
-            <div className="mt-2 text-xs text-gray-300 truncate leading-tight text-center w-full">{prevDbSong.artist}</div>
+            <div className="mt-2 text-xs text-gray-500 truncate leading-tight text-center w-full">{prevDbSong.artist}</div>
             <div className="mt-1 mb-[-4px] flex justify-center w-full">
               <EditableStarRating
                 rating={typeof prevDbSong.rating === 'number' ? prevDbSong.rating : 0}
