@@ -205,13 +205,13 @@ export default function NowPlaying() {
         {error && <div className={"text-red-400 mt-4 " + textClass}>{error}</div>}
       </div>
       {/* Previous Song Card */}
-      {prevDbSong && prevTrack && (
+      {prevDbSong && prevTrack && !editingNotes && (
         <div className="fixed left-1/2 bottom-4 transform -translate-x-1/2 bg-[#27272a] rounded-xl shadow-lg p-2 flex flex-col items-center z-[100] w-[320px] max-w-full min-h-[64px]" style={{ pointerEvents: 'auto' }}>
           <FaHistory className="absolute top-2 right-3 text-gray-400" size={18} title="Previous Song" />
           <div className="flex flex-col flex-1 justify-center w-full items-center">
             <div className="font-bold text-white text-base truncate leading-tight text-center w-full">{prevDbSong.title}</div>
-            <div className="text-xs text-gray-300 truncate mb-1 leading-tight text-center w-full">{prevDbSong.artist}</div>
-            <div className="mt-1 flex justify-center w-full">
+            <div className="mt-2 text-xs text-gray-300 truncate leading-tight text-center w-full">{prevDbSong.artist}</div>
+            <div className="mt-1 mb-0 flex justify-center w-full">
               <EditableStarRating
                 rating={typeof prevDbSong.rating === 'number' ? prevDbSong.rating : 0}
                 onRatingChange={async (newRating) => {
