@@ -4,11 +4,7 @@ import Home from './pages/Home.jsx';
 import PlaylistView from './pages/PlaylistView.jsx';
 import Admin from './pages/Admin.jsx';
 import NowPlaying from './pages/NowPlaying.jsx';
-
-function Browse() {
-  // This can be refactored to the old Home browser logic if needed
-  return <Home />;
-}
+import Browse from './pages/Browse.jsx';
 
 export default function App() {
   return (

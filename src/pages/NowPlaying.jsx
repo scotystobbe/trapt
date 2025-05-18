@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import LogoHeader from '../components/LogoHeader';
 import HamburgerMenu from '../components/HamburgerMenu';
 import SongCard from '../components/SongCard';
+import { FaSpotify } from 'react-icons/fa';
 
 export default function NowPlaying() {
   const [error, setError] = useState('');
@@ -60,35 +61,40 @@ export default function NowPlaying() {
       <LogoHeader>
         <HamburgerMenu />
       </LogoHeader>
-      <div className="max-w-2xl mx-auto w-full p-4 flex flex-col items-center justify-center min-h-[70vh]">
-        <div className="bg-green-900 rounded-2xl p-8 shadow-lg w-full flex flex-col items-center">
-          <h2 className="text-3xl font-bold text-white mb-4">Now Playing</h2>
-          {initialLoading ? (
-            <p className="text-gray-300">Loading...</p>
-          ) : !isAuthenticated ? (
-            <button
-              onClick={handleConnect}
-              className="px-6 py-3 bg-green-600 text-white rounded-lg text-lg font-semibold hover:bg-green-500 transition"
-            >
-              Connect to Spotify
-            </button>
-          ) : !track ? (
-            <p className="text-gray-300">No track currently playing.</p>
-          ) : dbSong ? (
+      <div className="max-w-2xl mx-auto w-full p-4 flex flex-col items-center pt-8">
+        <FaSpotify className="text-green-500 w-20 h-20 mb-6" />
+        {initialLoading ? (
+          <p className="text-gray-300">Loading...</p>
+        ) : !isAuthenticated ? (
+          <button
+            onClick={handleConnect}
+            className="px-6 py-3 bg-green-600 text-white rounded-lg text-lg font-semibold hover:bg-green-500 transition"
+          >
+            Connect to Spotify
+          </button>
+        ) : !track ? (
+          <p className="text-gray-300">No track currently playing.</p>
+        ) : dbSong ? (
+          <div className="w-full flex flex-col items-center">
+            {dbSong.artworkUrl && (
+              <img src={dbSong.artworkUrl} alt={dbSong.title} className="w-64 h-64 rounded-xl mb-6 object-cover shadow-lg" />
+            )}
             <div className="w-full">
               <SongCard key={dbSong.id} song={dbSong} playlistName={dbSong.playlist?.name} />
             </div>
-          ) : (
-            <div className="flex flex-col items-center">
-              <img src={track.album.images?.[0]?.url} alt={track.name} className="w-40 h-40 rounded-lg mb-4 object-cover" />
-              <h3 className="text-2xl font-bold text-white mb-1">{track.name}</h3>
-              <p className="text-lg text-gray-200 mb-1">{track.artists.map(a => a.name).join(', ')}</p>
-              <p className="text-gray-400 mb-2">{track.album.name}</p>
-              <a href={track.external_urls.spotify} target="_blank" rel="noopener noreferrer" className="text-green-400 underline">Open in Spotify</a>
-            </div>
-          )}
-          {error && <div className="text-red-400 mt-4">{error}</div>}
-        </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center w-full">
+            {track.album.images?.[0]?.url && (
+              <img src={track.album.images[0].url} alt={track.name} className="w-64 h-64 rounded-xl mb-6 object-cover shadow-lg" />
+            )}
+            <h3 className="text-2xl font-bold text-white mb-1">{track.name}</h3>
+            <p className="text-lg text-gray-200 mb-1">{track.artists.map(a => a.name).join(', ')}</p>
+            <p className="text-gray-400 mb-2">{track.album.name}</p>
+            <a href={track.external_urls.spotify} target="_blank" rel="noopener noreferrer" className="text-green-400 underline">Open in Spotify</a>
+          </div>
+        )}
+        {error && <div className="text-red-400 mt-4">{error}</div>}
       </div>
     </div>
   );
