@@ -1,7 +1,7 @@
 {
   "name": "Trapt",
   "short_name": "Trapt",
-  "start_url": "/src/pages/now-playing",
+  "start_url": "/now-playing",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
