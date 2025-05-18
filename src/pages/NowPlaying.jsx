@@ -137,7 +137,7 @@ export default function NowPlaying() {
   const textClass = nightMode ? 'text-red-800' : '';
 
   return (
-    <div style={{ backgroundColor: '#18181b' }} className={"min-h-screen " + (nightMode ? 'night-mode' : '')}>
+    <div style={{ backgroundColor: nightMode ? '#000' : '#18181b' }} className={"min-h-screen " + (nightMode ? 'night-mode' : '')}>
       <LogoHeader logoClassName={dimClass}>
         <HamburgerMenu className={dimClass} />
       </LogoHeader>
@@ -173,8 +173,8 @@ export default function NowPlaying() {
                 <img src={dbSong.artworkUrl} alt={dbSong.title} className={"w-56 h-56 rounded-2xl object-cover shadow-lg " + dimClass} />
               )}
             </div>
-            <h2 className="text-4xl font-bold mb-2 text-center text-white">{dbSong.title}</h2>
-            <p className="text-3xl mb-1 text-center text-white">{dbSong.artist}</p>
+            <h2 className={"text-4xl font-bold mb-2 text-center " + (nightMode ? 'text-red-800' : 'text-white')}>{dbSong.title}</h2>
+            <p className={"text-3xl mb-1 text-center " + (nightMode ? 'text-red-800' : 'text-white')}>{dbSong.artist}</p>
             <p className={"text-lg mb-2 text-center " + (nightMode ? 'text-red-900' : 'text-gray-500')}>{dbSong.album || track?.album?.name}</p>
             <EditableStarRating rating={dbSong.rating} onRatingChange={handleRatingChange} size={72} nightMode={nightMode} />
             <div
