@@ -6,7 +6,7 @@ module.exports = async (req, res) => {
     try {
       // If ?admin=1, return all playlists (id and name only)
       if (req.query.admin === '1') {
-        const playlists = await prisma.playlist.findMany({ select: { id: true, name: true } });
+        const playlists = await prisma.playlist.findMany({ select: { id: true, name: true, spotifyLink: true, artworkUrl: true } });
         return res.status(200).json(playlists);
       }
       const playlists = await prisma.playlist.findMany({

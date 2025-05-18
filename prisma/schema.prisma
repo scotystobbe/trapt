@@ -17,6 +17,7 @@ model Playlist {
   id          Int     @id @default(autoincrement())
   name        String
   spotifyLink String?
+  artworkUrl  String?
   songs       Song[]
 }
 

@@ -4,6 +4,7 @@ import PlaylistCard from '../components/PlaylistCard';
 import SongCard from '../components/SongCard';
 import { Link } from 'react-router-dom';
 import HamburgerMenu from '../components/HamburgerMenu';
+import LogoHeader from '../components/LogoHeader';
 
 export default function Home() {
   const [playlists, setPlaylists] = useState([]);
@@ -27,35 +28,37 @@ export default function Home() {
     song.artist.toLowerCase().includes(query.toLowerCase())
   );
 
+  const sortedPlaylists = [...playlists].sort((a, b) => b.name.localeCompare(a.name));
+
   return (
-    <div className="p-4 space-y-6">
-      <div className="flex justify-end">
+    <div className="bg-gray-900 min-h-screen">
+      <LogoHeader>
         <HamburgerMenu />
+      </LogoHeader>
+      <div className="max-w-4xl mx-auto w-full p-4 space-y-6">
+        <h1 className="text-3xl font-bold text-center">My Playlists</h1>
+        <input
+          type="text"
+          placeholder="Global song search..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="w-full p-2 rounded bg-gray-800 text-white border border-gray-700"
+        />
+        {query.trim() ? (
+          <div className="space-y-4">
+            {filteredSongs.length === 0 && <p className="text-gray-400">No matching songs found.</p>}
+            {filteredSongs.map(song => (
+              <SongCard key={song.id} song={song} playlistName={song.playlistName} onSongUpdate={refreshPlaylists} />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {sortedPlaylists.map(playlist => (
+              <PlaylistCard key={playlist.id} playlist={playlist} />
+            ))}
+          </div>
+        )}
       </div>
-      <h1 className="text-3xl font-bold text-center">My Playlists</h1>
-
-      <input
-        type="text"
-        placeholder="Global song search..."
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        className="w-full p-2 rounded bg-gray-800 text-white border border-gray-700"
-      />
-
-      {query.trim() ? (
-        <div className="space-y-4">
-          {filteredSongs.length === 0 && <p className="text-gray-400">No matching songs found.</p>}
-          {filteredSongs.map(song => (
-            <SongCard key={song.id} song={song} playlistName={song.playlistName} onSongUpdate={refreshPlaylists} />
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {playlists.map(playlist => (
-            <PlaylistCard key={playlist.id} playlist={playlist} />
-          ))}
-        </div>
-      )}
     </div>
   );
 }
