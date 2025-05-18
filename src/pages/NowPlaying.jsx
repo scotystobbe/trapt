@@ -143,17 +143,19 @@ export default function NowPlaying() {
       </LogoHeader>
       <div className="max-w-2xl mx-auto w-full p-4 flex flex-col items-center pt-8">
         {initialLoading ? (
-          <div className="flex flex-col items-center w-full">
-            <Skeleton className="w-72 h-72 mb-8" />
-            <Skeleton className="w-48 h-8 mb-2" />
-            <Skeleton className="w-32 h-6 mb-1" />
-            <Skeleton className="w-40 h-5 mb-4" />
-            <div className="flex gap-2 mb-4">
+          <div className="w-full flex flex-col items-center">
+            <div className="relative mb-8">
+              <Skeleton className="w-56 h-56 rounded-2xl" />
+            </div>
+            <Skeleton className="w-48 h-10 mb-2 rounded" />
+            <Skeleton className="w-40 h-7 mb-1 rounded" />
+            <Skeleton className="w-32 h-5 mb-2 rounded" />
+            <div className="flex gap-2 mt-2 mb-2 justify-center w-full max-w-lg">
               {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="w-10 h-10 rounded-full" />
+                <Skeleton key={i} className="w-12 h-12 rounded-full" />
               ))}
             </div>
-            <Skeleton className="w-full max-w-lg h-16" />
+            <Skeleton className="rounded-lg w-full max-w-lg h-24 mt-2" />
           </div>
         ) : !isAuthenticated ? (
           <button
@@ -211,6 +213,23 @@ export default function NowPlaying() {
             <FaHistory className="absolute top-0 right-0 text-gray-400" size={18} title="Previous Song" />
             <div className="flex justify-center w-full">
               <span className="font-bold text-white text-base leading-tight text-center truncate" style={{maxWidth: 'calc(100% - 2.5rem)'}}>{prevDbSong.title}</span>
+            </div>
+            <div className="mt-2 text-xs text-gray-300 truncate leading-tight text-center w-full">{prevDbSong.artist}</div>
+            <div className="mt-1 mb-[-4px] flex justify-center w-full">
+              <EditableStarRating
+                rating={typeof prevDbSong.rating === 'number' ? prevDbSong.rating : 0}
+                onRatingChange={async (newRating) => {
+                  setPrevDbSong({ ...prevDbSong, rating: newRating });
+                  await fetch('/api/songs', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: prevDbSong.id, rating: newRating }),
+                  });
+                }}
+                size={40}
+                nightMode={nightMode}
+                emptyColor="#18181b"
+              />
             </div>
           </div>
         </div>
