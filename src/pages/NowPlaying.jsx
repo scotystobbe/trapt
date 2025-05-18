@@ -18,7 +18,7 @@ function EditableStarRating({ rating, onRatingChange, size = 56, nightMode }) {
                 : 'text-yellow-400 cursor-pointer'
               : nightMode
                 ? 'text-red-900 cursor-pointer'
-                : 'text-gray-600 cursor-pointer'
+                : 'text-gray-800 cursor-pointer'
           }
           size={size}
           onClick={() => onRatingChange(star)}
@@ -155,12 +155,12 @@ export default function NowPlaying() {
           <div className="w-full flex flex-col items-center">
             <div className={"relative mb-8 " + dimClass}>
               {dbSong.artworkUrl && (
-                <img src={dbSong.artworkUrl} alt={dbSong.title} className={"w-72 h-72 rounded-2xl object-cover shadow-lg " + dimClass} />
+                <img src={dbSong.artworkUrl} alt={dbSong.title} className={"w-56 h-56 rounded-2xl object-cover shadow-lg " + dimClass} />
               )}
               <FaSpotify className={"absolute bottom-3 left-3 text-green-500 opacity-50 w-12 h-12 pointer-events-none " + dimClass} />
             </div>
-            <h2 className={"text-3xl font-bold mb-2 text-center " + textClass}>{dbSong.title}</h2>
-            <p className={"text-2xl mb-1 text-center " + textClass}>{dbSong.artist}</p>
+            <h2 className="text-4xl font-bold mb-2 text-center text-white">{dbSong.title}</h2>
+            <p className="text-3xl mb-1 text-center text-white">{dbSong.artist}</p>
             <p className={"text-lg mb-2 text-center " + (nightMode ? 'text-red-900' : 'text-gray-500')}>{dbSong.album || track?.album?.name}</p>
             <EditableStarRating rating={dbSong.rating} onRatingChange={handleRatingChange} size={72} nightMode={nightMode} />
             <div
@@ -173,12 +173,12 @@ export default function NowPlaying() {
                   <textarea
                     value={notes}
                     onChange={e => setNotes(e.target.value)}
-                    className={"w-full p-2 rounded bg-gray-900 border border-gray-700 " + textClass}
+                    className={"w-full p-2 rounded bg-neutral-900 border border-neutral-800 text-white placeholder-gray-500 focus:ring-0 focus:border-neutral-700 " + textClass}
                     autoFocus
                   />
                   <button
                     onClick={handleNoteSave}
-                    className={"self-end px-3 py-1 bg-blue-600 rounded hover:bg-blue-500 " + dimClass}
+                    className={"self-end px-3 py-1 bg-neutral-700 text-white rounded hover:bg-neutral-600 " + dimClass}
                     disabled={saving}
                   >{saving ? 'Saving...' : 'Save'}</button>
                 </div>
