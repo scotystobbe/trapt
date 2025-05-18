@@ -137,7 +137,7 @@ export default function NowPlaying() {
             <p className="text-xl text-gray-200 mb-1 text-center">{dbSong.artist}</p>
             <p className="text-lg text-gray-400 mb-2 text-center">{dbSong.playlist?.name}</p>
             <EditableStarRating rating={dbSong.rating} onRatingChange={handleRatingChange} size={40} />
-            <div className="bg-gray-800 rounded-lg p-4 w-full max-w-lg mt-2 text-gray-200 text-center min-h-[60px]">
+            <div className="bg-gray-800 rounded-lg p-4 w-full max-w-lg mt-2 text-gray-200 min-h-[60px] text-left">
               {editingNotes ? (
                 <div className="flex flex-col gap-2">
                   <textarea
