@@ -1,15 +1,15 @@
-const fetch = require('node-fetch');
-require('dotenv').config();
 const url = require('url');
 
 module.exports = (req, res) => {
-  const parsed = url.parse(req.url, true);
-  const proxyPath = parsed.query.proxyPath; // e.g., "login" or "callback/foo"
+  const parsedUrl = url.parse(req.url, true); // true enables query parsing
+  const proxyPath = parsedUrl.query.proxyPath || ''; // comes from vercel.json rewrite
 
-  const segments = proxyPath?.split('/') || [];
-  const subroute = segments[0];
+  const segments = proxyPath.split('/').filter(Boolean); // handles foo/bar/callback/etc.
+  const subroute = segments[0]; // just the first part of the path
 
-  console.log('Segments:', segments);
+  console.log('proxyPath:', proxyPath);
+  console.log('segments:', segments);
+  console.log('subroute:', subroute);
 
   if (subroute === 'currently-playing') {
     res.statusCode = 200;
