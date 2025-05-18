@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FaBars } from 'react-icons/fa';
 
-export default function HamburgerMenu() {
+export default function HamburgerMenu({ className = '' }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="relative inline-block text-left z-50">
+    <div className={"relative inline-block text-left z-50 " + className}>
       <button
         onClick={() => setOpen(!open)}
-        className="p-2 rounded hover:bg-gray-700 focus:outline-none"
+        className={"p-2 rounded hover:bg-gray-700 focus:outline-none " + className}
         aria-label="Open menu"
       >
         <FaBars className="text-2xl text-white" />

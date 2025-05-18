@@ -30,7 +30,7 @@ function NightModeToggle() {
       title={nightMode ? 'Disable Night Mode' : 'Enable Night Mode'}
       aria-label="Toggle Night Mode"
     >
-      {nightMode ? <FaSun className="text-red-500 w-6 h-6" /> : <FaMoon className="text-red-500 w-6 h-6" />}
+      {nightMode ? <FaSun className="text-red-800 w-6 h-6" /> : <FaMoon className="text-red-500 w-6 h-6" />}
     </button>
   );
 }

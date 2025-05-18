@@ -10,7 +10,15 @@ function EditableStarRating({ rating, onRatingChange, size = 40, nightMode }) {
       {[1, 2, 3, 4, 5].map((star) => (
         <FaStar
           key={star}
-          className={star <= rating ? (nightMode ? 'text-red-500 cursor-pointer' : 'text-yellow-400 cursor-pointer') : (nightMode ? 'text-red-900 cursor-pointer' : 'text-gray-600 cursor-pointer')}
+          className={
+            star <= rating
+              ? nightMode
+                ? 'text-red-800 cursor-pointer'
+                : 'text-yellow-400 cursor-pointer'
+              : nightMode
+                ? 'text-red-900 cursor-pointer'
+                : 'text-gray-600 cursor-pointer'
+          }
           size={size}
           onClick={() => onRatingChange(star)}
         />
@@ -112,7 +120,7 @@ export default function NowPlaying() {
 
   // Helper for dimming
   const dimClass = nightMode ? 'opacity-40' : '';
-  const textClass = nightMode ? 'text-red-500' : '';
+  const textClass = nightMode ? 'text-red-800' : '';
 
   return (
     <div className={"bg-gray-900 min-h-screen " + (nightMode ? 'night-mode' : '')}>
@@ -140,8 +148,8 @@ export default function NowPlaying() {
               <FaSpotify className={"absolute bottom-3 left-3 text-green-500 opacity-50 w-12 h-12 pointer-events-none " + dimClass} />
             </div>
             <h2 className={"text-3xl font-bold mb-2 text-center " + textClass}>{dbSong.title}</h2>
-            <p className={"text-xl mb-1 text-center " + textClass}>{dbSong.artist}</p>
-            <p className={"text-lg mb-2 text-center " + textClass}>{dbSong.album || track?.album?.name}</p>
+            <p className={"text-2xl mb-1 text-center " + textClass}>{dbSong.artist}</p>
+            <p className={"text-lg mb-2 text-center " + (nightMode ? 'text-red-900' : 'text-gray-500')}>{dbSong.album || track?.album?.name}</p>
             <EditableStarRating rating={dbSong.rating} onRatingChange={handleRatingChange} size={40} nightMode={nightMode} />
             <div className={"bg-gray-800 rounded-lg p-4 w-full max-w-lg mt-2 min-h-[60px] text-left " + textClass}>
               {editingNotes ? (
@@ -176,8 +184,8 @@ export default function NowPlaying() {
               <FaSpotify className={"absolute bottom-3 left-3 text-green-500 opacity-50 w-12 h-12 pointer-events-none " + dimClass} />
             </div>
             <h3 className={"text-3xl font-bold mb-2 text-center " + textClass}>{track.name}</h3>
-            <p className={"text-xl mb-1 text-center " + textClass}>{track.artists.map(a => a.name).join(', ')}</p>
-            <p className={"text-lg mb-2 text-center " + textClass}>{track.album.name}</p>
+            <p className={"text-2xl mb-1 text-center " + textClass}>{track.artists.map(a => a.name).join(', ')}</p>
+            <p className={"text-lg mb-2 text-center " + (nightMode ? 'text-red-900' : 'text-gray-500')}>{track.album.name}</p>
             <a href={track.external_urls.spotify} target="_blank" rel="noopener noreferrer" className={"text-green-400 underline " + dimClass}>Open in Spotify</a>
           </div>
         )}
