@@ -5,7 +5,7 @@ import { FaSpotify, FaStar, FaRegEdit } from 'react-icons/fa';
 import { useNightMode } from '../App';
 import Skeleton from '../components/Skeleton';
 
-function EditableStarRating({ rating, onRatingChange, size = 56, nightMode }) {
+function EditableStarRating({ rating, onRatingChange, size = 56, nightMode, emptyColor }) {
   return (
     <div className="flex gap-2 mt-2 mb-4 w-full max-w-lg justify-center sm:gap-1">
       {[1, 2, 3, 4, 5].map((star) => (
@@ -16,10 +16,9 @@ function EditableStarRating({ rating, onRatingChange, size = 56, nightMode }) {
               ? nightMode
                 ? 'text-red-800 cursor-pointer'
                 : 'text-yellow-400 cursor-pointer'
-              : nightMode
-                ? 'text-red-900 cursor-pointer'
-                : 'text-[#27272a] cursor-pointer'
+              : ''
           }
+          style={{ color: star > rating ? (emptyColor || (nightMode ? '#3f3f46' : '#27272a')) : undefined, cursor: 'pointer' }}
           size={size}
           onClick={() => {
             if (star === 1 && rating === 1) {
@@ -219,22 +218,26 @@ export default function NowPlaying() {
       </div>
       {/* Previous Song Card */}
       {prevDbSong && prevTrack && (
-        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-[#232323] rounded-xl shadow-lg p-2 flex items-center gap-3 z-50 w-[320px] max-w-full min-h-[56px]">
-          <div className="flex flex-col flex-1 justify-center">
-            <div className="flex items-center gap-2 mb-0.5">
-              <span className="inline-block align-middle text-gray-400 text-xs font-semibold px-2 py-0.5 rounded bg-[#18181b]">Previous Song</span>
-            </div>
-            <div className="font-bold text-white text-base truncate leading-tight">{prevDbSong.title}</div>
-            <div className="text-xs text-gray-300 truncate mb-0.5 leading-tight">{prevDbSong.artist}</div>
-            <div className="mt-0.5">
-              <EditableStarRating rating={typeof prevDbSong.rating === 'number' ? prevDbSong.rating : 0} onRatingChange={async (newRating) => {
-                setPrevDbSong({ ...prevDbSong, rating: newRating });
-                await fetch('/api/songs', {
-                  method: 'PUT',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ id: prevDbSong.id, rating: newRating }),
-                });
-              }} size={32} nightMode={nightMode} />
+        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-[#27272a] rounded-xl shadow-lg p-2 flex flex-col items-center z-50 w-[320px] max-w-full min-h-[64px] relative">
+          <span className="absolute top-2 right-3 inline-block align-middle text-gray-400 text-xs font-semibold px-2 py-0.5 rounded bg-[#18181b]">Previous Song</span>
+          <div className="flex flex-col flex-1 justify-center w-full items-center">
+            <div className="font-bold text-white text-base truncate leading-tight text-center w-full">{prevDbSong.title}</div>
+            <div className="text-xs text-gray-300 truncate mb-1 leading-tight text-center w-full">{prevDbSong.artist}</div>
+            <div className="mt-1 flex justify-center w-full">
+              <EditableStarRating
+                rating={typeof prevDbSong.rating === 'number' ? prevDbSong.rating : 0}
+                onRatingChange={async (newRating) => {
+                  setPrevDbSong({ ...prevDbSong, rating: newRating });
+                  await fetch('/api/songs', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: prevDbSong.id, rating: newRating }),
+                  });
+                }}
+                size={40}
+                nightMode={nightMode}
+                emptyColor="#18181b"
+              />
             </div>
           </div>
         </div>
