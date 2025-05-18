@@ -3,6 +3,10 @@
     {
       "source": "/api/test/(.*)",
       "destination": "/api/test/[...catchall].js"
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/[...spotify-proxy].js"
     }
   ]
 }
