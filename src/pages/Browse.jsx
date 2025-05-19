@@ -14,9 +14,17 @@ export default function Browse() {
       .then(data => setPlaylists(data));
   }, []);
 
-  const filteredPlaylists = playlists.filter(p =>
-    p.name.toLowerCase().includes(query.toLowerCase())
-  );
+  const filteredPlaylists = playlists.filter(p => {
+    const q = query.toLowerCase();
+    if (p.name.toLowerCase().includes(q)) return true;
+    if (Array.isArray(p.songs)) {
+      return p.songs.some(song =>
+        song.title?.toLowerCase().includes(q) ||
+        song.artist?.toLowerCase().includes(q)
+      );
+    }
+    return false;
+  });
 
   const sortedPlaylists = [...filteredPlaylists].sort((a, b) => b.name.localeCompare(a.name));
 

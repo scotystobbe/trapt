@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import HamburgerMenu from '../../components/HamburgerMenu';
 
 const AVAILABLE_YEARS = [2018, 2019, 2020, 2021, 2022, 2023];
 
@@ -108,6 +109,7 @@ const ImportRatings: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto p-6 text-white">
+      <HamburgerMenu />
       <h1 className="text-2xl font-bold mb-4">Import Ratings (Admin)</h1>
       <div className="mb-4">
         <label className="mr-2 font-semibold">Select Year:</label>
@@ -149,7 +151,7 @@ const ImportRatings: React.FC = () => {
                         checked={choices[idx]?.selected === mIdx}
                         onChange={() => handleChoice(idx, mIdx)}
                       />
-                      <span>
+                      <span className={match.score === 1 ? 'font-bold' : ''}>
                         {match.song.title} by {match.song.artist} (Score: {match.score.toFixed(2)})
                       </span>
                     </li>
