@@ -261,6 +261,14 @@ export default function Admin() {
             ))}
           </ul>
         </div>
+        <div className="mt-10">
+          <a
+            href="/admin/ImportRatings"
+            className="inline-block px-4 py-2 bg-purple-700 rounded text-white hover:bg-purple-600 font-semibold mt-8"
+          >
+            Import Ratings from CSV
+          </a>
+        </div>
       </div>
     </div>
   );

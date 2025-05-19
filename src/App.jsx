@@ -5,6 +5,7 @@ import PlaylistView from './pages/PlaylistView.jsx';
 import Admin from './pages/Admin.jsx';
 import NowPlaying from './pages/NowPlaying.jsx';
 import Browse from './pages/Browse.jsx';
+import ImportRatings from './pages/admin/ImportRatings.tsx';
 import { FaMoon, FaSun } from 'react-icons/fa';
 
 const NightModeContext = createContext();
@@ -48,6 +49,7 @@ export default function App() {
               <Route path="/playlist/:id" element={<Navigate to="/browse/playlist/:id" replace />} />
               <Route path="/now-playing" element={<NowPlaying />} />
               <Route path="/admin" element={<Admin />} />
+              <Route path="/admin/ImportRatings" element={<ImportRatings />} />
             </Routes>
           </Router>
         </div>
