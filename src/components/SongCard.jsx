@@ -25,8 +25,13 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
   };
 
   const handleRatingChange = (newRating) => {
-    setRating(newRating);
-    saveSongUpdate({ rating: newRating });
+    if (newRating === 1 && rating === 1) {
+      setRating(null);
+      saveSongUpdate({ rating: null });
+    } else {
+      setRating(newRating);
+      saveSongUpdate({ rating: newRating });
+    }
   };
 
   const handleNoteSave = () => {
