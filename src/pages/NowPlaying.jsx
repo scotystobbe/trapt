@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import LogoHeader from '../components/LogoHeader';
 import HamburgerMenu from '../components/HamburgerMenu';
-import { FaSpotify, FaStar, FaRegEdit, FaHistory } from 'react-icons/fa';
+import { FaSpotify, FaStar, FaRegEdit, FaHistory, FaRegStar } from 'react-icons/fa';
 import { useNightMode } from '../App';
 import Skeleton from '../components/Skeleton';
 
@@ -9,25 +9,33 @@ function EditableStarRating({ rating, onRatingChange, size = 56, nightMode, empt
   return (
     <div className="flex gap-2 mt-2 mb-4 w-full max-w-lg justify-center sm:gap-1">
       {[1, 2, 3, 4, 5].map((star) => (
-        <FaStar
-          key={star}
-          className={
-            star <= rating
-              ? nightMode
-                ? 'text-red-800 cursor-pointer'
-                : 'text-yellow-400 cursor-pointer'
-              : ''
-          }
-          style={{ color: star > rating ? (emptyColor || (nightMode ? '#3f3f46' : '#27272a')) : undefined, cursor: 'pointer' }}
-          size={size}
-          onClick={() => {
-            if (star === 1 && rating === 1) {
-              onRatingChange(null);
-            } else {
-              onRatingChange(star);
-            }
-          }}
-        />
+        star <= rating ? (
+          <FaStar
+            key={star}
+            className={nightMode ? 'text-red-800 cursor-pointer' : 'text-yellow-400 cursor-pointer'}
+            onClick={() => {
+              if (star === 1 && rating === 1) {
+                onRatingChange(null);
+              } else {
+                onRatingChange(star);
+              }
+            }}
+            size={size}
+          />
+        ) : (
+          <FaRegStar
+            key={star}
+            className={nightMode ? 'text-red-900 cursor-pointer' : 'text-gray-400 cursor-pointer'}
+            onClick={() => {
+              if (star === 1 && rating === 1) {
+                onRatingChange(null);
+              } else {
+                onRatingChange(star);
+              }
+            }}
+            size={size}
+          />
+        )
       ))}
     </div>
   );
@@ -213,9 +221,8 @@ export default function NowPlaying() {
       </div>
       {/* Previous Song Card */}
       {prevDbSong && prevTrack && !editingNotes && (
-        <div className="fixed left-1/2 bottom-4 transform -translate-x-1/2 bg-[#27272a] rounded-xl shadow-lg p-2 flex flex-col items-center z-[100] w-[320px] max-w-full min-h-[64px]" style={{ pointerEvents: 'auto' }}>
+        <div className="fixed left-1/2 bottom-8 transform -translate-x-1/2 bg-[#27272a] rounded-xl shadow-lg p-2 flex flex-col items-center z-[100] w-[320px] max-w-full min-h-[64px]" style={{ pointerEvents: 'auto' }}>
           <div className="relative w-full flex flex-col flex-1 justify-center items-center">
-            <FaHistory className="absolute top-0 right-0 text-gray-400" size={18} title="Previous Song" />
             <div className="flex justify-center w-full">
               <span className="font-bold text-gray-400 text-base leading-tight text-center truncate" style={{maxWidth: 'calc(100% - 2.5rem)'}}>{prevDbSong.title}</span>
             </div>
