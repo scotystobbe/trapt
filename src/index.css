@@ -31,7 +31,8 @@ html, body {
   right: 0;
   width: 100vw;
   height: env(safe-area-inset-top, 20px);
+  height: constant(safe-area-inset-top, 20px);
   background: #18181b;
-  z-index: 99999;
+  z-index: 2147483647;
   pointer-events: none;
 }
