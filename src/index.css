@@ -3,6 +3,11 @@
 @tailwind utilities;
 
 html, body {
+  height: 100%;
   margin: 0;
   background-color: #18181b; /* Tailwind's bg-gray-900 */
+}
+
+#root {
+  padding-top: env(safe-area-inset-top);
 }
