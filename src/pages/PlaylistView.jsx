@@ -62,6 +62,21 @@ export default function PlaylistView() {
       });
   };
 
+  // Set theme color for iOS PWA and background for html/body
+  if (typeof document !== 'undefined') {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta) {
+      const m = document.createElement('meta');
+      m.name = 'theme-color';
+      m.content = '#18181b';
+      document.head.appendChild(m);
+    } else {
+      meta.content = '#18181b';
+    }
+    document.documentElement.style.background = '#18181b';
+    document.body.style.background = '#18181b';
+  }
+
   if (!playlist) return (
     <div style={{ backgroundColor: '#18181b' }} className="min-h-screen">
       <LogoHeader>
