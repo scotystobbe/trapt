@@ -75,7 +75,7 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
               </div>
             ) : (
               <div className="flex items-center justify-between">
-                <p className="whitespace-pre-wrap flex-1">{notes || <em>No notes</em>}</p>
+                <p className={`whitespace-pre-wrap flex-1 ${notes ? '' : 'text-gray-500'}`}>{notes || <em>No notes</em>}</p>
                 <button onClick={() => setEditing(true)} className="ml-2 text-gray-400 hover:text-white">
                   <FaRegEdit />
                 </button>

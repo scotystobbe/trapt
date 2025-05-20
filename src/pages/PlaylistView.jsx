@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import SongCard from '../components/SongCard';
 import HamburgerMenu from '../components/HamburgerMenu';
 import LogoHeader from '../components/LogoHeader';
 import Skeleton from '../components/Skeleton';
+import { FaArrowLeft, FaSearch } from 'react-icons/fa';
 
 export default function PlaylistView() {
   const { id } = useParams();
@@ -13,6 +14,9 @@ export default function PlaylistView() {
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
   const sortButtonRef = useRef(null);
   const sortDropdownRef = useRef(null);
+  const searchInputRef = useRef(null);
+  const [showStickyHeader, setShowStickyHeader] = useState(false);
+  const headerRef = useRef(null);
 
   useEffect(() => {
     fetch('/api/playlists')
@@ -38,6 +42,16 @@ export default function PlaylistView() {
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [sortDropdownOpen]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!headerRef.current) return;
+      const rect = headerRef.current.getBoundingClientRect();
+      setShowStickyHeader(rect.bottom <= 0);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const refreshPlaylist = () => {
     fetch('/api/playlists')
@@ -99,9 +113,35 @@ export default function PlaylistView() {
     <div style={{ backgroundColor: '#18181b' }} className="min-h-screen">
       <LogoHeader>
         <HamburgerMenu />
+        <Link to="/browse" className="p-2 rounded hover:bg-gray-700 focus:outline-none absolute z-30" style={{ left: 20, top: 16 }} title="Back to Browse">
+          <FaArrowLeft className="text-2xl text-white" />
+        </Link>
       </LogoHeader>
+      <div
+        className={`sticky z-20 bg-[#18181b] flex items-center justify-center gap-3 px-4 py-2 shadow transition-all duration-300 ${showStickyHeader ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full pointer-events-none'}`}
+        style={{ minHeight: 56, top: 63 }}
+      >
+        {playlist.artworkUrl && (
+          <img src={playlist.artworkUrl} alt={playlist.name} className="w-10 h-10 rounded-md object-cover" />
+        )}
+        <span className="text-white font-semibold text-base truncate text-center">{playlist.name}</span>
+        <button
+          className="ml-2 p-2 rounded hover:bg-gray-700 focus:outline-none"
+          title="Search"
+          onClick={() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            setTimeout(() => {
+              if (searchInputRef.current) {
+                searchInputRef.current.focus();
+              }
+            }, 400);
+          }}
+        >
+          <FaSearch className="text-xl text-white" />
+        </button>
+      </div>
       <div className="max-w-4xl mx-auto w-full p-4 space-y-4">
-        <div className="flex flex-col items-center gap-3 mb-4">
+        <div ref={headerRef} className="flex flex-col items-center gap-3 mb-4 -mt-10">
           {playlist.artworkUrl && (
             <div className="w-32 h-32 bg-gray-800 rounded-xl flex items-center justify-center overflow-hidden">
               <img src={playlist.artworkUrl} alt={playlist.name} className="object-cover w-full h-full" />
@@ -117,6 +157,7 @@ export default function PlaylistView() {
           <div className="flex flex-row items-center gap-2 w-full sm:w-auto">
             <div className="relative w-full sm:w-80">
               <input
+                ref={searchInputRef}
                 type="text"
                 placeholder="Search songs..."
                 value={search}

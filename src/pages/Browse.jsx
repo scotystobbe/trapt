@@ -3,6 +3,7 @@ import PlaylistCard from '../components/PlaylistCard';
 import HamburgerMenu from '../components/HamburgerMenu';
 import LogoHeader from '../components/LogoHeader';
 import Skeleton from '../components/Skeleton';
+import SongCard from '../components/SongCard';
 
 export default function Browse() {
   const [playlists, setPlaylists] = useState([]);
@@ -13,6 +14,17 @@ export default function Browse() {
       .then(res => res.json())
       .then(data => setPlaylists(data));
   }, []);
+
+  const filteredSongs = query
+    ? playlists.flatMap(playlist =>
+        (playlist.songs || [])
+          .filter(song =>
+            song.title?.toLowerCase().includes(query.toLowerCase()) ||
+            song.artist?.toLowerCase().includes(query.toLowerCase())
+          )
+          .map(song => ({ ...song, playlistName: playlist.name, playlistId: playlist.id }))
+      )
+    : [];
 
   const filteredPlaylists = playlists.filter(p => {
     const q = query.toLowerCase();
@@ -37,7 +49,7 @@ export default function Browse() {
         <div className="relative w-full sm:w-80 mx-auto">
           <input
             type="text"
-            placeholder="Search playlists..."
+            placeholder="Search..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="w-full p-2 rounded" style={{ backgroundColor: '#27272a', color: 'white', border: '1px solid #3f3f46' }}
@@ -53,20 +65,33 @@ export default function Browse() {
             </button>
           )}
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {playlists.length === 0 ? (
-            [...Array(6)].map((_, i) => (
-              <div key={i} style={{ backgroundColor: '#27272a' }} className="p-4 rounded-xl">
-                <Skeleton className="aspect-square w-full rounded-md mb-2" />
-                <Skeleton className="h-6 w-3/4" />
-              </div>
-            ))
-          ) : (
-            sortedPlaylists.map(playlist => (
-              <PlaylistCard key={playlist.id} playlist={playlist} />
-            ))
-          )}
-        </div>
+        {query && filteredSongs.length > 0 && (
+          <div className="space-y-2">
+            <h2 className="text-lg font-bold text-white mb-2">Songs matching "{query}"</h2>
+            {filteredSongs.map((song, idx) => (
+              <SongCard key={song.id + '-' + song.playlistId} song={song} playlistName={song.playlistName} />
+            ))}
+          </div>
+        )}
+        {(!query || filteredSongs.length === 0) && (
+          <div>
+            <h2 className="text-lg font-bold text-white mb-2">Playlists</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {playlists.length === 0 ? (
+                [...Array(6)].map((_, i) => (
+                  <div key={i} style={{ backgroundColor: '#27272a' }} className="p-4 rounded-xl">
+                    <Skeleton className="aspect-square w-full rounded-md mb-2" />
+                    <Skeleton className="h-6 w-3/4" />
+                  </div>
+                ))
+              ) : (
+                sortedPlaylists.map(playlist => (
+                  <PlaylistCard key={playlist.id} playlist={playlist} />
+                ))
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
