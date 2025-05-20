@@ -11,7 +11,3 @@ html, body {
 #root {
   padding-top: env(safe-area-inset-top);
 }
-
-.logo-header {
-  padding-top: env(safe-area-inset-top);
-}

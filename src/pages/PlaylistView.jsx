@@ -134,7 +134,7 @@ export default function PlaylistView() {
       </LogoHeader>
       <div
         className={`sticky z-20 bg-[#18181b] flex items-center justify-center gap-3 px-4 py-2 shadow transition-all duration-300 ${showStickyHeader ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full pointer-events-none'}`}
-        style={{ minHeight: 56, top: 63 }}
+        style={{ minHeight: 56, top: 'calc(63px + env(safe-area-inset-top, 0px))' }}
       >
         {playlist.artworkUrl && (
           <img src={playlist.artworkUrl} alt={playlist.name} className="w-10 h-10 rounded-md object-cover" />
