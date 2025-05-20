@@ -7,6 +7,7 @@ import NowPlaying from './pages/NowPlaying.jsx';
 import Browse from './pages/Browse.jsx';
 import ImportRatings from './pages/admin/ImportRatings.tsx';
 import { FaMoon, FaSun } from 'react-icons/fa';
+import SafeAreaView from './SafeAreaView.jsx';
 
 const NightModeContext = createContext();
 export function useNightMode() {
@@ -41,7 +42,7 @@ export default function App() {
     <NightModeProvider>
       <div className="safe-area-top-overlay"></div>
       <NightModeBodyWrapper>
-        <div className="dark" style={{ backgroundColor: '#18181b' }}>
+        <SafeAreaView className="dark">
           <Router>
             <Routes>
               <Route path="/" element={<Home />} />
@@ -53,7 +54,7 @@ export default function App() {
               <Route path="/admin/ImportRatings" element={<ImportRatings />} />
             </Routes>
           </Router>
-        </div>
+        </SafeAreaView>
       </NightModeBodyWrapper>
     </NightModeProvider>
   );
