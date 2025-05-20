@@ -39,6 +39,7 @@ function NightModeToggle() {
 export default function App() {
   return (
     <NightModeProvider>
+      <div className="safe-area-top-overlay"></div>
       <NightModeBodyWrapper>
         <div className="dark" style={{ backgroundColor: '#18181b' }}>
           <Router>

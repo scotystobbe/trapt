@@ -11,3 +11,14 @@ html, body {
 #root {
   padding-top: env(safe-area-inset-top);
 }
+
+.safe-area-top-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: env(safe-area-inset-top, 0px);
+  background: #18181b;
+  z-index: 1000;
+  pointer-events: none;
+}
