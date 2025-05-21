@@ -50,6 +50,7 @@ export default function PlaylistView() {
       setShowStickyHeader(rect.bottom <= 0);
     };
     window.addEventListener('scroll', handleScroll);
+    handleScroll(); // Call once on mount to set initial state
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -129,7 +130,9 @@ export default function PlaylistView() {
       <LogoHeader>
         <HamburgerMenu />
         <Link to="/browse" className="p-2 rounded hover:bg-gray-700 focus:outline-none absolute z-30" style={{ left: 20, top: 16 }} title="Back to Browse">
-          <FaArrowLeft className="text-2xl text-white" />
+          <span className="block min-w-[44px] min-h-[44px] p-2 -m-2 flex items-center justify-center">
+            <FaArrowLeft className="text-2xl text-white" />
+          </span>
         </Link>
       </LogoHeader>
       <div
@@ -183,10 +186,10 @@ export default function PlaylistView() {
                 <button
                   type="button"
                   onClick={() => setSearch('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 z-20 text-gray-400 hover:text-white focus:outline-none text-xl"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 z-20 text-gray-400 hover:text-white focus:outline-none"
                   aria-label="Clear search"
                 >
-                  ×
+                  <span className="flex items-center justify-center min-w-[32px] min-h-[32px] p-1 text-xl">×</span>
                 </button>
               )}
             </div>

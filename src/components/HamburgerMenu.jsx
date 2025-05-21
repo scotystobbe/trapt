@@ -22,7 +22,7 @@ export default function HamburgerMenu({ className = '' }) {
   }, [open]);
 
   return (
-    <div className={"relative inline-block text-left z-50 " + className}>
+    <div ref={menuRef} className={"relative inline-block text-left z-50 " + className}>
       <button
         onClick={() => setOpen(!open)}
         className={"p-2 rounded hover:bg-gray-700 focus:outline-none " + className}
@@ -31,7 +31,7 @@ export default function HamburgerMenu({ className = '' }) {
         <FaBars className="text-2xl text-white" />
       </button>
       {open && (
-        <div ref={menuRef} style={{ backgroundColor: '#27272a', border: '1px solid #3f3f46' }} className="absolute right-0 mt-2 w-40 rounded shadow-lg flex flex-col">
+        <div style={{ backgroundColor: '#27272a', border: '1px solid #3f3f46' }} className="absolute right-0 mt-2 w-40 rounded shadow-lg flex flex-col">
           <Link
             to="/"
             className="block px-4 py-2 text-white hover:bg-[#3f3f46]"

@@ -58,10 +58,10 @@ export default function Browse() {
             <button
               type="button"
               onClick={() => setQuery('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 z-20 text-gray-400 hover:text-white focus:outline-none text-xl"
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-20 text-gray-400 hover:text-white focus:outline-none"
               aria-label="Clear search"
             >
-              ×
+              <span className="flex items-center justify-center min-w-[32px] min-h-[32px] p-1 text-xl">×</span>
             </button>
           )}
         </div>
