@@ -267,6 +267,14 @@ export default function Admin() {
             Import Ratings from CSV
           </a>
         </div>
+        <div className="mt-10">
+          <a
+            href="/scroll-test"
+            className="inline-block px-4 py-2 bg-yellow-700 rounded text-white hover:bg-yellow-600 font-semibold mt-8"
+          >
+            ScrollTest (Safe Area Demo)
+          </a>
+        </div>
       </div>
     </div>
   );
