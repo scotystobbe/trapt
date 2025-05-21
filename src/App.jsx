@@ -8,6 +8,7 @@ import Browse from './pages/Browse.jsx';
 import ImportRatings from './pages/admin/ImportRatings.tsx';
 import ScrollTest from './pages/ScrollTest.jsx';
 import { FaMoon, FaSun } from 'react-icons/fa';
+import ScrollToTop from './components/ScrollToTop';
 
 const NightModeContext = createContext();
 export function useNightMode() {
@@ -44,6 +45,7 @@ export default function App() {
       <NightModeBodyWrapper>
         <div className="dark" style={{ backgroundColor: '#18181b', paddingTop: 'calc(63px + env(safe-area-inset-top, 20px))' }}>
           <Router>
+            <ScrollToTop />
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/browse" element={<Browse />} />
