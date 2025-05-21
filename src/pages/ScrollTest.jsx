@@ -7,6 +7,20 @@ export default function ScrollTest() {
 
   return (
     <div style={{ background: '#18181b', minHeight: '100vh' }}>
+      {/* Aggressive safe area overlay */}
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          width: '100vw',
+          height: 'env(safe-area-inset-top, 20px)',
+          background: '#18181b',
+          zIndex: 999999,
+          pointerEvents: 'none',
+        }}
+      ></div>
       {/* Fixed header with safe area inset */}
       <div
         className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4"
