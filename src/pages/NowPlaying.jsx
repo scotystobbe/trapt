@@ -4,6 +4,7 @@ import HamburgerMenu from '../components/HamburgerMenu';
 import { FaSpotify, FaStar, FaRegEdit, FaHistory, FaRegStar } from 'react-icons/fa';
 import { useNightMode } from '../App';
 import Skeleton from '../components/Skeleton';
+import useSWR from 'swr';
 
 function EditableStarRating({ rating, onRatingChange, size = 56, nightMode, emptyColor }) {
   return (
@@ -55,6 +56,13 @@ export default function NowPlaying() {
   const [prevTrack, setPrevTrack] = useState(null);
   const [prevDbSong, setPrevDbSong] = useState(null);
 
+  // SWR for songs
+  const fetcher = url => fetch(url).then(res => res.json());
+  const { data: songs = [], error: songsError, mutate: mutateSongs } = useSWR('/api/songs', fetcher, {
+    dedupingInterval: 3600000, // 1 hour
+    revalidateOnFocus: false,
+  });
+
   // Helper to check auth and fetch currently playing
   const fetchCurrentlyPlaying = useCallback(async (isInitial = false) => {
     try {
@@ -82,9 +90,7 @@ export default function NowPlaying() {
         setPrevDbSong(dbSong);
         setTrack(data.item);
         lastTrackId.current = data.item.id;
-        // Try to match with DB by spotifyLink
-        const songRes = await fetch('/api/songs');
-        const songs = await songRes.json();
+        // Use SWR-cached songs
         const match = songs.find(s => s.spotifyLink && s.spotifyLink.includes(data.item.id));
         setDbSong(match || null);
         setNotes(match?.notes || '');
@@ -95,7 +101,7 @@ export default function NowPlaying() {
       setError('Failed to fetch currently playing track.');
       if (isInitial) setInitialLoading(false);
     }
-  }, [editingNotes, track, dbSong]);
+  }, [editingNotes, track, dbSong, songs]);
 
   useEffect(() => {
     fetchCurrentlyPlaying(true);
@@ -116,6 +122,7 @@ export default function NowPlaying() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: dbSong.id, rating: newRating }),
       });
+      mutateSongs();
     } catch (err) {
       setError('Could not save rating.');
     }
@@ -133,6 +140,7 @@ export default function NowPlaying() {
       });
       setDbSong({ ...dbSong, notes });
       setEditingNotes(false);
+      mutateSongs();
     } catch (err) {
       setError('Could not save notes.');
     } finally {
