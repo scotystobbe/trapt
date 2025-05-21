@@ -1,19 +1,19 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import PlaylistCard from '../components/PlaylistCard';
 import HamburgerMenu from '../components/HamburgerMenu';
 import LogoHeader from '../components/LogoHeader';
 import Skeleton from '../components/Skeleton';
 import SongCard from '../components/SongCard';
+import useSWR from 'swr';
 
 export default function Browse() {
-  const [playlists, setPlaylists] = useState([]);
   const [query, setQuery] = useState('');
 
-  useEffect(() => {
-    fetch('/api/playlists')
-      .then(res => res.json())
-      .then(data => setPlaylists(data));
-  }, []);
+  const fetcher = url => fetch(url).then(res => res.json());
+  const { data: playlists = [], error } = useSWR('/api/playlists', fetcher, {
+    dedupingInterval: 3600000, // 1 hour
+    revalidateOnFocus: false,
+  });
 
   const filteredSongs = query
     ? playlists.flatMap(playlist =>

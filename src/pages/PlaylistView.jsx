@@ -5,10 +5,10 @@ import HamburgerMenu from '../components/HamburgerMenu';
 import LogoHeader from '../components/LogoHeader';
 import Skeleton from '../components/Skeleton';
 import { FaArrowLeft, FaSearch } from 'react-icons/fa';
+import useSWR from 'swr';
 
 export default function PlaylistView() {
   const { id } = useParams();
-  const [playlist, setPlaylist] = useState(null);
   const [sort, setSort] = useState('sortOrder');
   const [search, setSearch] = useState('');
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
@@ -18,14 +18,12 @@ export default function PlaylistView() {
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const headerRef = useRef(null);
 
-  useEffect(() => {
-    fetch('/api/playlists')
-      .then(res => res.json())
-      .then(data => {
-        const p = data.find(p => p.id === parseInt(id));
-        setPlaylist(p);
-      });
-  }, [id]);
+  const fetcher = url => fetch(url).then(res => res.json());
+  const { data: playlists = [], error, mutate } = useSWR('/api/playlists', fetcher, {
+    dedupingInterval: 3600000, // 1 hour
+    revalidateOnFocus: false,
+  });
+  const playlist = playlists.find(p => p.id === parseInt(id));
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -50,17 +48,16 @@ export default function PlaylistView() {
       setShowStickyHeader(rect.bottom <= 0);
     };
     window.addEventListener('scroll', handleScroll);
-    handleScroll(); // Call once on mount to set initial state
-    return () => window.removeEventListener('scroll', handleScroll);
+    // Delay initial call until after paint to avoid sticky header flash
+    const raf = requestAnimationFrame(handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      cancelAnimationFrame(raf);
+    };
   }, []);
 
   const refreshPlaylist = () => {
-    fetch('/api/playlists')
-      .then(res => res.json())
-      .then(data => {
-        const p = data.find(p => p.id === parseInt(id));
-        setPlaylist(p);
-      });
+    mutate();
   };
 
   // Set theme color for iOS PWA and background for html/body

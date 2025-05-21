@@ -10,6 +10,7 @@ module.exports = async (req, res) => {
         include: { playlist: true },
         orderBy: { sortOrder: 'asc' },
       });
+      res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate');
       res.status(200).json(songs);
     } catch (error) {
       console.error('Error fetching songs:', error);
