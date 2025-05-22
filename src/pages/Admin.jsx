@@ -138,8 +138,9 @@ export default function Admin() {
       <div className="max-w-4xl mx-auto w-full p-6">
         <h1 className="text-2xl font-bold mb-8 text-white text-center">Admin</h1>
 
-        {/* Expandable Playlist Sync Section */}
-        <ExpandableSection title="Sync/Import Spotify Playlist" defaultOpen={false}>
+        {/* Merge Sync/Import and Manage Playlists into one section */}
+        <ExpandableSection title="Manage Playlists" defaultOpen={false}>
+          {/* Import/Sync Form */}
           <form onSubmit={handleFetch} className="flex flex-col gap-4 mb-6">
             <input
               type="text"
@@ -194,32 +195,9 @@ export default function Admin() {
           {importResult && !importResult.success && (
             <div className="text-red-500 mt-4">Failed to import playlist.</div>
           )}
-        </ExpandableSection>
 
-        <ExpandableSection
-          title={`Update ${playlists.find(p => p.id === 16)?.name || '5-Star Playlist'} on Spotify`}
-          defaultOpen={false}
-        >
-          <UpdateStarPlaylistButton
-            playlistId={16}
-            minRating={5}
-            playlist={playlists.find(p => p.id === 16)}
-          />
-        </ExpandableSection>
-
-        <ExpandableSection
-          title={`Update ${playlists.find(p => p.id === 15)?.name || '4+5-Star Playlist'} on Spotify`}
-          defaultOpen={false}
-        >
-          <UpdateStarPlaylistButton
-            playlistId={15}
-            minRating={4}
-            playlist={playlists.find(p => p.id === 15)}
-          />
-        </ExpandableSection>
-
-        <ExpandableSection title="Manage Playlists" defaultOpen={false}>
-          <ul className="space-y-2">
+          {/* Playlist Management List */}
+          <ul className="space-y-2 mt-8">
             {playlists.map(p => (
               <li key={p.id} className="flex items-center gap-4">
                 {p.artworkUrl ? (
@@ -286,6 +264,20 @@ export default function Admin() {
           </ul>
         </ExpandableSection>
 
+        {/* Update playlist buttons, now in-line */}
+        <div className="flex flex-col sm:flex-row gap-4 mt-8 mb-8 items-center justify-center">
+          <UpdateStarPlaylistButton
+            playlistId={16}
+            minRating={5}
+            playlist={playlists.find(p => p.id === 16)}
+          />
+          <UpdateStarPlaylistButton
+            playlistId={15}
+            minRating={4}
+            playlist={playlists.find(p => p.id === 15)}
+          />
+        </div>
+
         <div className="mt-10">
           <a
             href="/admin/ImportRatings"
@@ -302,7 +294,8 @@ export default function Admin() {
             ScrollTest (Safe Area Demo)
           </a>
         </div>
-        <div className="mt-16 mb-8 flex justify-center">
+        <div className="mt-16 mb-8 flex justify-center gap-4">
+          <SpotifyConnectButton />
           <SpotifyLogoutButton />
         </div>
       </div>
@@ -396,5 +389,18 @@ function UpdateStarPlaylistButton({ playlistId, minRating, playlist }) {
       {success && <div className="text-green-400 text-sm mt-2">{success}</div>}
       {error && <div className="text-red-400 text-sm mt-2">{error}</div>}
     </div>
+  );
+}
+
+// --- SpotifyConnectButton helper ---
+function SpotifyConnectButton() {
+  return (
+    <a
+      href="/api/spotify-proxy/login"
+      className="ml-4 px-3 py-1 bg-green-700 text-white rounded hover:bg-green-600"
+      title="Connect to Spotify"
+    >
+      Connect to Spotify
+    </a>
   );
 } 

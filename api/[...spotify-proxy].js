@@ -350,10 +350,20 @@ module.exports = async (req, res) => {
       const songs = await prisma.song.findMany({
         where: { rating: { gte: minRating } },
         include: { playlist: true },
-        orderBy: [
-          { playlistId: 'asc' },
-          { sortOrder: 'asc' },
-        ],
+      });
+      // 3.5. Fetch all playlists to get their names and years
+      const allPlaylists = await prisma.playlist.findMany({ select: { id: true, name: true } });
+      const playlistYearMap = {};
+      allPlaylists.forEach(p => {
+        const match = p.name.match(/(19|20)\\d{2}/);
+        playlistYearMap[p.id] = match ? parseInt(match[0], 10) : 9999;
+      });
+      // 3.6. Sort songs by year, then by sortOrder
+      songs.sort((a, b) => {
+        const yearA = playlistYearMap[a.playlistId] || 9999;
+        const yearB = playlistYearMap[b.playlistId] || 9999;
+        if (yearA !== yearB) return yearA - yearB;
+        return a.sortOrder - b.sortOrder;
       });
       // 4. Build trackUris
       const trackUris = songs
