@@ -71,7 +71,12 @@ async function handlePlaylistFetch(req, res, playlistId) {
 }
 
 async function handleLogin(res) {
-  const scopes = ['user-read-currently-playing', 'user-read-playback-state'];
+  const scopes = [
+    'user-read-currently-playing',
+    'user-read-playback-state',
+    'playlist-modify-private',
+    'playlist-modify-public'
+  ];
   const params = new URLSearchParams({
     response_type: 'code',
     client_id: process.env.SPOTIFY_CLIENT_ID,
@@ -285,6 +290,18 @@ module.exports = async (req, res) => {
       res.statusCode = 500;
       return res.end(JSON.stringify({ error: 'Failed to create playlist', details: err.message }));
     }
+  }
+
+  if (subroute === 'logout' && req.method === 'POST') {
+    // Clear Spotify cookies
+    res.setHeader('Set-Cookie', [
+      'spotify_access_token=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax',
+      'spotify_refresh_token=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax',
+      'spotify_expires_at=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax',
+    ]);
+    res.statusCode = 200;
+    res.end('Logged out');
+    return;
   }
 
   // 🎯 3. Default fallback

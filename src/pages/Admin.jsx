@@ -134,6 +134,7 @@ export default function Admin() {
     <div style={{ backgroundColor: '#18181b' }} className="min-h-screen">
       <LogoHeader>
         <HamburgerMenu />
+        <SpotifyLogoutButton />
       </LogoHeader>
       <div className="max-w-4xl mx-auto w-full p-6">
         <h1 className="text-2xl font-bold mb-4 text-white">Admin: Import Spotify Playlist</h1>
@@ -277,5 +278,35 @@ export default function Admin() {
         </div>
       </div>
     </div>
+  );
+}
+
+function SpotifyLogoutButton() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleLogout = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await fetch('/api/spotify-proxy/logout', { method: 'POST' });
+      window.location.reload();
+    } catch (err) {
+      setError('Failed to log out of Spotify');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <button
+      className="ml-4 px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-600"
+      onClick={handleLogout}
+      disabled={loading}
+      title="Log out of Spotify"
+    >
+      {loading ? 'Logging out...' : 'Log out of Spotify'}
+      {error && <span className="text-red-400 ml-2">{error}</span>}
+    </button>
   );
 } 
