@@ -206,6 +206,87 @@ module.exports = async (req, res) => {
     return handleCurrentlyPlaying(req, res);
   }
 
+  if (subroute === 'create-unrated-playlist' && req.method === 'POST') {
+    let accessToken = getCookie(req, 'spotify_access_token');
+    const refreshToken = getCookie(req, 'spotify_refresh_token');
+    const expiresAt = parseInt(getCookie(req, 'spotify_expires_at'), 10);
+
+    // Refresh access token if expired
+    if (expiresAt && Date.now() > expiresAt && refreshToken) {
+      try {
+        const refreshRes = await fetch('https://accounts.spotify.com/api/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            grant_type: 'refresh_token',
+            refresh_token: refreshToken,
+            client_id: process.env.SPOTIFY_CLIENT_ID,
+            client_secret: process.env.SPOTIFY_CLIENT_SECRET,
+          }),
+        });
+        const refreshData = await refreshRes.json();
+        if (refreshData.access_token) {
+          accessToken = refreshData.access_token;
+          setCookie(res, 'spotify_access_token', accessToken, { maxAge: refreshData.expires_in });
+          setCookie(res, 'spotify_expires_at', Date.now() + (refreshData.expires_in || 3600) * 1000, { maxAge: refreshData.expires_in });
+        } else {
+          res.statusCode = 401;
+          return res.end(JSON.stringify({ error: 'Failed to refresh token', details: refreshData }));
+        }
+      } catch (err) {
+        res.statusCode = 500;
+        return res.end(JSON.stringify({ error: 'Token refresh error', details: err.message }));
+      }
+    }
+    if (!accessToken) {
+      res.statusCode = 401;
+      return res.end(JSON.stringify({ error: 'Not authenticated with Spotify' }));
+    }
+    try {
+      let body = '';
+      await new Promise((resolve, reject) => {
+        req.on('data', chunk => { body += chunk; });
+        req.on('end', resolve);
+        req.on('error', reject);
+      });
+      const { name, trackUris } = JSON.parse(body);
+      // 1. Get current user ID
+      const userRes = await fetch('https://api.spotify.com/v1/me', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const userData = await userRes.json();
+      if (!userData.id) throw new Error('Failed to get user profile');
+      // 2. Create playlist
+      const createRes = await fetch(`https://api.spotify.com/v1/users/${userData.id}/playlists`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, public: false }),
+      });
+      const playlistData = await createRes.json();
+      if (!playlistData.id) throw new Error('Failed to create playlist');
+      // 3. Add tracks
+      if (trackUris.length > 0) {
+        await fetch(`https://api.spotify.com/v1/playlists/${playlistData.id}/tracks`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ uris: trackUris }),
+        });
+      }
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'application/json');
+      return res.end(JSON.stringify({ playlistId: playlistData.id, externalUrl: playlistData.external_urls?.spotify }));
+    } catch (err) {
+      res.statusCode = 500;
+      return res.end(JSON.stringify({ error: 'Failed to create playlist', details: err.message }));
+    }
+  }
+
   // 🎯 3. Default fallback
   res.statusCode = 200;
   res.end('Spotify proxy root works!');

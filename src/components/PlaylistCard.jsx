@@ -10,6 +10,19 @@ export default function PlaylistCard({ playlist }) {
         <div style={{ backgroundColor: '#3f3f46' }} className="aspect-square rounded-md mb-2"></div>
       )}
       <h2 className="text-lg font-semibold text-white">{playlist.name}</h2>
+      {Array.isArray(playlist.songs) && playlist.songs.length > 0 && (
+        (() => {
+          const rated = playlist.songs.filter(s => s.rating != null && s.rating !== 0);
+          const ratedCount = rated.length;
+          const totalCount = playlist.songs.length;
+          const avg = ratedCount > 0 ? (rated.reduce((sum, s) => sum + s.rating, 0) / ratedCount).toFixed(2) : null;
+          return (
+            <div className="text-gray-400 text-sm mt-1">
+              {ratedCount}/{totalCount} rated{avg ? `  Avg: ${avg}` : ''}
+            </div>
+          );
+        })()
+      )}
     </Link>
   );
 }

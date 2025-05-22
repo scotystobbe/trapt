@@ -7,6 +7,68 @@ import Skeleton from '../components/Skeleton';
 import { FaArrowLeft, FaSearch } from 'react-icons/fa';
 import useSWR from 'swr';
 
+// --- Helper component ---
+function CreateUnratedSpotifyPlaylistButton({ playlist }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [successUrl, setSuccessUrl] = useState(null);
+
+  const handleClick = async () => {
+    setLoading(true);
+    setError(null);
+    setSuccessUrl(null);
+    try {
+      const unrated = (playlist.songs || []).filter(s => s.rating == null || s.rating === 0);
+      const trackUris = unrated
+        .map(s => {
+          // Try to extract Spotify track ID from spotifyLink
+          if (s.spotifyLink) {
+            const match = s.spotifyLink.match(/track\/([a-zA-Z0-9]+)/);
+            if (match) return `spotify:track:${match[1]}`;
+          }
+          return null;
+        })
+        .filter(Boolean);
+      if (trackUris.length === 0) {
+        setError('No unrated songs with Spotify links to add.');
+        setLoading(false);
+        return;
+      }
+      const res = await fetch('/api/spotify-proxy/create-unrated-playlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: `${playlist.name} - Not Rated`,
+          trackUris,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Unknown error');
+      setSuccessUrl(data.externalUrl);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="mt-2 flex flex-col items-center">
+      <button
+        className="px-4 py-2 bg-green-600 rounded text-white font-semibold hover:bg-green-500 disabled:opacity-50"
+        onClick={handleClick}
+        disabled={loading}
+      >
+        {loading ? 'Creating Spotify Playlist...' : 'Create Spotify Playlist of Unrated Songs'}
+      </button>
+      {error && <div className="text-red-400 text-sm mt-1">{error}</div>}
+      {successUrl && (
+        <a href={successUrl} target="_blank" rel="noopener noreferrer" className="text-green-400 text-sm mt-1 underline">Open Playlist on Spotify</a>
+      )}
+    </div>
+  );
+}
+
 export default function PlaylistView() {
   const { id } = useParams();
   const [sort, setSort] = useState('sortOrder');
@@ -167,6 +229,18 @@ export default function PlaylistView() {
             <span className="text-gray-400">&bull;</span>
             <span className="text-gray-400">{playlist.songs.length} tracks</span>
           </div>
+          {Array.isArray(playlist.songs) && playlist.songs.length > 0 && (() => {
+            const rated = playlist.songs.filter(s => s.rating != null && s.rating !== 0);
+            const ratedCount = rated.length;
+            const totalCount = playlist.songs.length;
+            const avg = ratedCount > 0 ? (rated.reduce((sum, s) => sum + s.rating, 0) / ratedCount).toFixed(2) : null;
+            return (
+              <div className="text-gray-400 text-base mt-1">
+                {ratedCount}/{totalCount} rated{avg ? ` | Avg: ${avg}` : ''}
+              </div>
+            );
+          })()}
+          <CreateUnratedSpotifyPlaylistButton playlist={playlist} />
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-2 justify-between">
           <div className="flex flex-row items-center gap-2 w-full sm:w-auto">
