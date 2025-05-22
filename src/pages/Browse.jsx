@@ -11,8 +11,8 @@ export default function Browse() {
 
   const fetcher = url => fetch(url).then(res => res.json());
   const { data: playlists = [], error } = useSWR('/api/playlists', fetcher, {
-    dedupingInterval: 3600000, // 1 hour
-    revalidateOnFocus: false,
+    dedupingInterval: 0,
+    revalidateOnFocus: true,
   });
 
   const filteredSongs = query
