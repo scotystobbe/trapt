@@ -272,22 +272,26 @@ module.exports = async (req, res) => {
       });
       const playlistData = await createRes.json();
       if (!playlistData.id) throw new Error('Failed to create playlist');
-      // 3. Add tracks
+      // 3. Add tracks (in batches of 50)
       if (trackUris.length > 0) {
-        console.log('Adding tracks to Spotify playlist:', trackUris);
-        const addTracksRes = await fetch(`https://api.spotify.com/v1/playlists/${playlistData.id}/tracks`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ uris: trackUris }),
-        });
-        const addTracksData = await addTracksRes.json();
-        if (!addTracksRes.ok) {
-          console.error('Error adding tracks to Spotify playlist:', addTracksData);
-        } else {
-          console.log('Add tracks response:', addTracksData);
+        const batchSize = 50;
+        for (let i = 0; i < trackUris.length; i += batchSize) {
+          const batch = trackUris.slice(i, i + batchSize);
+          console.log(`Adding tracks batch [${i}-${i + batch.length - 1}] to Spotify playlist:`, batch);
+          const addTracksRes = await fetch(`https://api.spotify.com/v1/playlists/${playlistData.id}/tracks`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ uris: batch }),
+          });
+          const addTracksData = await addTracksRes.json();
+          if (!addTracksRes.ok) {
+            console.error('Error adding tracks batch to Spotify playlist:', addTracksData);
+          } else {
+            console.log('Add tracks batch response:', addTracksData);
+          }
         }
       }
       res.statusCode = 200;
