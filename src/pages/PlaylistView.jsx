@@ -80,11 +80,8 @@ export default function PlaylistView() {
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const headerRef = useRef(null);
 
-  const fetcher = url => fetch(url).then(res => res.json());
-  const { data: playlists = [], error, mutate } = useSWR('/api/playlists', fetcher, {
-    dedupingInterval: 0,
-    revalidateOnFocus: true,
-  });
+  const fetcher = url => fetch(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now()).then(res => res.json());
+  const { data: playlists = [], error, mutate } = useSWR('/api/playlists', fetcher);
   const playlist = playlists.find(p => p.id === parseInt(id));
 
   // Close dropdown on outside click

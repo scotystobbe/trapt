@@ -9,11 +9,8 @@ import useSWR from 'swr';
 export default function Browse() {
   const [query, setQuery] = useState('');
 
-  const fetcher = url => fetch(url).then(res => res.json());
-  const { data: playlists = [], error } = useSWR('/api/playlists', fetcher, {
-    dedupingInterval: 0,
-    revalidateOnFocus: true,
-  });
+  const fetcher = url => fetch(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now()).then(res => res.json());
+  const { data: playlists = [], error } = useSWR('/api/playlists', fetcher);
 
   const filteredSongs = query
     ? playlists.flatMap(playlist =>
