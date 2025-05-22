@@ -338,7 +338,8 @@ module.exports = async (req, res) => {
         return res.end(JSON.stringify({ error: 'Playlist not found or missing spotifyLink' }));
       }
       // 2. Extract Spotify playlist ID from spotifyLink
-      const match = playlist.spotifyLink.match(/playlist[/:]([a-zA-Z0-9]+)/);
+      const normalizedLink = playlist.spotifyLink.split('?')[0].replace(/\/$/, '');
+      const match = normalizedLink.match(/playlist[/:]([a-zA-Z0-9]+)$/);
       if (!match) {
         res.statusCode = 400;
         return res.end(JSON.stringify({ error: 'Invalid spotifyLink format' }));

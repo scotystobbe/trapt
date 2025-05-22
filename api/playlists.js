@@ -7,14 +7,14 @@ module.exports = async (req, res) => {
       // If ?admin=1, return all playlists (id and name only)
       if (req.query.admin === '1') {
         const playlists = await prisma.playlist.findMany({ select: { id: true, name: true, spotifyLink: true, artworkUrl: true } });
-        res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate');
+        res.setHeader('Cache-Control', 'no-store');
         return res.status(200).json(playlists);
       }
       const playlists = await prisma.playlist.findMany({
         include: { songs: true },
         orderBy: { name: 'asc' },
       });
-      res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate');
+      res.setHeader('Cache-Control', 'no-store');
       res.status(200).json(playlists);
     } catch (error) {
       console.error('Error fetching playlists:', error);

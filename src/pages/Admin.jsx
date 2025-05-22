@@ -197,20 +197,22 @@ export default function Admin() {
         </ExpandableSection>
 
         <ExpandableSection title="Update 5-Star Playlist on Spotify" defaultOpen={false}>
-          <UpdateStarPlaylistButton playlistId={16} minRating={5} label="Update 5-Star Playlist" />
+          <UpdateStarPlaylistButton
+            playlistId={16}
+            minRating={5}
+            playlist={playlists.find(p => p.id === 16)}
+          />
         </ExpandableSection>
 
         <ExpandableSection title="Update 4+5-Star Playlist on Spotify" defaultOpen={false}>
-          <UpdateStarPlaylistButton playlistId={15} minRating={4} label="Update 4+5-Star Playlist" />
+          <UpdateStarPlaylistButton
+            playlistId={15}
+            minRating={4}
+            playlist={playlists.find(p => p.id === 15)}
+          />
         </ExpandableSection>
 
-        {/* Spotify Logout Button Section */}
-        <div className="mt-8 mb-8 flex justify-center">
-          <SpotifyLogoutButton />
-        </div>
-
-        <div className="mt-10">
-          <h2 className="text-lg font-bold mb-2 text-white">Manage Playlists</h2>
+        <ExpandableSection title="Manage Playlists" defaultOpen={false}>
           <ul className="space-y-2">
             {playlists.map(p => (
               <li key={p.id} className="flex items-center gap-4">
@@ -276,7 +278,8 @@ export default function Admin() {
               </li>
             ))}
           </ul>
-        </div>
+        </ExpandableSection>
+
         <div className="mt-10">
           <a
             href="/admin/ImportRatings"
@@ -292,6 +295,9 @@ export default function Admin() {
           >
             ScrollTest (Safe Area Demo)
           </a>
+        </div>
+        <div className="mt-16 mb-8 flex justify-center">
+          <SpotifyLogoutButton />
         </div>
       </div>
     </div>
@@ -347,7 +353,7 @@ function ExpandableSection({ title, defaultOpen = false, children }) {
 }
 
 // --- UpdateStarPlaylistButton helper ---
-function UpdateStarPlaylistButton({ playlistId, minRating, label }) {
+function UpdateStarPlaylistButton({ playlistId, minRating, playlist }) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(null);
   const [error, setError] = useState(null);
@@ -379,7 +385,7 @@ function UpdateStarPlaylistButton({ playlistId, minRating, label }) {
         onClick={handleClick}
         disabled={loading}
       >
-        {loading ? 'Updating...' : label}
+        {loading ? 'Updating...' : `Update ${playlist?.name || 'Playlist'} on Spotify`}
       </button>
       {success && <div className="text-green-400 text-sm mt-2">{success}</div>}
       {error && <div className="text-red-400 text-sm mt-2">{error}</div>}
