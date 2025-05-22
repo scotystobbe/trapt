@@ -18,6 +18,7 @@ model Playlist {
   name        String
   spotifyLink String?
   artworkUrl  String?
+  year        Int?
   songs       Song[]
 }
 

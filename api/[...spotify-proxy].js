@@ -346,19 +346,18 @@ module.exports = async (req, res) => {
         return res.end(JSON.stringify({ error: 'Invalid spotifyLink format' }));
       }
       const spotifyPlaylistId = match[1];
-      // 3. Get all songs with rating >= minRating, sorted by playlistId, then sortOrder
+      // 3. Get all songs with rating >= minRating, sorted by playlist year, then sortOrder
       const songs = await prisma.song.findMany({
         where: { rating: { gte: minRating } },
         include: { playlist: true },
       });
-      // 3.5. Fetch all playlists to get their names and years
-      const allPlaylists = await prisma.playlist.findMany({ select: { id: true, name: true } });
+      // 3.5. Fetch all playlists to get their years
+      const allPlaylists = await prisma.playlist.findMany({ select: { id: true, year: true } });
       const playlistYearMap = {};
       allPlaylists.forEach(p => {
-        const match = p.name.match(/(19|20)\\d{2}/);
-        playlistYearMap[p.id] = match ? parseInt(match[0], 10) : 9999;
+        playlistYearMap[p.id] = typeof p.year === 'number' ? p.year : 9999;
       });
-      // 3.6. Sort songs by year, then by sortOrder
+      // 3.6. Sort songs by playlist year, then by sortOrder
       songs.sort((a, b) => {
         const yearA = playlistYearMap[a.playlistId] || 9999;
         const yearB = playlistYearMap[b.playlistId] || 9999;
