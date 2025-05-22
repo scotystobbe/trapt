@@ -134,64 +134,73 @@ export default function Admin() {
     <div style={{ backgroundColor: '#18181b' }} className="min-h-screen">
       <LogoHeader>
         <HamburgerMenu />
-        <SpotifyLogoutButton />
       </LogoHeader>
       <div className="max-w-4xl mx-auto w-full p-6">
-        <h1 className="text-2xl font-bold mb-4 text-white">Admin: Import Spotify Playlist</h1>
-        <form onSubmit={handleFetch} className="flex flex-col gap-4 mb-6">
-          <input
-            type="text"
-            placeholder="Paste Spotify playlist URL here..."
-            value={playlistUrl}
-            onChange={e => setPlaylistUrl(e.target.value)}
-            className="p-2 rounded" style={{ backgroundColor: '#27272a', color: 'white', border: '1px solid #3f3f46' }}
-          />
-          <button
-            type="submit"
-            className="px-4 py-2 bg-green-600 rounded text-white hover:bg-green-500"
-            disabled={loading || !playlistUrl.trim()}
-          >
-            {loading ? 'Loading...' : 'Fetch Playlist'}
-          </button>
-        </form>
-        {error && <div className="text-red-500 mb-4">{error}</div>}
-        {loading && (
-          <div className="mt-4 space-y-2">
-            <div className="text-white">Loading playlist...</div>
-          </div>
-        )}
-        {tracks.length > 0 && (
-          <div>
-            <h2 className="text-lg font-semibold mb-2 text-white">Tracks to Import from <span className='italic text-white'>{playlistName}</span></h2>
-            <ul className="space-y-1 max-h-64 overflow-y-auto">
-              {tracks.map((track, idx) => (
-                <li key={idx}>{track.title} - {track.artist}</li>
-              ))}
-            </ul>
-            {existingPlaylist ? (
-              <div className="flex gap-4 mt-4">
-                <button className="px-4 py-2 bg-blue-600 rounded text-white hover:bg-blue-500" onClick={() => handleImport(false)} disabled={importing}>
-                  {importing ? 'Updating...' : 'Update Playlist'}
+        <h1 className="text-2xl font-bold mb-8 text-white text-center">Admin</h1>
+
+        {/* Expandable Playlist Sync Section */}
+        <ExpandableSection title="Sync/Import Spotify Playlist" defaultOpen={false}>
+          <form onSubmit={handleFetch} className="flex flex-col gap-4 mb-6">
+            <input
+              type="text"
+              placeholder="Paste Spotify playlist URL here..."
+              value={playlistUrl}
+              onChange={e => setPlaylistUrl(e.target.value)}
+              className="p-2 rounded" style={{ backgroundColor: '#27272a', color: 'white', border: '1px solid #3f3f46' }}
+            />
+            <button
+              type="submit"
+              className="px-4 py-2 bg-green-600 rounded text-white hover:bg-green-500"
+              disabled={loading || !playlistUrl.trim()}
+            >
+              {loading ? 'Loading...' : 'Fetch Playlist'}
+            </button>
+          </form>
+          {error && <div className="text-red-500 mb-4">{error}</div>}
+          {loading && (
+            <div className="mt-4 space-y-2">
+              <div className="text-white">Loading playlist...</div>
+            </div>
+          )}
+          {tracks.length > 0 && (
+            <div>
+              <h2 className="text-lg font-semibold mb-2 text-white">Tracks to Import from <span className='italic text-white'>{playlistName}</span></h2>
+              <ul className="space-y-1 max-h-64 overflow-y-auto">
+                {tracks.map((track, idx) => (
+                  <li key={idx}>{track.title} - {track.artist}</li>
+                ))}
+              </ul>
+              {existingPlaylist ? (
+                <div className="flex gap-4 mt-4">
+                  <button className="px-4 py-2 bg-blue-600 rounded text-white hover:bg-blue-500" onClick={() => handleImport(false)} disabled={importing}>
+                    {importing ? 'Updating...' : 'Update Playlist'}
+                  </button>
+                  <button className="px-4 py-2 bg-red-600 rounded text-white hover:bg-red-500" onClick={() => handleImport(true)} disabled={importing}>
+                    {importing ? 'Overwriting...' : 'Overwrite Playlist'}
+                  </button>
+                </div>
+              ) : (
+                <button className="mt-4 px-4 py-2 bg-blue-600 rounded text-white hover:bg-blue-500" onClick={() => handleImport(false)} disabled={importing}>
+                  {importing ? 'Importing...' : 'Import to Database'}
                 </button>
-                <button className="px-4 py-2 bg-red-600 rounded text-white hover:bg-red-500" onClick={() => handleImport(true)} disabled={importing}>
-                  {importing ? 'Overwriting...' : 'Overwrite Playlist'}
-                </button>
-              </div>
-            ) : (
-              <button className="mt-4 px-4 py-2 bg-blue-600 rounded text-white hover:bg-blue-500" onClick={() => handleImport(false)} disabled={importing}>
-                {importing ? 'Importing...' : 'Import to Database'}
-              </button>
-            )}
-          </div>
-        )}
-        {importResult && importResult.success && (
-          <div className="text-green-400 mt-4">
-            Update Successful!{importResult.count > 0 ? ` ${importResult.count} song${importResult.count === 1 ? '' : 's'} added.` : ''}
-          </div>
-        )}
-        {importResult && !importResult.success && (
-          <div className="text-red-500 mt-4">Failed to import playlist.</div>
-        )}
+              )}
+            </div>
+          )}
+          {importResult && importResult.success && (
+            <div className="text-green-400 mt-4">
+              Update Successful!{importResult.count > 0 ? ` ${importResult.count} song${importResult.count === 1 ? '' : 's'} added.` : ''}
+            </div>
+          )}
+          {importResult && !importResult.success && (
+            <div className="text-red-500 mt-4">Failed to import playlist.</div>
+          )}
+        </ExpandableSection>
+
+        {/* Spotify Logout Button Section */}
+        <div className="mt-8 mb-8 flex justify-center">
+          <SpotifyLogoutButton />
+        </div>
+
         <div className="mt-10">
           <h2 className="text-lg font-bold mb-2 text-white">Manage Playlists</h2>
           <ul className="space-y-2">
@@ -308,5 +317,23 @@ function SpotifyLogoutButton() {
       {loading ? 'Logging out...' : 'Log out of Spotify'}
       {error && <span className="text-red-400 ml-2">{error}</span>}
     </button>
+  );
+}
+
+// --- ExpandableSection helper ---
+function ExpandableSection({ title, defaultOpen = false, children }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="mb-8 border border-gray-700 rounded-lg bg-[#232326]">
+      <button
+        className="w-full flex items-center justify-between px-4 py-3 text-lg font-semibold text-white focus:outline-none hover:bg-[#27272a] rounded-t-lg"
+        onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+      >
+        <span>{title}</span>
+        <span className="ml-2">{open ? '▲' : '▼'}</span>
+      </button>
+      {open && <div className="px-4 pb-4 pt-2">{children}</div>}
+    </div>
   );
 } 

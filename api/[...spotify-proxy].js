@@ -274,7 +274,8 @@ module.exports = async (req, res) => {
       if (!playlistData.id) throw new Error('Failed to create playlist');
       // 3. Add tracks
       if (trackUris.length > 0) {
-        await fetch(`https://api.spotify.com/v1/playlists/${playlistData.id}/tracks`, {
+        console.log('Adding tracks to Spotify playlist:', trackUris);
+        const addTracksRes = await fetch(`https://api.spotify.com/v1/playlists/${playlistData.id}/tracks`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -282,6 +283,12 @@ module.exports = async (req, res) => {
           },
           body: JSON.stringify({ uris: trackUris }),
         });
+        const addTracksData = await addTracksRes.json();
+        if (!addTracksRes.ok) {
+          console.error('Error adding tracks to Spotify playlist:', addTracksData);
+        } else {
+          console.log('Add tracks response:', addTracksData);
+        }
       }
       res.statusCode = 200;
       res.setHeader('Content-Type', 'application/json');
