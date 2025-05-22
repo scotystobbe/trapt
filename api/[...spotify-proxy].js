@@ -318,7 +318,7 @@ module.exports = async (req, res) => {
     return;
   }
 
-  if (subroute === 'admin/update-star-playlist' && req.method === 'POST') {
+  if (segments[0] === 'admin' && segments[1] === 'update-star-playlist' && req.method === 'POST') {
     try {
       let body = '';
       await new Promise((resolve, reject) => {
