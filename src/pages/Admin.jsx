@@ -196,7 +196,10 @@ export default function Admin() {
           )}
         </ExpandableSection>
 
-        <ExpandableSection title="Update 5-Star Playlist on Spotify" defaultOpen={false}>
+        <ExpandableSection
+          title={`Update ${playlists.find(p => p.id === 16)?.name || '5-Star Playlist'} on Spotify`}
+          defaultOpen={false}
+        >
           <UpdateStarPlaylistButton
             playlistId={16}
             minRating={5}
@@ -204,7 +207,10 @@ export default function Admin() {
           />
         </ExpandableSection>
 
-        <ExpandableSection title="Update 4+5-Star Playlist on Spotify" defaultOpen={false}>
+        <ExpandableSection
+          title={`Update ${playlists.find(p => p.id === 15)?.name || '4+5-Star Playlist'} on Spotify`}
+          defaultOpen={false}
+        >
           <UpdateStarPlaylistButton
             playlistId={15}
             minRating={4}
