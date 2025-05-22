@@ -196,6 +196,14 @@ export default function Admin() {
           )}
         </ExpandableSection>
 
+        <ExpandableSection title="Update 5-Star Playlist on Spotify" defaultOpen={false}>
+          <UpdateStarPlaylistButton playlistId={16} minRating={5} label="Update 5-Star Playlist" />
+        </ExpandableSection>
+
+        <ExpandableSection title="Update 4+5-Star Playlist on Spotify" defaultOpen={false}>
+          <UpdateStarPlaylistButton playlistId={15} minRating={4} label="Update 4+5-Star Playlist" />
+        </ExpandableSection>
+
         {/* Spotify Logout Button Section */}
         <div className="mt-8 mb-8 flex justify-center">
           <SpotifyLogoutButton />
@@ -334,6 +342,47 @@ function ExpandableSection({ title, defaultOpen = false, children }) {
         <span className="ml-2">{open ? '▲' : '▼'}</span>
       </button>
       {open && <div className="px-4 pb-4 pt-2">{children}</div>}
+    </div>
+  );
+}
+
+// --- UpdateStarPlaylistButton helper ---
+function UpdateStarPlaylistButton({ playlistId, minRating, label }) {
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(null);
+  const [error, setError] = useState(null);
+
+  const handleClick = async () => {
+    setLoading(true);
+    setSuccess(null);
+    setError(null);
+    try {
+      const res = await fetch('/api/spotify-proxy/admin/update-star-playlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playlistId, minRating }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Unknown error');
+      setSuccess(`Playlist updated with ${data.updated} songs.`);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center">
+      <button
+        className="px-4 py-2 bg-blue-700 rounded text-white font-semibold hover:bg-blue-600 disabled:opacity-50"
+        onClick={handleClick}
+        disabled={loading}
+      >
+        {loading ? 'Updating...' : label}
+      </button>
+      {success && <div className="text-green-400 text-sm mt-2">{success}</div>}
+      {error && <div className="text-red-400 text-sm mt-2">{error}</div>}
     </div>
   );
 } 

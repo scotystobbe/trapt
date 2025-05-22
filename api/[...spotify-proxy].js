@@ -1,6 +1,8 @@
 const fetch = require('node-fetch');
 require('dotenv').config();
 const url = require('url');
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
 function setCookie(res, name, value, options = {}) {
   let cookie = `${name}=${value}; Path=/; HttpOnly; SameSite=Lax`;
@@ -262,13 +264,14 @@ module.exports = async (req, res) => {
       const userData = await userRes.json();
       if (!userData.id) throw new Error('Failed to get user profile');
       // 2. Create playlist
+      const description = `Playlist of songs from ${name.replace(/ - Not Rated$/, '')} that have not yet been given a star rating`;
       const createRes = await fetch(`https://api.spotify.com/v1/users/${userData.id}/playlists`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name, public: false }),
+        body: JSON.stringify({ name, public: false, description }),
       });
       const playlistData = await createRes.json();
       if (!playlistData.id) throw new Error('Failed to create playlist');
@@ -313,6 +316,143 @@ module.exports = async (req, res) => {
     res.statusCode = 200;
     res.end('Logged out');
     return;
+  }
+
+  if (subroute === 'admin/update-star-playlist' && req.method === 'POST') {
+    try {
+      let body = '';
+      await new Promise((resolve, reject) => {
+        req.on('data', chunk => { body += chunk; });
+        req.on('end', resolve);
+        req.on('error', reject);
+      });
+      const { playlistId, minRating } = JSON.parse(body);
+      if (!playlistId || !minRating) {
+        res.statusCode = 400;
+        return res.end(JSON.stringify({ error: 'Missing playlistId or minRating' }));
+      }
+      // 1. Get the playlist from DB
+      const playlist = await prisma.playlist.findUnique({ where: { id: playlistId } });
+      if (!playlist || !playlist.spotifyLink) {
+        res.statusCode = 404;
+        return res.end(JSON.stringify({ error: 'Playlist not found or missing spotifyLink' }));
+      }
+      // 2. Extract Spotify playlist ID from spotifyLink
+      const match = playlist.spotifyLink.match(/playlist[/:]([a-zA-Z0-9]+)/);
+      if (!match) {
+        res.statusCode = 400;
+        return res.end(JSON.stringify({ error: 'Invalid spotifyLink format' }));
+      }
+      const spotifyPlaylistId = match[1];
+      // 3. Get all songs with rating >= minRating, sorted by playlistId, then sortOrder
+      const songs = await prisma.song.findMany({
+        where: { rating: { gte: minRating } },
+        include: { playlist: true },
+        orderBy: [
+          { playlistId: 'asc' },
+          { sortOrder: 'asc' },
+        ],
+      });
+      // 4. Build trackUris
+      const trackUris = songs
+        .map(s => {
+          if (s.spotifyLink) {
+            const m = s.spotifyLink.match(/track\/([a-zA-Z0-9]+)/);
+            if (m) return `spotify:track:${m[1]}`;
+          }
+          return null;
+        })
+        .filter(Boolean);
+      // 5. Get user access token
+      let accessToken = getCookie(req, 'spotify_access_token');
+      const refreshToken = getCookie(req, 'spotify_refresh_token');
+      const expiresAt = parseInt(getCookie(req, 'spotify_expires_at'), 10);
+      if (expiresAt && Date.now() > expiresAt && refreshToken) {
+        try {
+          const refreshRes = await fetch('https://accounts.spotify.com/api/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+              grant_type: 'refresh_token',
+              refresh_token: refreshToken,
+              client_id: process.env.SPOTIFY_CLIENT_ID,
+              client_secret: process.env.SPOTIFY_CLIENT_SECRET,
+            }),
+          });
+          const refreshData = await refreshRes.json();
+          if (refreshData.access_token) {
+            accessToken = refreshData.access_token;
+            setCookie(res, 'spotify_access_token', accessToken, { maxAge: refreshData.expires_in });
+            setCookie(res, 'spotify_expires_at', Date.now() + (refreshData.expires_in || 3600) * 1000, { maxAge: refreshData.expires_in });
+          } else {
+            res.statusCode = 401;
+            return res.end(JSON.stringify({ error: 'Failed to refresh token', details: refreshData }));
+          }
+        } catch (err) {
+          res.statusCode = 500;
+          return res.end(JSON.stringify({ error: 'Token refresh error', details: err.message }));
+        }
+      }
+      if (!accessToken) {
+        res.statusCode = 401;
+        return res.end(JSON.stringify({ error: 'Not authenticated with Spotify' }));
+      }
+      // 6. Remove all current tracks from the Spotify playlist
+      // Get all current tracks
+      let allTrackUris = [];
+      let nextUrl = `https://api.spotify.com/v1/playlists/${spotifyPlaylistId}/tracks?limit=100&offset=0`;
+      while (nextUrl) {
+        const tracksRes = await fetch(nextUrl, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        const tracksData = await tracksRes.json();
+        if (tracksData.error) break;
+        allTrackUris = allTrackUris.concat(
+          (tracksData.items || []).map(item => item.track && item.track.uri).filter(Boolean)
+        );
+        nextUrl = tracksData.next;
+      }
+      if (allTrackUris.length > 0) {
+        // Remove all tracks in batches of 50
+        for (let i = 0; i < allTrackUris.length; i += 50) {
+          const batch = allTrackUris.slice(i, i + 50).map(uri => ({ uri }));
+          const removeRes = await fetch(`https://api.spotify.com/v1/playlists/${spotifyPlaylistId}/tracks`, {
+            method: 'DELETE',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ tracks: batch }),
+          });
+          const removeData = await removeRes.json();
+          if (!removeRes.ok) {
+            console.error('Error removing tracks from Spotify playlist:', removeData);
+          }
+        }
+      }
+      // 7. Add new tracks in batches of 50
+      for (let i = 0; i < trackUris.length; i += 50) {
+        const batch = trackUris.slice(i, i + 50);
+        const addTracksRes = await fetch(`https://api.spotify.com/v1/playlists/${spotifyPlaylistId}/tracks`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ uris: batch }),
+        });
+        const addTracksData = await addTracksRes.json();
+        if (!addTracksRes.ok) {
+          console.error('Error adding tracks to Spotify playlist:', addTracksData);
+        }
+      }
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'application/json');
+      return res.end(JSON.stringify({ updated: trackUris.length }));
+    } catch (err) {
+      res.statusCode = 500;
+      return res.end(JSON.stringify({ error: 'Failed to update playlist', details: err.message }));
+    }
   }
 
   // 🎯 3. Default fallback

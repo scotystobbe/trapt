@@ -82,8 +82,8 @@ export default function PlaylistView() {
 
   const fetcher = url => fetch(url).then(res => res.json());
   const { data: playlists = [], error, mutate } = useSWR('/api/playlists', fetcher, {
-    dedupingInterval: 3600000, // 1 hour
-    revalidateOnFocus: false,
+    dedupingInterval: 0,
+    revalidateOnFocus: true,
   });
   const playlist = playlists.find(p => p.id === parseInt(id));
 

@@ -2,6 +2,7 @@ import React from "react";
 import { useState } from 'react';
 import StarRating from './StarRating';
 import { FaRegEdit } from 'react-icons/fa';
+import { mutate } from 'swr';
 
 export default function SongCard({ song, playlistName, onSongUpdate }) {
   const [rating, setRating] = useState(song.rating);
@@ -19,6 +20,7 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
       });
       if (!res.ok) throw new Error('Failed to save');
       if (onSongUpdate) onSongUpdate();
+      mutate('/api/playlists');
     } catch (err) {
       setError('Could not save changes.');
     }
