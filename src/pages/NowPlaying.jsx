@@ -57,11 +57,8 @@ export default function NowPlaying() {
   const [prevDbSong, setPrevDbSong] = useState(null);
 
   // SWR for songs
-  const fetcher = url => fetch(url).then(res => res.json());
-  const { data: songs = [], error: songsError, mutate: mutateSongs } = useSWR('/api/songs', fetcher, {
-    dedupingInterval: 3600000, // 1 hour
-    revalidateOnFocus: false,
-  });
+  const fetcher = url => fetch(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now()).then(res => res.json());
+  const { data: songs = [], error: songsError, mutate: mutateSongs } = useSWR('/api/songs', fetcher);
 
   // Helper to check auth and fetch currently playing
   const fetchCurrentlyPlaying = useCallback(async (isInitial = false) => {
