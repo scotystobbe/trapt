@@ -101,10 +101,12 @@ export default function NowPlaying() {
   }, [editingNotes, track, dbSong, songs]);
 
   useEffect(() => {
+    if (songs.length === 0 && !songsError) return; // Wait for songs to load or error
     fetchCurrentlyPlaying(true);
     const interval = setInterval(() => fetchCurrentlyPlaying(false), 5000);
     return () => clearInterval(interval);
-  }, [fetchCurrentlyPlaying]);
+    // eslint-disable-next-line
+  }, [fetchCurrentlyPlaying, songs.length, songsError]);
 
   const handleConnect = () => {
     window.location.href = '/api/spotify-proxy/login';
