@@ -7,7 +7,7 @@ const CLIENT_ID = process.env.GENIUS_CLIENT_ID;
 const CLIENT_SECRET = process.env.GENIUS_CLIENT_SECRET;
 const REDIRECT_URI = process.env.GENIUS_REDIRECT_URI;
 const GENIUS_BASE_URL = 'https://api.genius.com';
-const GENIUS_AUTH_URL = 'https://genius.com/oauth/authorize';
+const GENIUS_AUTH_URL = 'https://api.genius.com/oauth/authorize';
 const GENIUS_TOKEN_URL = 'https://api.genius.com/oauth/token';
 
 export default async function handler(req, res) {
