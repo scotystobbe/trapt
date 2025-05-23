@@ -45,7 +45,26 @@ export default async function handler(req, res) {
       if (tokenData.access_token) {
         // Set token in cookie (or session)
         res.setHeader('Set-Cookie', `genius_token=${tokenData.access_token}; Path=/; HttpOnly; SameSite=Lax`);
-        return res.redirect('/'); // Redirect to home or desired page
+        // Serve a small HTML page for graceful handling
+        return res.send(`
+          <html>
+            <body>
+              <script>
+                // Try to notify opener and close if in a popup
+                if (window.opener) {
+                  window.opener.postMessage({ type: 'genius-auth-success' }, window.location.origin);
+                  window.close();
+                } else {
+                  // Not a popup: redirect after a short delay
+                  setTimeout(() => {
+                    window.location = '/';
+                  }, 1000);
+                }
+              </script>
+              <p>Authentication successful. You can close this window or <a href="/">return to the app</a>.</p>
+            </body>
+          </html>
+        `);
       } else {
         return res.status(400).json({ error: 'Failed to get access token', details: tokenData });
       }
