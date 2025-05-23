@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import HamburgerMenu from '../components/HamburgerMenu';
 import LogoHeader from '../components/LogoHeader';
 import { FaTrash } from 'react-icons/fa';
@@ -295,13 +295,7 @@ export default function Admin() {
         </div>
         {/* Login with Genius button at the bottom */}
         <div className="flex justify-center mt-12">
-          <Button variant="yellow"
-            href="/api/genius?action=auth"
-            className="flex items-center justify-center gap-2 font-semibold"
-          >
-            <SiGenius className="text-2xl" />
-            Connect to Genius
-          </Button>
+          <GeniusConnectButton />
         </div>
       </div>
     </div>
@@ -423,5 +417,24 @@ function SpotifyConnectButton() {
         Connect to Spotify
       </span>
     </Button>
+  );
+}
+
+function GeniusConnectButton() {
+  const handleGeniusLogin = useCallback(() => {
+    window.open('/api/genius?action=auth', '_blank', 'noopener,noreferrer');
+  }, []);
+  return (
+    <div className="flex flex-col items-center">
+      <Button
+        variant="yellow"
+        onClick={handleGeniusLogin}
+        className="flex items-center justify-center gap-2 font-semibold"
+      >
+        <SiGenius className="text-2xl" />
+        Connect to Genius
+      </Button>
+      <span className="text-xs text-gray-400 mt-2 text-center max-w-xs">If prompted, please continue in your browser to complete login.</span>
+    </div>
   );
 } 
