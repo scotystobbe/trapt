@@ -422,7 +422,7 @@ function SpotifyConnectButton() {
 
 function GeniusConnectButton() {
   const handleGeniusLogin = useCallback(() => {
-    window.open('/api/genius?action=auth', '_blank', 'noopener,noreferrer');
+    window.location = '/api/genius?action=auth';
   }, []);
   return (
     <div className="flex flex-col items-center">
@@ -434,7 +434,7 @@ function GeniusConnectButton() {
         <SiGenius className="text-2xl" />
         Connect to Genius
       </Button>
-      <span className="text-xs text-gray-400 mt-2 text-center max-w-xs">If prompted, please continue in your browser to complete login.</span>
+      <span className="text-xs text-gray-400 mt-2 text-center max-w-xs">After login, return to the app if you are not redirected automatically.</span>
     </div>
   );
 } 
