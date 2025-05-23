@@ -3,6 +3,9 @@ import HamburgerMenu from '../components/HamburgerMenu';
 import LogoHeader from '../components/LogoHeader';
 import { FaTrash } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
+import { SiGenius } from 'react-icons/si';
+import { FaSpotify } from 'react-icons/fa';
+import Button from '../components/Button';
 
 function extractPlaylistId(url) {
   // Handles URLs like https://open.spotify.com/playlist/{id} or spotify:playlist:{id}
@@ -149,13 +152,13 @@ export default function Admin() {
               onChange={e => setPlaylistUrl(e.target.value)}
               className="p-2 rounded" style={{ backgroundColor: '#27272a', color: 'white', border: '1px solid #3f3f46' }}
             />
-            <button
+            <Button
               type="submit"
-              className="px-4 py-2 bg-green-600 rounded text-white hover:bg-green-500"
+              variant="primary"
               disabled={loading || !playlistUrl.trim()}
             >
               {loading ? 'Loading...' : 'Fetch Playlist'}
-            </button>
+            </Button>
           </form>
           {error && <div className="text-red-500 mb-4">{error}</div>}
           {loading && (
@@ -173,17 +176,17 @@ export default function Admin() {
               </ul>
               {existingPlaylist ? (
                 <div className="flex gap-4 mt-4">
-                  <button className="px-4 py-2 bg-blue-600 rounded text-white hover:bg-blue-500" onClick={() => handleImport(false)} disabled={importing}>
+                  <Button variant="primary" onClick={() => handleImport(false)} disabled={importing}>
                     {importing ? 'Updating...' : 'Update Playlist'}
-                  </button>
-                  <button className="px-4 py-2 bg-red-600 rounded text-white hover:bg-red-500" onClick={() => handleImport(true)} disabled={importing}>
+                  </Button>
+                  <Button variant="danger" onClick={() => handleImport(true)} disabled={importing}>
                     {importing ? 'Overwriting...' : 'Overwrite Playlist'}
-                  </button>
+                  </Button>
                 </div>
               ) : (
-                <button className="mt-4 px-4 py-2 bg-blue-600 rounded text-white hover:bg-blue-500" onClick={() => handleImport(false)} disabled={importing}>
+                <Button variant="primary" onClick={() => handleImport(false)} disabled={importing}>
                   {importing ? 'Importing...' : 'Import to Database'}
-                </button>
+                </Button>
               )}
             </div>
           )}
@@ -206,7 +209,7 @@ export default function Admin() {
                   <div className="w-8 h-8 bg-gray-700 rounded mr-2" />
                 )}
                 <span className="text-white">{p.name}</span>
-                <button className="px-2 py-1 bg-blue-600 text-white rounded" onClick={async () => {
+                <Button variant="primary" onClick={async () => {
                   if (!p.spotifyLink) {
                     setError('No Spotify link available for this playlist.');
                     return;
@@ -247,16 +250,16 @@ export default function Admin() {
                   } finally {
                     setLoading(false);
                   }
-                }}>Update</button>
+                }}>Update</Button>
                 {confirmDeleteId === p.id ? (
                   <>
-                    <button className="px-2 py-1 bg-red-600 text-white rounded" onClick={() => handleDelete(p.id)} disabled={deletingId === p.id}>Confirm Delete</button>
-                    <button className="px-2 py-1 bg-gray-600 text-white rounded" onClick={() => setConfirmDeleteId(null)} disabled={deletingId === p.id}>Cancel</button>
+                    <Button variant="danger" onClick={() => handleDelete(p.id)} disabled={deletingId === p.id}>Confirm Delete</Button>
+                    <Button variant="secondary" onClick={() => setConfirmDeleteId(null)} disabled={deletingId === p.id}>Cancel</Button>
                   </>
                 ) : (
-                  <button className="p-2 text-gray-400 hover:text-red-600 transition-colors" onClick={() => setConfirmDeleteId(p.id)} disabled={deletingId === p.id} title="Delete Playlist">
+                  <Button variant="secondary" onClick={() => setConfirmDeleteId(p.id)} disabled={deletingId === p.id} title="Delete Playlist">
                     <FaTrash />
-                  </button>
+                  </Button>
                 )}
                 {deletingId === p.id && <span className="ml-2 text-xs text-gray-400">Deleting...</span>}
               </li>
@@ -264,39 +267,41 @@ export default function Admin() {
           </ul>
         </ExpandableSection>
 
+        <ExpandableSection title="Utilities" defaultOpen={false}>
+          <div className="flex flex-col gap-4">
+            <a
+              href="/admin/ImportRatings"
+              className="inline-block px-4 py-2 bg-purple-700 rounded text-white hover:bg-purple-600 font-semibold"
+            >
+              Import Ratings from CSV
+            </a>
+            <a
+              href="/scroll-test"
+              className="inline-block px-4 py-2 bg-yellow-700 rounded text-white hover:bg-yellow-600 font-semibold"
+            >
+              ScrollTest (Safe Area Demo)
+            </a>
+          </div>
+        </ExpandableSection>
+
         {/* Update playlist buttons, now in-line */}
         <div className="flex flex-col sm:flex-row gap-4 mt-8 mb-8 items-center justify-center">
-          <UpdateStarPlaylistButton
-            playlistId={16}
-            minRating={5}
-            playlist={playlists.find(p => p.id === 16)}
-          />
-          <UpdateStarPlaylistButton
-            playlistId={15}
-            minRating={4}
-            playlist={playlists.find(p => p.id === 15)}
-          />
+          <UpdateBothTraptButton />
         </div>
 
-        <div className="mt-10">
-          <a
-            href="/admin/ImportRatings"
-            className="inline-block px-4 py-2 bg-purple-700 rounded text-white hover:bg-purple-600 font-semibold mt-8"
-          >
-            Import Ratings from CSV
-          </a>
-        </div>
-        <div className="mt-10">
-          <a
-            href="/scroll-test"
-            className="inline-block px-4 py-2 bg-yellow-700 rounded text-white hover:bg-yellow-600 font-semibold mt-8"
-          >
-            ScrollTest (Safe Area Demo)
-          </a>
-        </div>
-        <div className="mt-16 mb-8 flex justify-center gap-4">
+        <div className="mt-16 mb-8 flex flex-col items-center gap-4">
           <SpotifyConnectButton />
           <SpotifyLogoutButton />
+        </div>
+        {/* Login with Genius button at the bottom */}
+        <div className="flex justify-center mt-12">
+          <Button variant="yellow"
+            href="/api/genius?action=auth"
+            className="flex items-center justify-center gap-2 font-semibold"
+          >
+            <SiGenius className="text-2xl" />
+            Connect to Genius
+          </Button>
         </div>
       </div>
     </div>
@@ -321,15 +326,17 @@ function SpotifyLogoutButton() {
   };
 
   return (
-    <button
-      className="ml-4 px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-600"
+    <Button
+      variant="secondary"
       onClick={handleLogout}
       disabled={loading}
       title="Log out of Spotify"
+      className="flex items-center justify-center gap-2 font-semibold"
     >
+      <FaSpotify className="text-2xl text-white" />
       {loading ? 'Logging out...' : 'Log out of Spotify'}
       {error && <span className="text-red-400 ml-2">{error}</span>}
-    </button>
+    </Button>
   );
 }
 
@@ -351,8 +358,8 @@ function ExpandableSection({ title, defaultOpen = false, children }) {
   );
 }
 
-// --- UpdateStarPlaylistButton helper ---
-function UpdateStarPlaylistButton({ playlistId, minRating, playlist }) {
+// --- UpdateBothTraptButton helper ---
+function UpdateBothTraptButton() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(null);
   const [error, setError] = useState(null);
@@ -362,14 +369,23 @@ function UpdateStarPlaylistButton({ playlistId, minRating, playlist }) {
     setSuccess(null);
     setError(null);
     try {
-      const res = await fetch('/api/spotify-proxy/admin/update-star-playlist', {
+      // Update TRAPT+ (id 16, minRating 5)
+      let res = await fetch('/api/spotify-proxy/admin/update-star-playlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ playlistId, minRating }),
+        body: JSON.stringify({ playlistId: 16, minRating: 5 }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Unknown error');
-      setSuccess(`Playlist updated with ${data.updated} songs.`);
+      let data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Unknown error updating TRAPT+');
+      // Update TRAPT (id 15, minRating 4)
+      res = await fetch('/api/spotify-proxy/admin/update-star-playlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playlistId: 15, minRating: 4 }),
+      });
+      data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Unknown error updating TRAPT');
+      setSuccess('Both TRAPT+ and TRAPT playlists updated successfully.');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -379,13 +395,14 @@ function UpdateStarPlaylistButton({ playlistId, minRating, playlist }) {
 
   return (
     <div className="flex flex-col items-center">
-      <button
-        className="px-4 py-2 bg-blue-700 rounded text-white font-semibold hover:bg-blue-600 disabled:opacity-50"
+      <Button
+        variant="gray-yellow"
         onClick={handleClick}
         disabled={loading}
+        className="font-semibold"
       >
-        {loading ? 'Updating...' : `Update ${playlist?.name || 'Playlist'} on Spotify`}
-      </button>
+        {loading ? 'Updating...' : 'Update TRAPT on Spotify'}
+      </Button>
       {success && <div className="text-green-400 text-sm mt-2">{success}</div>}
       {error && <div className="text-red-400 text-sm mt-2">{error}</div>}
     </div>
@@ -395,12 +412,16 @@ function UpdateStarPlaylistButton({ playlistId, minRating, playlist }) {
 // --- SpotifyConnectButton helper ---
 function SpotifyConnectButton() {
   return (
-    <a
+    <Button
+      variant="success"
       href="/api/spotify-proxy/login"
-      className="ml-4 px-3 py-1 bg-green-700 text-white rounded hover:bg-green-600"
       title="Connect to Spotify"
+      className="flex items-center justify-center gap-2 font-semibold"
     >
-      Connect to Spotify
-    </a>
+      <span className="flex items-center gap-2 text-black">
+        <FaSpotify className="text-2xl" />
+        Connect to Spotify
+      </span>
+    </Button>
   );
 } 

@@ -7,6 +7,7 @@ import NowPlaying from './pages/NowPlaying.jsx';
 import Browse from './pages/Browse.jsx';
 import ImportRatings from './pages/admin/ImportRatings.tsx';
 import ScrollTest from './pages/ScrollTest.jsx';
+import GeniusEmbedPage from './pages/genius-embed/[songId]';
 import { FaMoon, FaSun } from 'react-icons/fa';
 import ScrollToTop from './components/ScrollToTop';
 
@@ -55,6 +56,7 @@ export default function App() {
               <Route path="/admin" element={<Admin />} />
               <Route path="/admin/ImportRatings" element={<ImportRatings />} />
               <Route path="/scroll-test" element={<ScrollTest />} />
+              <Route path="/genius-embed/:songId" element={<GeniusEmbedPage />} />
             </Routes>
           </Router>
         </div>

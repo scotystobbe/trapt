@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import HamburgerMenu from '../../components/HamburgerMenu';
+import Button from '../../components/Button';
 
 const AVAILABLE_YEARS = [2018, 2019, 2020, 2021, 2022, 2023];
 
@@ -189,13 +190,9 @@ const ImportRatings: React.FC = () => {
       )}
       {results.length > 0 && (
         <div className="mt-8">
-          <button
-            className="px-6 py-2 bg-green-600 rounded text-white font-semibold hover:bg-green-500"
-            onClick={handleSubmit}
-            disabled={submitStatus === 'submitting'}
-          >
+          <Button variant="success" onClick={handleSubmit} disabled={submitStatus === 'submitting'}>
             {submitStatus === 'submitting' ? 'Submitting...' : 'Submit'}
-          </button>
+          </Button>
           {submitStatus === 'success' && (
             <div className="mt-4 text-green-400">{submitMessage}</div>
           )}

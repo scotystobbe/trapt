@@ -4,16 +4,16 @@ import SongCard from '../components/SongCard';
 import HamburgerMenu from '../components/HamburgerMenu';
 import LogoHeader from '../components/LogoHeader';
 import Skeleton from '../components/Skeleton';
-import { FaArrowLeft, FaSearch } from 'react-icons/fa';
+import { FaArrowLeft, FaSearch, FaStar, FaStarHalfAlt, FaRegStar } from 'react-icons/fa';
 import useSWR from 'swr';
 
 // --- Helper component ---
-function CreateUnratedSpotifyPlaylistButton({ playlist }) {
+function CreateUnratedSpotifyModal({ open, onClose, playlist }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successUrl, setSuccessUrl] = useState(null);
 
-  const handleClick = async () => {
+  const handleCreate = async () => {
     setLoading(true);
     setError(null);
     setSuccessUrl(null);
@@ -21,7 +21,6 @@ function CreateUnratedSpotifyPlaylistButton({ playlist }) {
       const unrated = (playlist.songs || []).filter(s => s.rating == null || s.rating === 0);
       const trackUris = unrated
         .map(s => {
-          // Try to extract Spotify track ID from spotifyLink
           if (s.spotifyLink) {
             const match = s.spotifyLink.match(/track\/([a-zA-Z0-9]+)/);
             if (match) return `spotify:track:${match[1]}`;
@@ -52,20 +51,50 @@ function CreateUnratedSpotifyPlaylistButton({ playlist }) {
     }
   };
 
+  if (!open) return null;
   return (
-    <div className="mt-2 flex flex-col items-center">
-      <button
-        className="px-4 py-2 bg-green-600 rounded text-white font-semibold hover:bg-green-500 disabled:opacity-50"
-        onClick={handleClick}
-        disabled={loading}
-      >
-        {loading ? 'Creating Spotify Playlist...' : 'Create Spotify Playlist of Unrated Songs'}
-      </button>
-      {error && <div className="text-red-400 text-sm mt-1">{error}</div>}
-      {successUrl && (
-        <a href={successUrl} target="_blank" rel="noopener noreferrer" className="text-green-400 text-sm mt-1 underline">Open Playlist on Spotify</a>
-      )}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70">
+      <div className="bg-zinc-900 rounded-lg shadow-lg p-6 max-w-md w-full relative">
+        <button onClick={onClose} className="absolute top-2 right-2 text-gray-400 hover:text-white text-2xl">&times;</button>
+        <h2 className="text-xl font-bold mb-4 text-white">Create Spotify Playlist of Unrated Songs</h2>
+        <p className="text-gray-300 mb-4">This will create a new Spotify playlist with all unrated songs from <span className="font-semibold text-white">{playlist.name}</span>.</p>
+        {error && <div className="text-red-400 mb-2">{error}</div>}
+        {successUrl ? (
+          <a href={successUrl} target="_blank" rel="noopener noreferrer" className="text-green-400 underline font-semibold">Open Playlist on Spotify</a>
+        ) : (
+          <button
+            className="px-4 py-2 bg-green-600 rounded text-white font-semibold hover:bg-green-500 disabled:opacity-50 w-full"
+            onClick={handleCreate}
+            disabled={loading}
+          >
+            {loading ? 'Creating...' : 'Create Playlist'}
+          </button>
+        )}
+      </div>
     </div>
+  );
+}
+
+function AverageStarRating({ value }) {
+  // Clamp value between 0 and 5
+  const avg = Math.max(0, Math.min(5, value));
+  const stars = [];
+  for (let i = 1; i <= 5; i++) {
+    if (avg >= i) {
+      stars.push(<FaStar key={i} className="text-yellow-400 inline" />);
+    } else if (avg >= i - 0.5) {
+      stars.push(<FaStarHalfAlt key={i} className="text-yellow-400 inline" />);
+    } else {
+      stars.push(<FaRegStar key={i} className="text-yellow-400 inline" />);
+    }
+  }
+  return (
+    <span className="ml-2 select-none" style={{display: 'inline-flex', alignItems: 'baseline', position: 'relative', top: '2px'}}>
+      {stars}
+      <span className="text-gray-400 text-sm ml-1" style={{position: 'relative', top: '-2px'}}>
+        ({avg.toFixed(1)})
+      </span>
+    </span>
   );
 }
 
@@ -79,6 +108,7 @@ export default function PlaylistView() {
   const searchInputRef = useRef(null);
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const headerRef = useRef(null);
+  const [showUnratedModal, setShowUnratedModal] = useState(false);
 
   const fetcher = url => fetch(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now()).then(res => res.json());
   const { data: playlists = [], error, mutate } = useSWR('/api/playlists', fetcher);
@@ -230,14 +260,31 @@ export default function PlaylistView() {
             const rated = playlist.songs.filter(s => s.rating != null && s.rating !== 0);
             const ratedCount = rated.length;
             const totalCount = playlist.songs.length;
-            const avg = ratedCount > 0 ? (rated.reduce((sum, s) => sum + s.rating, 0) / ratedCount).toFixed(2) : null;
+            const avg = ratedCount > 0 ? (rated.reduce((sum, s) => sum + s.rating, 0) / ratedCount) : null;
+            const isFullyRated = ratedCount === totalCount;
             return (
-              <div className="text-gray-400 text-base mt-1">
-                {ratedCount}/{totalCount} rated{avg ? ` | Avg: ${avg}` : ''}
+              <div className="flex items-center gap-2 text-gray-400 text-base mt-1">
+                {isFullyRated ? (
+                  <span>{ratedCount}/{totalCount} rated</span>
+                ) : (
+                  <button
+                    className="font-semibold focus:outline-none"
+                    onClick={() => setShowUnratedModal(true)}
+                    style={{ background: 'none', border: 'none', padding: 0, margin: 0 }}
+                  >
+                    {ratedCount}/{totalCount} rated
+                  </button>
+                )}
+                {avg !== null && (
+                  <span className="flex items-baseline" style={{gap: '0.08rem'}}>
+                    <span className="mr-2" style={{position: 'relative', top: '-1px'}}>&bull;</span>
+                    <span className="text-gray-400">Avg:</span>
+                    <AverageStarRating value={avg} />
+                  </span>
+                )}
               </div>
             );
           })()}
-          <CreateUnratedSpotifyPlaylistButton playlist={playlist} />
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-2 justify-between">
           <div className="flex flex-row items-center gap-2 w-full sm:w-auto">
@@ -302,6 +349,7 @@ export default function PlaylistView() {
             <SongCard key={song.id} song={song} playlistName={playlist.name} onSongUpdate={refreshPlaylist} />
           ))}
         </div>
+        <CreateUnratedSpotifyModal open={showUnratedModal} onClose={() => setShowUnratedModal(false)} playlist={playlist} />
       </div>
     </div>
   );
