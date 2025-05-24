@@ -157,7 +157,11 @@ export default function NowPlaying() {
   const geniusUrl = dbSong
     ? `https://genius.com/search?q=${encodeURIComponent(dbSong.artist + ' ' + dbSong.title)}`
     : '#';
-  const playlistArtworkUrl = dbSong?.artworkUrl || (track?.album?.images?.[0]?.url ?? null);
+  // Find the playlist for the current song
+  const playlistForSong = songs.find(
+    playlist => Array.isArray(playlist.songs) && playlist.songs.some(s => s.id === dbSong?.id)
+  );
+  const playlistArtworkUrl = playlistForSong?.artworkUrl || null;
 
   return (
     <div style={{ backgroundColor: nightMode ? '#000' : '#18181b' }} className={"min-h-screen " + (nightMode ? 'night-mode' : '')}>
@@ -201,7 +205,13 @@ export default function NowPlaying() {
                 <img src={dbSong.artworkUrl} alt={dbSong.title} className={"w-56 h-56 rounded-2xl object-cover shadow-lg " + dimClass} />
               )}
             </div>
-            <h2 className={"text-4xl font-bold mb-2 text-center " + (nightMode ? 'text-red-800' : 'text-white')}>{dbSong.title}</h2>
+            <h2
+              className={"text-4xl font-bold mb-2 text-center " + (nightMode ? 'text-red-800' : 'text-white')}
+              onClick={() => setShowGeniusModal(true)}
+              style={{ cursor: 'pointer' }}
+            >
+              {dbSong.title}
+            </h2>
             <p className={"text-3xl mb-1 text-center " + (nightMode ? 'text-red-800' : 'text-white')}>{dbSong.artist}</p>
             <p className={"text-lg mb-2 text-center " + (nightMode ? 'text-red-900' : 'text-gray-500')}>{dbSong.album || track?.album?.name}</p>
             <EditableStarRating rating={dbSong.rating} onRatingChange={handleRatingChange} size={72} nightMode={nightMode} emptyColor={nightMode ? '#18181b' : undefined} />
@@ -282,22 +292,22 @@ export default function NowPlaying() {
             onClick={e => e.stopPropagation()}
           >
             <button onClick={() => setShowGeniusModal(false)} className="absolute top-2 right-2 text-gray-400 hover:text-white text-2xl">&times;</button>
-            <a
-              href={geniusUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 text-yellow-400 hover:text-yellow-300 font-bold text-lg mb-4"
-            >
-              <SiGenius className="text-2xl" />
-              View on Genius
-            </a>
             {playlistArtworkUrl && (
               <img
                 src={playlistArtworkUrl}
                 alt="Playlist Art"
-                className="w-16 h-16 rounded mb-2 border border-gray-700"
+                className="w-16 h-16 rounded mb-4 border border-gray-700"
               />
             )}
+            <a
+              href={geniusUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-yellow-400 hover:text-yellow-300 font-bold text-lg mb-2"
+            >
+              <SiGenius className="text-2xl" />
+              View on Genius
+            </a>
           </div>
         </div>
       )}
