@@ -153,12 +153,11 @@ export default function NowPlaying() {
   const dimClass = nightMode ? 'opacity-40' : '';
   const textClass = nightMode ? 'text-red-800' : '';
 
-  // Assume you have access to currentSong and playlistArtworkUrl
-  // If not, adjust variable names as needed
-  const { currentSong, playlistArtworkUrl } = props;
-
   // Helper to build Genius search link
-  const geniusUrl = currentSong ? `https://genius.com/search?q=${encodeURIComponent(currentSong.artist + ' ' + currentSong.title)}` : '#';
+  const geniusUrl = dbSong
+    ? `https://genius.com/search?q=${encodeURIComponent(dbSong.artist + ' ' + dbSong.title)}`
+    : '#';
+  const playlistArtworkUrl = dbSong?.artworkUrl || (track?.album?.images?.[0]?.url ?? null);
 
   return (
     <div style={{ backgroundColor: nightMode ? '#000' : '#18181b' }} className={"min-h-screen " + (nightMode ? 'night-mode' : '')}>
@@ -236,7 +235,7 @@ export default function NowPlaying() {
                 className="text-xl font-bold cursor-pointer hover:underline flex items-center gap-1"
                 onClick={() => setShowGeniusModal(true)}
               >
-                {currentSong?.title}
+                {dbSong.title}
                 <SiGenius className="text-yellow-400 text-lg" />
               </span>
             </div>
