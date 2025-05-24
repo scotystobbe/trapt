@@ -167,6 +167,7 @@ export default function NowPlaying() {
   const playlistArtworkUrl = playlistForSong?.artworkUrl || null;
 
   const handleGeniusIconClick = async () => {
+    if (!dbSong) return;
     try {
       const q = encodeURIComponent(`${dbSong.artist} ${dbSong.title}`);
       const res = await fetch(`/api/genius?action=search&q=${q}`);
@@ -231,10 +232,10 @@ export default function NowPlaying() {
             </div>
             <h2
               className={"text-4xl font-bold mb-2 text-center " + (nightMode ? 'text-red-800' : 'text-white')}
-              onClick={() => setShowCustomGeniusModal(true)}
-              style={{ cursor: 'pointer' }}
+              onClick={() => dbSong && setShowCustomGeniusModal(true)}
+              style={{ cursor: dbSong ? 'pointer' : 'default' }}
             >
-              {dbSong.title}
+              {dbSong ? dbSong.title : ''}
             </h2>
             <p className={"text-3xl mb-1 text-center " + (nightMode ? 'text-red-800' : 'text-white')}>{dbSong.artist}</p>
             <p className={"text-lg mb-2 text-center " + (nightMode ? 'text-red-900' : 'text-gray-500')}>{dbSong.album || track?.album?.name}</p>
@@ -297,7 +298,7 @@ export default function NowPlaying() {
       )}
 
       {/* Custom Genius Modal */}
-      {showCustomGeniusModal && (
+      {showCustomGeniusModal && dbSong && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70"
           onClick={() => setShowCustomGeniusModal(false)}
@@ -319,6 +320,7 @@ export default function NowPlaying() {
               className="text-yellow-400 hover:text-yellow-300 focus:outline-none"
               style={{ fontSize: 36 }}
               title="View on Genius"
+              disabled={!dbSong}
             >
               <SiGenius />
             </button>
@@ -329,8 +331,8 @@ export default function NowPlaying() {
       <GeniusLyricsModal
         open={showLyricsModal}
         onClose={() => setShowLyricsModal(false)}
-        songTitle={dbSong.title}
-        songArtist={dbSong.artist}
+        songTitle={dbSong ? dbSong.title : ''}
+        songArtist={dbSong ? dbSong.artist : ''}
       />
     </div>
   );
