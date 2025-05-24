@@ -5,6 +5,7 @@ import { FaSpotify, FaStar, FaRegEdit, FaHistory, FaRegStar } from 'react-icons/
 import { useNightMode } from '../App';
 import Skeleton from '../components/Skeleton';
 import useSWR from 'swr';
+import { SiGenius } from 'react-icons/si';
 
 function EditableStarRating({ rating, onRatingChange, size = 56, nightMode, emptyColor }) {
   return (
@@ -55,6 +56,7 @@ export default function NowPlaying() {
   const lastTrackId = useRef(null);
   const [prevTrack, setPrevTrack] = useState(null);
   const [prevDbSong, setPrevDbSong] = useState(null);
+  const [showGeniusModal, setShowGeniusModal] = useState(false);
 
   // SWR for songs
   const fetcher = url => fetch(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now()).then(res => res.json());
@@ -151,6 +153,13 @@ export default function NowPlaying() {
   const dimClass = nightMode ? 'opacity-40' : '';
   const textClass = nightMode ? 'text-red-800' : '';
 
+  // Assume you have access to currentSong and playlistArtworkUrl
+  // If not, adjust variable names as needed
+  const { currentSong, playlistArtworkUrl } = props;
+
+  // Helper to build Genius search link
+  const geniusUrl = currentSong ? `https://genius.com/search?q=${encodeURIComponent(currentSong.artist + ' ' + currentSong.title)}` : '#';
+
   return (
     <div style={{ backgroundColor: nightMode ? '#000' : '#18181b' }} className={"min-h-screen " + (nightMode ? 'night-mode' : '')}>
       <LogoHeader logoClassName={dimClass}>
@@ -222,6 +231,15 @@ export default function NowPlaying() {
                 </div>
               )}
             </div>
+            <div className="flex items-center gap-2">
+              <span
+                className="text-xl font-bold cursor-pointer hover:underline flex items-center gap-1"
+                onClick={() => setShowGeniusModal(true)}
+              >
+                {currentSong?.title}
+                <SiGenius className="text-yellow-400 text-lg" />
+              </span>
+            </div>
           </div>
         ) : null}
         {error && <div className={"text-red-400 mt-4 " + textClass}>{error}</div>}
@@ -250,6 +268,37 @@ export default function NowPlaying() {
                 emptyColor="#18181b"
               />
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Genius Modal */}
+      {showGeniusModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70"
+          onClick={() => setShowGeniusModal(false)}
+        >
+          <div
+            className="bg-zinc-900 rounded-lg shadow-lg p-6 max-w-xs w-full relative flex flex-col items-center"
+            onClick={e => e.stopPropagation()}
+          >
+            <button onClick={() => setShowGeniusModal(false)} className="absolute top-2 right-2 text-gray-400 hover:text-white text-2xl">&times;</button>
+            <a
+              href={geniusUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-yellow-400 hover:text-yellow-300 font-bold text-lg mb-4"
+            >
+              <SiGenius className="text-2xl" />
+              View on Genius
+            </a>
+            {playlistArtworkUrl && (
+              <img
+                src={playlistArtworkUrl}
+                alt="Playlist Art"
+                className="w-16 h-16 rounded mb-2 border border-gray-700"
+              />
+            )}
           </div>
         </div>
       )}
