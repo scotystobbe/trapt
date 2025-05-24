@@ -6,6 +6,7 @@ import { useNightMode } from '../App';
 import Skeleton from '../components/Skeleton';
 import useSWR from 'swr';
 import { SiGenius } from 'react-icons/si';
+import GeniusLyricsModal from '../components/GeniusLyricsModal';
 
 function EditableStarRating({ rating, onRatingChange, size = 56, nightMode, emptyColor }) {
   return (
@@ -283,33 +284,12 @@ export default function NowPlaying() {
 
       {/* Genius Modal */}
       {showGeniusModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70"
-          onClick={() => setShowGeniusModal(false)}
-        >
-          <div
-            className="bg-zinc-900 rounded-lg shadow-lg p-6 max-w-xs w-full relative flex flex-col items-center"
-            onClick={e => e.stopPropagation()}
-          >
-            <button onClick={() => setShowGeniusModal(false)} className="absolute top-2 right-2 text-gray-400 hover:text-white text-2xl">&times;</button>
-            {playlistArtworkUrl && (
-              <img
-                src={playlistArtworkUrl}
-                alt="Playlist Art"
-                className="w-16 h-16 rounded mb-4 border border-gray-700"
-              />
-            )}
-            <a
-              href={geniusUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 text-yellow-400 hover:text-yellow-300 font-bold text-lg mb-2"
-            >
-              <SiGenius className="text-2xl" />
-              View on Genius
-            </a>
-          </div>
-        </div>
+        <GeniusLyricsModal
+          isOpen={showGeniusModal}
+          onClose={() => setShowGeniusModal(false)}
+          songTitle={dbSong.title}
+          songArtist={dbSong.artist}
+        />
       )}
     </div>
   );
