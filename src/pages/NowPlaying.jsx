@@ -43,6 +43,16 @@ function EditableStarRating({ rating, onRatingChange, size = 56, nightMode, empt
   );
 }
 
+// Add helper function to open Genius app or fallback to web
+function openGeniusAppOrWeb(songId, webUrl) {
+  const appUrl = `genius://songs/${songId}`;
+  const timeout = setTimeout(() => {
+    window.open(webUrl, '_blank', 'noopener,noreferrer');
+  }, 800);
+  window.location = appUrl;
+  window.addEventListener('pagehide', () => clearTimeout(timeout), { once: true });
+}
+
 export default function NowPlaying() {
   const { nightMode } = useNightMode();
   const [error, setError] = useState('');
@@ -185,7 +195,7 @@ export default function NowPlaying() {
         return t === dbSong.title.trim().toLowerCase() && a === dbSong.artist.trim().toLowerCase();
       });
       if (exact) {
-        window.open(exact.result.url, '_blank', 'noopener,noreferrer');
+        openGeniusAppOrWeb(exact.result.id, exact.result.url);
       } else {
         setSearchResults(hits);
         setShowResults(true);
@@ -341,7 +351,7 @@ export default function NowPlaying() {
                 {searchError && <div className="text-red-500 mb-2">{searchError}</div>}
                 <ul className="space-y-2 max-h-60 overflow-y-auto">
                   {searchResults.map(hit => (
-                    <li key={hit.result.id} className="flex items-center gap-2 bg-zinc-800 rounded p-2 cursor-pointer hover:bg-zinc-700" onClick={() => { window.open(hit.result.url, '_blank', 'noopener,noreferrer'); setShowResults(false); setShowCustomGeniusModal(false); }}>
+                    <li key={hit.result.id} className="flex items-center gap-2 bg-zinc-800 rounded p-2 cursor-pointer hover:bg-zinc-700" onClick={() => { openGeniusAppOrWeb(hit.result.id, hit.result.url); setShowResults(false); setShowCustomGeniusModal(false); }}>
                       {hit.result.song_art_image_thumbnail_url && (
                         <img src={hit.result.song_art_image_thumbnail_url} alt="art" className="w-10 h-10 rounded" />
                       )}
