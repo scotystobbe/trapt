@@ -179,7 +179,7 @@ export default function NowPlaying() {
         return t === dbSong.title.trim().toLowerCase() && a === dbSong.artist.trim().toLowerCase();
       });
       if (exact) {
-        window.open(`/genius-embed/${exact.result.id}`, '_blank', 'noopener,noreferrer');
+        window.open(exact.result.url, '_blank', 'noopener,noreferrer');
       } else {
         setShowLyricsModal(true);
       }
