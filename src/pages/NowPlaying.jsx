@@ -58,6 +58,8 @@ export default function NowPlaying() {
   const [prevTrack, setPrevTrack] = useState(null);
   const [prevDbSong, setPrevDbSong] = useState(null);
   const [showGeniusModal, setShowGeniusModal] = useState(false);
+  const [showCustomGeniusModal, setShowCustomGeniusModal] = useState(false);
+  const [showLyricsModal, setShowLyricsModal] = useState(false);
 
   // SWR for songs
   const fetcher = url => fetch(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now()).then(res => res.json());
@@ -164,6 +166,27 @@ export default function NowPlaying() {
   );
   const playlistArtworkUrl = playlistForSong?.artworkUrl || null;
 
+  const handleGeniusIconClick = async () => {
+    try {
+      const q = encodeURIComponent(`${dbSong.artist} ${dbSong.title}`);
+      const res = await fetch(`/api/genius?action=search&q=${q}`);
+      if (!res.ok) throw new Error('Search failed');
+      const hits = await res.json();
+      const exact = hits.find(h => {
+        const t = h.result.title.trim().toLowerCase();
+        const a = h.result.primary_artist.name.trim().toLowerCase();
+        return t === dbSong.title.trim().toLowerCase() && a === dbSong.artist.trim().toLowerCase();
+      });
+      if (exact) {
+        window.open(`/genius-embed/${exact.result.id}`, '_blank', 'noopener,noreferrer');
+      } else {
+        setShowLyricsModal(true);
+      }
+    } catch (err) {
+      setShowLyricsModal(true);
+    }
+  };
+
   return (
     <div style={{ backgroundColor: nightMode ? '#000' : '#18181b' }} className={"min-h-screen " + (nightMode ? 'night-mode' : '')}>
       <LogoHeader logoClassName={dimClass}>
@@ -208,7 +231,7 @@ export default function NowPlaying() {
             </div>
             <h2
               className={"text-4xl font-bold mb-2 text-center " + (nightMode ? 'text-red-800' : 'text-white')}
-              onClick={() => setShowGeniusModal(true)}
+              onClick={() => setShowCustomGeniusModal(true)}
               style={{ cursor: 'pointer' }}
             >
               {dbSong.title}
@@ -240,15 +263,6 @@ export default function NowPlaying() {
                   <p className={"whitespace-pre-wrap flex-1 " + (dbSong.notes ? (nightMode ? 'text-red-800' : 'text-gray-400') : textClass)}>{dbSong.notes || <em className="text-gray-400">No notes</em>}</p>
                 </div>
               )}
-            </div>
-            <div className="flex items-center gap-2">
-              <span
-                className="text-xl font-bold cursor-pointer hover:underline flex items-center gap-1"
-                onClick={() => setShowGeniusModal(true)}
-              >
-                {dbSong.title}
-                <SiGenius className="text-yellow-400 text-lg" />
-              </span>
             </div>
           </div>
         ) : null}
@@ -282,15 +296,42 @@ export default function NowPlaying() {
         </div>
       )}
 
-      {/* Genius Modal */}
-      {showGeniusModal && (
-        <GeniusLyricsModal
-          isOpen={showGeniusModal}
-          onClose={() => setShowGeniusModal(false)}
-          songTitle={dbSong.title}
-          songArtist={dbSong.artist}
-        />
+      {/* Custom Genius Modal */}
+      {showCustomGeniusModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70"
+          onClick={() => setShowCustomGeniusModal(false)}
+        >
+          <div
+            className="bg-zinc-900 rounded-lg shadow-lg p-6 max-w-xs w-full relative flex flex-col items-center"
+            onClick={e => e.stopPropagation()}
+          >
+            <button onClick={() => setShowCustomGeniusModal(false)} className="absolute top-2 right-2 text-gray-400 hover:text-white text-2xl">&times;</button>
+            {playlistArtworkUrl && (
+              <img
+                src={playlistArtworkUrl}
+                alt="Playlist Art"
+                className="w-16 h-16 rounded mb-4 border border-gray-700"
+              />
+            )}
+            <button
+              onClick={handleGeniusIconClick}
+              className="text-yellow-400 hover:text-yellow-300 focus:outline-none"
+              style={{ fontSize: 36 }}
+              title="View on Genius"
+            >
+              <SiGenius />
+            </button>
+          </div>
+        </div>
       )}
+      {/* GeniusLyricsModal */}
+      <GeniusLyricsModal
+        open={showLyricsModal}
+        onClose={() => setShowLyricsModal(false)}
+        songTitle={dbSong.title}
+        songArtist={dbSong.artist}
+      />
     </div>
   );
 } 
