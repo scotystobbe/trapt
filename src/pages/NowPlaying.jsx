@@ -6,7 +6,6 @@ import { useNightMode } from '../App';
 import Skeleton from '../components/Skeleton';
 import useSWR from 'swr';
 import { SiGenius } from 'react-icons/si';
-import GeniusLyricsModal from '../components/GeniusLyricsModal';
 
 function EditableStarRating({ rating, onRatingChange, size = 56, nightMode, emptyColor }) {
   return (
@@ -60,6 +59,10 @@ export default function NowPlaying() {
   const [showGeniusModal, setShowGeniusModal] = useState(false);
   const [showCustomGeniusModal, setShowCustomGeniusModal] = useState(false);
   const [showLyricsModal, setShowLyricsModal] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [showResults, setShowResults] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState('');
 
   // SWR for songs
   const fetcher = url => fetch(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now()).then(res => res.json());
@@ -168,6 +171,9 @@ export default function NowPlaying() {
 
   const handleGeniusIconClick = async () => {
     if (!dbSong) return;
+    setSearchLoading(true);
+    setSearchError('');
+    setShowResults(false);
     try {
       const q = encodeURIComponent(`${dbSong.artist} ${dbSong.title}`);
       const res = await fetch(`/api/genius?action=search&q=${q}`);
@@ -181,10 +187,14 @@ export default function NowPlaying() {
       if (exact) {
         window.open(exact.result.url, '_blank', 'noopener,noreferrer');
       } else {
-        setShowLyricsModal(true);
+        setSearchResults(hits);
+        setShowResults(true);
       }
     } catch (err) {
-      setShowLyricsModal(true);
+      setSearchError('Could not search Genius.');
+      setShowResults(true);
+    } finally {
+      setSearchLoading(false);
     }
   };
 
@@ -320,20 +330,34 @@ export default function NowPlaying() {
               className="text-yellow-400 hover:text-yellow-300 focus:outline-none"
               style={{ fontSize: 36 }}
               title="View on Genius"
-              disabled={!dbSong}
+              disabled={!dbSong || searchLoading}
             >
               <SiGenius />
             </button>
+            {searchLoading && <div className="text-gray-300 mt-4">Loading...</div>}
+            {showResults && (
+              <div className="absolute left-0 right-0 top-full mt-4 bg-zinc-900 border border-yellow-400 rounded shadow-lg p-4 w-full z-50">
+                <div className="text-gray-300 mb-2">Select the correct song:</div>
+                {searchError && <div className="text-red-500 mb-2">{searchError}</div>}
+                <ul className="space-y-2 max-h-60 overflow-y-auto">
+                  {searchResults.map(hit => (
+                    <li key={hit.result.id} className="flex items-center gap-2 bg-zinc-800 rounded p-2 cursor-pointer hover:bg-zinc-700" onClick={() => { window.open(hit.result.url, '_blank', 'noopener,noreferrer'); setShowResults(false); setShowCustomGeniusModal(false); }}>
+                      {hit.result.song_art_image_thumbnail_url && (
+                        <img src={hit.result.song_art_image_thumbnail_url} alt="art" className="w-10 h-10 rounded" />
+                      )}
+                      <div>
+                        <div className="text-white font-semibold">{hit.result.title}</div>
+                        <div className="text-gray-400 text-sm">{hit.result.primary_artist.name}</div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+                <button onClick={() => setShowResults(false)} className="mt-2 px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-600">Cancel</button>
+              </div>
+            )}
           </div>
         </div>
       )}
-      {/* GeniusLyricsModal */}
-      <GeniusLyricsModal
-        open={showLyricsModal}
-        onClose={() => setShowLyricsModal(false)}
-        songTitle={dbSong ? dbSong.title : ''}
-        songArtist={dbSong ? dbSong.artist : ''}
-      />
     </div>
   );
 } 
