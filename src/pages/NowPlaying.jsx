@@ -93,6 +93,17 @@ export default function NowPlaying() {
         if (isInitial) setTrack(null);
         if (isInitial) setDbSong(null);
         if (isInitial) setInitialLoading(false);
+        // Restore prevTrack and prevDbSong from localStorage if not already set
+        if (!prevTrack || !prevDbSong) {
+          try {
+            const prevTrackStr = localStorage.getItem('nowPlaying_prevTrack');
+            const prevDbSongStr = localStorage.getItem('nowPlaying_prevDbSong');
+            if (prevTrackStr && !prevTrack) setPrevTrack(JSON.parse(prevTrackStr));
+            if (prevDbSongStr && !prevDbSong) setPrevDbSong(JSON.parse(prevDbSongStr));
+          } catch (e) {
+            // Ignore parse errors
+          }
+        }
         return;
       }
       // Only update if the track has changed
