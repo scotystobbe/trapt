@@ -208,6 +208,32 @@ export default function NowPlaying() {
     }
   };
 
+  // Restore prevTrack and prevDbSong from localStorage on mount
+  useEffect(() => {
+    try {
+      const prevTrackStr = localStorage.getItem('nowPlaying_prevTrack');
+      const prevDbSongStr = localStorage.getItem('nowPlaying_prevDbSong');
+      if (prevTrackStr) setPrevTrack(JSON.parse(prevTrackStr));
+      if (prevDbSongStr) setPrevDbSong(JSON.parse(prevDbSongStr));
+    } catch (e) {
+      // Ignore parse errors
+    }
+  }, []);
+
+  // Persist prevTrack and prevDbSong to localStorage whenever they change
+  useEffect(() => {
+    if (prevTrack) {
+      localStorage.setItem('nowPlaying_prevTrack', JSON.stringify(prevTrack));
+    } else {
+      localStorage.removeItem('nowPlaying_prevTrack');
+    }
+    if (prevDbSong) {
+      localStorage.setItem('nowPlaying_prevDbSong', JSON.stringify(prevDbSong));
+    } else {
+      localStorage.removeItem('nowPlaying_prevDbSong');
+    }
+  }, [prevTrack, prevDbSong]);
+
   return (
     <div style={{ backgroundColor: nightMode ? '#000' : '#18181b' }} className={"min-h-screen " + (nightMode ? 'night-mode' : '')}>
       <LogoHeader logoClassName={dimClass}>
