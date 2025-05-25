@@ -6,6 +6,7 @@ import { useNightMode } from '../App';
 import Skeleton from '../components/Skeleton';
 import useSWR from 'swr';
 import { SiGenius } from 'react-icons/si';
+import usePrevTrackStore from '../data/usePrevTrackStore';
 
 function EditableStarRating({ rating, onRatingChange, size = 56, nightMode, emptyColor }) {
   return (
@@ -64,10 +65,10 @@ export default function NowPlaying() {
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const lastTrackId = useRef(null);
-  const [prevTrack, setPrevTrack] = useState(null);
-  const [prevDbSong, setPrevDbSong] = useState(null);
-  const prevTrackRef = useRef(null);
-  const prevDbSongRef = useRef(null);
+  const prevTrack = usePrevTrackStore(state => state.prevTrack);
+  const prevDbSong = usePrevTrackStore(state => state.prevDbSong);
+  const setPrevTrack = usePrevTrackStore(state => state.setPrevTrack);
+  const setPrevDbSong = usePrevTrackStore(state => state.setPrevDbSong);
   const [showGeniusModal, setShowGeniusModal] = useState(false);
   const [showCustomGeniusModal, setShowCustomGeniusModal] = useState(false);
   const [showLyricsModal, setShowLyricsModal] = useState(false);
@@ -79,14 +80,6 @@ export default function NowPlaying() {
   // SWR for songs
   const fetcher = url => fetch(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now()).then(res => res.json());
   const { data: songs = [], error: songsError, mutate: mutateSongs } = useSWR('/api/songs', fetcher);
-
-  // Keep refs in sync with state
-  useEffect(() => {
-    prevTrackRef.current = prevTrack;
-  }, [prevTrack]);
-  useEffect(() => {
-    prevDbSongRef.current = prevDbSong;
-  }, [prevDbSong]);
 
   // Helper to check auth and fetch currently playing
   const fetchCurrentlyPlaying = useCallback(async (isInitial = false) => {
@@ -103,17 +96,6 @@ export default function NowPlaying() {
         if (isInitial) setTrack(null);
         if (isInitial) setDbSong(null);
         if (isInitial) setInitialLoading(false);
-        // Restore prevTrack and prevDbSong from localStorage if not already set
-        if (!prevTrackRef.current || !prevDbSongRef.current) {
-          try {
-            const prevTrackStr = localStorage.getItem('nowPlaying_prevTrack');
-            const prevDbSongStr = localStorage.getItem('nowPlaying_prevDbSong');
-            if (prevTrackStr && !prevTrackRef.current) setPrevTrack(JSON.parse(prevTrackStr));
-            if (prevDbSongStr && !prevDbSongRef.current) setPrevDbSong(JSON.parse(prevDbSongStr));
-          } catch (e) {
-            // Ignore parse errors
-          }
-        }
         return;
       }
       // Only update if the track has changed
@@ -137,7 +119,7 @@ export default function NowPlaying() {
       setError('Failed to fetch currently playing track.');
       if (isInitial) setInitialLoading(false);
     }
-  }, [editingNotes, track, dbSong, songs]);
+  }, [editingNotes, track, dbSong, songs, setPrevTrack, setPrevDbSong]);
 
   useEffect(() => {
     if (songs.length === 0 && !songsError) return; // Wait for songs to load or error
