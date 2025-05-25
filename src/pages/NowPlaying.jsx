@@ -66,6 +66,8 @@ export default function NowPlaying() {
   const lastTrackId = useRef(null);
   const [prevTrack, setPrevTrack] = useState(null);
   const [prevDbSong, setPrevDbSong] = useState(null);
+  const prevTrackRef = useRef(null);
+  const prevDbSongRef = useRef(null);
   const [showGeniusModal, setShowGeniusModal] = useState(false);
   const [showCustomGeniusModal, setShowCustomGeniusModal] = useState(false);
   const [showLyricsModal, setShowLyricsModal] = useState(false);
@@ -77,6 +79,14 @@ export default function NowPlaying() {
   // SWR for songs
   const fetcher = url => fetch(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now()).then(res => res.json());
   const { data: songs = [], error: songsError, mutate: mutateSongs } = useSWR('/api/songs', fetcher);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    prevTrackRef.current = prevTrack;
+  }, [prevTrack]);
+  useEffect(() => {
+    prevDbSongRef.current = prevDbSong;
+  }, [prevDbSong]);
 
   // Helper to check auth and fetch currently playing
   const fetchCurrentlyPlaying = useCallback(async (isInitial = false) => {
@@ -94,12 +104,12 @@ export default function NowPlaying() {
         if (isInitial) setDbSong(null);
         if (isInitial) setInitialLoading(false);
         // Restore prevTrack and prevDbSong from localStorage if not already set
-        if (!prevTrack || !prevDbSong) {
+        if (!prevTrackRef.current || !prevDbSongRef.current) {
           try {
             const prevTrackStr = localStorage.getItem('nowPlaying_prevTrack');
             const prevDbSongStr = localStorage.getItem('nowPlaying_prevDbSong');
-            if (prevTrackStr && !prevTrack) setPrevTrack(JSON.parse(prevTrackStr));
-            if (prevDbSongStr && !prevDbSong) setPrevDbSong(JSON.parse(prevDbSongStr));
+            if (prevTrackStr && !prevTrackRef.current) setPrevTrack(JSON.parse(prevTrackStr));
+            if (prevDbSongStr && !prevDbSongRef.current) setPrevDbSong(JSON.parse(prevDbSongStr));
           } catch (e) {
             // Ignore parse errors
           }
@@ -218,32 +228,6 @@ export default function NowPlaying() {
       setSearchLoading(false);
     }
   };
-
-  // Restore prevTrack and prevDbSong from localStorage on mount
-  useEffect(() => {
-    try {
-      const prevTrackStr = localStorage.getItem('nowPlaying_prevTrack');
-      const prevDbSongStr = localStorage.getItem('nowPlaying_prevDbSong');
-      if (prevTrackStr) setPrevTrack(JSON.parse(prevTrackStr));
-      if (prevDbSongStr) setPrevDbSong(JSON.parse(prevDbSongStr));
-    } catch (e) {
-      // Ignore parse errors
-    }
-  }, []);
-
-  // Persist prevTrack and prevDbSong to localStorage whenever they change
-  useEffect(() => {
-    if (prevTrack) {
-      localStorage.setItem('nowPlaying_prevTrack', JSON.stringify(prevTrack));
-    } else {
-      localStorage.removeItem('nowPlaying_prevTrack');
-    }
-    if (prevDbSong) {
-      localStorage.setItem('nowPlaying_prevDbSong', JSON.stringify(prevDbSong));
-    } else {
-      localStorage.removeItem('nowPlaying_prevDbSong');
-    }
-  }, [prevTrack, prevDbSong]);
 
   return (
     <div style={{ backgroundColor: nightMode ? '#000' : '#18181b' }} className={"min-h-screen " + (nightMode ? 'night-mode' : '')}>
