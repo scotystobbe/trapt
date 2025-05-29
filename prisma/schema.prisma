@@ -13,6 +13,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  ADMIN
+  VIEWER
+}
+
 model Playlist {
   id          Int     @id @default(autoincrement())
   name        String
@@ -34,4 +39,13 @@ model Song {
   notes       String?
   spotifyLink String?
   artworkUrl  String?
+}
+
+model User {
+  id       Int     @id @default(autoincrement())
+  email    String  @unique
+  username String? @unique
+  name     String?
+  password String
+  role     Role    @default(VIEWER)
 }

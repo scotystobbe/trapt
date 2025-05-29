@@ -8,8 +8,11 @@ import Browse from './pages/Browse.jsx';
 import ImportRatings from './pages/admin/ImportRatings.tsx';
 import ScrollTest from './pages/ScrollTest.jsx';
 import GeniusEmbedPage from './pages/genius-embed/[songId]';
+import Login from './pages/Login.jsx';
+import Profile from './pages/Profile.jsx';
 import { FaMoon, FaSun } from 'react-icons/fa';
 import ScrollToTop from './components/ScrollToTop';
+import { AuthProvider } from './components/AuthProvider';
 
 const NightModeContext = createContext();
 export function useNightMode() {
@@ -41,27 +44,31 @@ function NightModeToggle() {
 
 export default function App() {
   return (
-    <NightModeProvider>
-      <div className="safe-area-top-overlay"></div>
-      <NightModeBodyWrapper>
-        <div className="dark" style={{ backgroundColor: '#18181b', paddingTop: 'calc(63px + env(safe-area-inset-top, 20px))' }}>
-          <Router>
-            <ScrollToTop />
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/browse" element={<Browse />} />
-              <Route path="/browse/playlist/:id" element={<PlaylistView />} />
-              <Route path="/playlist/:id" element={<Navigate to="/browse/playlist/:id" replace />} />
-              <Route path="/now-playing" element={<NowPlaying />} />
-              <Route path="/admin" element={<Admin />} />
-              <Route path="/admin/ImportRatings" element={<ImportRatings />} />
-              <Route path="/scroll-test" element={<ScrollTest />} />
-              <Route path="/genius-embed/:songId" element={<GeniusEmbedPage />} />
-            </Routes>
-          </Router>
-        </div>
-      </NightModeBodyWrapper>
-    </NightModeProvider>
+    <AuthProvider>
+      <NightModeProvider>
+        <div className="safe-area-top-overlay"></div>
+        <NightModeBodyWrapper>
+          <div className="dark" style={{ backgroundColor: '#18181b', paddingTop: 'calc(63px + env(safe-area-inset-top, 20px))' }}>
+            <Router>
+              <ScrollToTop />
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/browse" element={<Browse />} />
+                <Route path="/browse/playlist/:id" element={<PlaylistView />} />
+                <Route path="/playlist/:id" element={<Navigate to="/browse/playlist/:id" replace />} />
+                <Route path="/now-playing" element={<NowPlaying />} />
+                <Route path="/admin" element={<Admin />} />
+                <Route path="/admin/ImportRatings" element={<ImportRatings />} />
+                <Route path="/scroll-test" element={<ScrollTest />} />
+                <Route path="/genius-embed/:songId" element={<GeniusEmbedPage />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/profile" element={<Profile />} />
+              </Routes>
+            </Router>
+          </div>
+        </NightModeBodyWrapper>
+      </NightModeProvider>
+    </AuthProvider>
   );
 }
 

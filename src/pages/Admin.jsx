@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import HamburgerMenu from '../components/HamburgerMenu';
 import LogoHeader from '../components/LogoHeader';
-import { FaTrash } from 'react-icons/fa';
+import { FaTrash, FaUserShield } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
 import { SiGenius } from 'react-icons/si';
 import { FaSpotify } from 'react-icons/fa';
 import Button from '../components/Button';
+import { useAuth } from '../components/AuthProvider';
+import { useNavigate } from 'react-router-dom';
 
 function extractPlaylistId(url) {
   // Handles URLs like https://open.spotify.com/playlist/{id} or spotify:playlist:{id}
@@ -18,9 +20,11 @@ function normalizeSpotifyPlaylistUrl(url) {
 }
 
 export default function Admin() {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
   const [playlistUrl, setPlaylistUrl] = useState('');
   const [tracks, setTracks] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [adminLoading, setAdminLoading] = useState(false);
   const [error, setError] = useState('');
   const [playlistName, setPlaylistName] = useState('');
   const [importing, setImporting] = useState(false);
@@ -30,19 +34,33 @@ export default function Admin() {
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [existingPlaylist, setExistingPlaylist] = useState(null);
   const [playlistArtworkUrl, setPlaylistArtworkUrl] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [userLoading, setUserLoading] = useState(false);
+  const [userError, setUserError] = useState('');
+  const [roleUpdating, setRoleUpdating] = useState({});
+
+  React.useEffect(() => {
+    if (!loading && user?.role !== 'ADMIN') {
+      navigate('/');
+    }
+  }, [user, loading, navigate]);
+
+  if (loading || user?.role !== 'ADMIN') {
+    return <div className="text-center text-gray-400 mt-12">Loading...</div>;
+  }
 
   const handleFetch = async (e) => {
     e.preventDefault();
     setError('');
     setTracks([]);
     setPlaylistName('');
-    setLoading(true);
+    setAdminLoading(true);
     setExistingPlaylist(null);
     const normalizedUrl = normalizeSpotifyPlaylistUrl(playlistUrl);
     const playlistId = extractPlaylistId(normalizedUrl);
     if (!playlistId) {
       setError('Invalid Spotify playlist URL');
-      setLoading(false);
+      setAdminLoading(false);
       return;
     }
     try {
@@ -68,7 +86,7 @@ export default function Admin() {
     } catch (err) {
       setError(err.message);
     } finally {
-      setLoading(false);
+      setAdminLoading(false);
     }
   };
 
@@ -133,6 +151,44 @@ export default function Admin() {
     }
   }, [importResult]);
 
+  // Fetch users for user management
+  useEffect(() => {
+    if (user?.role === 'ADMIN') {
+      setUserLoading(true);
+      fetch('/api/admin/users', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      })
+        .then(res => res.json())
+        .then(data => setUsers(data.users || []))
+        .catch(() => setUserError('Failed to fetch users'))
+        .finally(() => setUserLoading(false));
+    }
+  }, [user]);
+
+  const handleRoleChange = async (id, newRole) => {
+    // If the current user is changing their own role, confirm first
+    if (user?.id === id) {
+      const confirmed = window.confirm('Are you sure you want to change your own role? You may lose admin access.');
+      if (!confirmed) return;
+    }
+    setRoleUpdating(r => ({ ...r, [id]: true }));
+    setUserError('');
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+        body: JSON.stringify({ id, role: newRole }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update role');
+      setUsers(users => users.map(u => u.id === id ? { ...u, role: newRole } : u));
+    } catch (err) {
+      setUserError(err.message);
+    } finally {
+      setRoleUpdating(r => ({ ...r, [id]: false }));
+    }
+  };
+
   return (
     <div style={{ backgroundColor: '#18181b' }} className="min-h-screen">
       <LogoHeader>
@@ -144,24 +200,25 @@ export default function Admin() {
         {/* Merge Sync/Import and Manage Playlists into one section */}
         <ExpandableSection title="Manage Playlists" defaultOpen={false}>
           {/* Import/Sync Form */}
-          <form onSubmit={handleFetch} className="flex flex-col gap-4 mb-6">
+          <form onSubmit={handleFetch} className="flex flex-col gap-4 mb-8">
             <input
               type="text"
-              placeholder="Paste Spotify playlist URL here..."
+              className="w-full px-4 py-2 rounded bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-600"
+              placeholder="Paste Spotify playlist URL"
               value={playlistUrl}
               onChange={e => setPlaylistUrl(e.target.value)}
-              className="p-2 rounded" style={{ backgroundColor: '#27272a', color: 'white', border: '1px solid #3f3f46' }}
+              disabled={adminLoading}
             />
             <Button
               type="submit"
               variant="primary"
-              disabled={loading || !playlistUrl.trim()}
+              disabled={adminLoading || !playlistUrl.trim()}
             >
-              {loading ? 'Loading...' : 'Fetch Playlist'}
+              {adminLoading ? 'Loading...' : 'Fetch Playlist'}
             </Button>
           </form>
           {error && <div className="text-red-500 mb-4">{error}</div>}
-          {loading && (
+          {adminLoading && (
             <div className="mt-4 space-y-2">
               <div className="text-white">Loading playlist...</div>
             </div>
@@ -219,13 +276,13 @@ export default function Admin() {
                   setError('');
                   setTracks([]);
                   setPlaylistName('');
-                  setLoading(true);
+                  setAdminLoading(true);
                   setExistingPlaylist(null);
                   try {
                     const playlistId = extractPlaylistId(normalizedUrl);
                     if (!playlistId) {
                       setError('Invalid Spotify playlist URL');
-                      setLoading(false);
+                      setAdminLoading(false);
                       return;
                     }
                     const res = await fetch(`/api/spotify-proxy?playlistId=${playlistId}`);
@@ -248,7 +305,7 @@ export default function Admin() {
                   } catch (err) {
                     setError(err.message);
                   } finally {
-                    setLoading(false);
+                    setAdminLoading(false);
                   }
                 }}>Update</Button>
                 {confirmDeleteId === p.id ? (
@@ -265,6 +322,45 @@ export default function Admin() {
               </li>
             ))}
           </ul>
+        </ExpandableSection>
+
+        <ExpandableSection title={<span><FaUserShield className="inline mr-2" />User Management</span>} defaultOpen={false}>
+          {userLoading ? (
+            <div className="text-gray-300">Loading users...</div>
+          ) : userError ? (
+            <div className="text-red-400">{userError}</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-white text-sm">
+                <thead>
+                  <tr className="border-b border-gray-700">
+                    <th className="py-2 px-2 text-left">Username</th>
+                    <th className="py-2 px-2 text-left">Email</th>
+                    <th className="py-2 px-2 text-left">Role</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map(u => (
+                    <tr key={u.id} className="border-b border-gray-800">
+                      <td className="py-2 px-2">{u.username || <span className="italic text-gray-400">(none)</span>}</td>
+                      <td className="py-2 px-2">{u.email}</td>
+                      <td className="py-2 px-2">
+                        <select
+                          value={u.role}
+                          onChange={e => handleRoleChange(u.id, e.target.value)}
+                          className="bg-[#232326] border border-[#3f3f46] rounded px-2 py-1 text-white"
+                          disabled={roleUpdating[u.id]}
+                        >
+                          <option value="ADMIN">ADMIN</option>
+                          <option value="VIEWER">VIEWER</option>
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </ExpandableSection>
 
         <ExpandableSection title="Utilities" defaultOpen={false}>

@@ -4,8 +4,11 @@ import StarRating from './StarRating';
 import { FaRegEdit } from 'react-icons/fa';
 import { mutate } from 'swr';
 import { SiGenius } from 'react-icons/si';
+import { useAuth } from './AuthProvider';
 
 export default function SongCard({ song, playlistName, onSongUpdate }) {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
   const [rating, setRating] = useState(song.rating);
   const [editing, setEditing] = useState(false);
   const [notes, setNotes] = useState(song.notes || '');
@@ -16,6 +19,7 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
   const [searchError, setSearchError] = useState('');
 
   const saveSongUpdate = async (fields) => {
+    if (!isAdmin) return;
     setError('');
     try {
       const res = await fetch('/api/songs', {
@@ -32,6 +36,7 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
   };
 
   const handleRatingChange = (newRating) => {
+    if (!isAdmin) return;
     if (newRating === 1 && rating === 1) {
       setRating(null);
       saveSongUpdate({ rating: null });
@@ -42,6 +47,7 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
   };
 
   const handleNoteSave = () => {
+    if (!isAdmin) return;
     setEditing(false);
     saveSongUpdate({ notes });
   };
@@ -119,27 +125,32 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
         </div>
         <div className="mt-3 flex flex-col gap-2">
           <div className="flex items-center">
-            <StarRating rating={rating} onRatingChange={handleRatingChange} size={32} />
+            <StarRating rating={rating} onRatingChange={isAdmin ? handleRatingChange : undefined} size={32} />
           </div>
           <div className="text-sm text-gray-300">
             {editing ? (
               <div className="flex flex-col gap-2">
                 <textarea
                   value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
+                  onChange={e => setNotes(e.target.value)}
                   className="w-full p-2 rounded bg-gray-900 border border-gray-700 text-white"
+                  disabled={!isAdmin}
                 />
-                <button
-                  onClick={handleNoteSave}
-                  className="self-end px-3 py-1 bg-blue-600 rounded hover:bg-blue-500"
-                >Save</button>
+                {isAdmin && (
+                  <button
+                    onClick={handleNoteSave}
+                    className="self-end px-3 py-1 bg-blue-600 rounded hover:bg-blue-500"
+                  >Save</button>
+                )}
               </div>
             ) : (
               <div className="flex items-center justify-between">
                 <p className={`whitespace-pre-wrap flex-1 ${notes ? '' : 'text-gray-500'}`}>{notes || <em>No notes</em>}</p>
-                <button onClick={() => setEditing(true)} className="ml-2 text-gray-400 hover:text-white">
-                  <FaRegEdit />
-                </button>
+                {isAdmin && (
+                  <button onClick={() => setEditing(true)} className="ml-2 text-gray-400 hover:text-white">
+                    <FaRegEdit />
+                  </button>
+                )}
               </div>
             )}
           </div>

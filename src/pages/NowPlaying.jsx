@@ -7,6 +7,7 @@ import Skeleton from '../components/Skeleton';
 import useSWR from 'swr';
 import { SiGenius } from 'react-icons/si';
 import usePrevTrackStore from '../data/usePrevTrackStore';
+import { useAuth } from '../components/AuthProvider';
 
 function EditableStarRating({ rating, onRatingChange, size = 56, nightMode, emptyColor }) {
   return (
@@ -76,6 +77,8 @@ export default function NowPlaying() {
   const [showResults, setShowResults] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState('');
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
 
   // SWR for songs
   const fetcher = url => fetch(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now()).then(res => res.json());
@@ -134,7 +137,7 @@ export default function NowPlaying() {
   };
 
   const handleRatingChange = async (newRating) => {
-    if (!dbSong) return;
+    if (!isAdmin || !dbSong) return;
     setDbSong({ ...dbSong, rating: newRating });
     try {
       await fetch('/api/songs', {
@@ -149,7 +152,7 @@ export default function NowPlaying() {
   };
 
   const handleNoteSave = async () => {
-    if (!dbSong) return;
+    if (!isAdmin || !dbSong) return;
     setSaving(true);
     setError('');
     try {
@@ -262,11 +265,11 @@ export default function NowPlaying() {
             </h2>
             <p className={"text-3xl mb-1 text-center " + (nightMode ? 'text-red-800' : 'text-white')}>{dbSong.artist}</p>
             <p className={"text-lg mb-2 text-center " + (nightMode ? 'text-red-900' : 'text-gray-500')}>{dbSong.album || track?.album?.name}</p>
-            <EditableStarRating rating={dbSong.rating} onRatingChange={handleRatingChange} size={72} nightMode={nightMode} emptyColor={nightMode ? '#18181b' : undefined} />
+            <EditableStarRating rating={dbSong.rating} onRatingChange={isAdmin ? handleRatingChange : undefined} size={72} nightMode={nightMode} emptyColor={nightMode ? '#18181b' : undefined} />
             <div
               className={"rounded-lg p-4 w-full max-w-lg mt-2 min-h-[60px] text-left " + textClass}
               style={{ backgroundColor: nightMode ? '#141416' : '#27272a', cursor: editingNotes ? 'auto' : 'text' }}
-              onClick={() => !editingNotes && setEditingNotes(true)}
+              onClick={() => isAdmin && !editingNotes && setEditingNotes(true)}
             >
               {editingNotes ? (
                 <div className="flex flex-col gap-2">
@@ -275,12 +278,15 @@ export default function NowPlaying() {
                     onChange={e => setNotes(e.target.value)}
                     className={"w-full p-2 rounded bg-[#27272a] border border-[#3f3f46] text-white placeholder-gray-500 focus:ring-0 focus:border-[#3f3f46] focus:outline-none caret-white selection:bg-[#3f3f46] selection:text-white autofill:bg-[#27272a] autofill:text-white " + textClass}
                     autoFocus
+                    disabled={!isAdmin}
                   />
-                  <button
-                    onClick={handleNoteSave}
-                    className={"self-end px-3 py-1 bg-[#3f3f46] text-white rounded hover:bg-[#27272a] " + dimClass}
-                    disabled={saving}
-                  >{saving ? 'Saving...' : 'Save'}</button>
+                  {isAdmin && (
+                    <button
+                      onClick={handleNoteSave}
+                      className={"self-end px-3 py-1 bg-[#3f3f46] text-white rounded hover:bg-[#27272a] " + dimClass}
+                      disabled={saving}
+                    >{saving ? 'Saving...' : 'Save'}</button>
+                  )}
                 </div>
               ) : (
                 <div className="flex items-center justify-between w-full">
