@@ -6,6 +6,14 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Check if we have a Spotify token
+  if (!req.spotifyToken) {
+    return res.status(401).json({ 
+      error: 'Not authenticated with Spotify',
+      code: 'SPOTIFY_AUTH_REQUIRED'
+    });
+  }
+
   try {
     const { playlistId } = req.body;
     if (!playlistId) {
@@ -42,7 +50,7 @@ module.exports = async (req, res) => {
     if (playlist.unratedPlaylistId) {
       try {
         // First, clear the playlist
-        await fetch(`https://api.spotify.com/v1/playlists/${playlist.unratedPlaylistId}/tracks`, {
+        const clearRes = await fetch(`https://api.spotify.com/v1/playlists/${playlist.unratedPlaylistId}/tracks`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${req.spotifyToken}`,
@@ -51,8 +59,19 @@ module.exports = async (req, res) => {
           body: JSON.stringify({ uris: [] })
         });
 
+        if (clearRes.status === 401) {
+          return res.status(401).json({ 
+            error: 'Spotify authentication expired',
+            code: 'SPOTIFY_AUTH_EXPIRED'
+          });
+        }
+
+        if (!clearRes.ok) {
+          throw new Error('Failed to clear playlist');
+        }
+
         // Then add the new tracks
-        await fetch(`https://api.spotify.com/v1/playlists/${playlist.unratedPlaylistId}/tracks`, {
+        const addRes = await fetch(`https://api.spotify.com/v1/playlists/${playlist.unratedPlaylistId}/tracks`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${req.spotifyToken}`,
@@ -61,10 +80,19 @@ module.exports = async (req, res) => {
           body: JSON.stringify({ uris: trackUris })
         });
 
+        if (!addRes.ok) {
+          throw new Error('Failed to add tracks to playlist');
+        }
+
         // Get the playlist details to return the external URL
         const playlistRes = await fetch(`https://api.spotify.com/v1/playlists/${playlist.unratedPlaylistId}`, {
           headers: { 'Authorization': `Bearer ${req.spotifyToken}` }
         });
+
+        if (!playlistRes.ok) {
+          throw new Error('Failed to get playlist details');
+        }
+
         const playlistData = await playlistRes.json();
 
         return res.json({
@@ -91,6 +119,13 @@ module.exports = async (req, res) => {
       })
     });
 
+    if (createRes.status === 401) {
+      return res.status(401).json({ 
+        error: 'Spotify authentication expired',
+        code: 'SPOTIFY_AUTH_EXPIRED'
+      });
+    }
+
     if (!createRes.ok) {
       throw new Error('Failed to create playlist');
     }
@@ -98,7 +133,7 @@ module.exports = async (req, res) => {
     const newPlaylist = await createRes.json();
 
     // Add tracks to the new playlist
-    await fetch(`https://api.spotify.com/v1/playlists/${newPlaylist.id}/tracks`, {
+    const addTracksRes = await fetch(`https://api.spotify.com/v1/playlists/${newPlaylist.id}/tracks`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${req.spotifyToken}`,
@@ -106,6 +141,10 @@ module.exports = async (req, res) => {
       },
       body: JSON.stringify({ uris: trackUris })
     });
+
+    if (!addTracksRes.ok) {
+      throw new Error('Failed to add tracks to new playlist');
+    }
 
     // Save the new playlist ID
     await prisma.playlist.update({

@@ -12,11 +12,13 @@ function CreateUnratedSpotifyModal({ open, onClose, playlist }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successUrl, setSuccessUrl] = useState(null);
+  const [needsSpotifyAuth, setNeedsSpotifyAuth] = useState(false);
 
   const handleCreate = async () => {
     setLoading(true);
     setError(null);
     setSuccessUrl(null);
+    setNeedsSpotifyAuth(false);
     try {
       const res = await fetch('/api/spotify-proxy/create-unrated-playlist', {
         method: 'POST',
@@ -24,6 +26,12 @@ function CreateUnratedSpotifyModal({ open, onClose, playlist }) {
         body: JSON.stringify({ playlistId: playlist.id }),
       });
       const data = await res.json();
+      
+      if (res.status === 401 && (data.code === 'SPOTIFY_AUTH_REQUIRED' || data.code === 'SPOTIFY_AUTH_EXPIRED')) {
+        setNeedsSpotifyAuth(true);
+        return;
+      }
+      
       if (!res.ok) throw new Error(data.error || 'Unknown error');
       setSuccessUrl(data.externalUrl);
     } catch (err) {
@@ -31,6 +39,10 @@ function CreateUnratedSpotifyModal({ open, onClose, playlist }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSpotifyLogin = () => {
+    window.location.href = '/api/spotify-proxy/login';
   };
 
   if (!open) return null;
@@ -48,6 +60,17 @@ function CreateUnratedSpotifyModal({ open, onClose, playlist }) {
           <span className="font-semibold text-white">{playlist.name}</span>.
         </p>
         {error && <div className="text-red-400 mb-2">{error}</div>}
+        {needsSpotifyAuth && (
+          <div className="mb-4 p-4 bg-yellow-900 bg-opacity-50 rounded-lg">
+            <p className="text-yellow-200 mb-2">You need to connect your Spotify account to create or sync playlists.</p>
+            <button
+              onClick={handleSpotifyLogin}
+              className="px-4 py-2 bg-green-600 rounded text-white font-semibold hover:bg-green-500 w-full"
+            >
+              Connect to Spotify
+            </button>
+          </div>
+        )}
         {successUrl ? (
           <div className="space-y-2">
             <a 
@@ -65,7 +88,7 @@ function CreateUnratedSpotifyModal({ open, onClose, playlist }) {
               Close
             </button>
           </div>
-        ) : (
+        ) : !needsSpotifyAuth && (
           <button
             className="px-4 py-2 bg-green-600 rounded text-white font-semibold hover:bg-green-500 disabled:opacity-50 w-full"
             onClick={handleCreate}
