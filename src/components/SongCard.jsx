@@ -24,7 +24,10 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
     try {
       const res = await fetch('/api/songs', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
         body: JSON.stringify({ id: song.id, ...fields }),
       });
       if (!res.ok) throw new Error('Failed to save');

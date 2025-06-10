@@ -142,7 +142,10 @@ export default function NowPlaying() {
     try {
       await fetch('/api/songs', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
         body: JSON.stringify({ id: dbSong.id, rating: newRating }),
       });
       mutateSongs();
@@ -158,7 +161,10 @@ export default function NowPlaying() {
     try {
       await fetch('/api/songs', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
         body: JSON.stringify({ id: dbSong.id, notes }),
       });
       setDbSong({ ...dbSong, notes });
@@ -313,7 +319,10 @@ export default function NowPlaying() {
                   setPrevDbSong({ ...prevDbSong, rating: newRating });
                   await fetch('/api/songs', {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
                     body: JSON.stringify({ id: prevDbSong.id, rating: newRating }),
                   });
                 }}

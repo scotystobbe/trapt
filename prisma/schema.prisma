@@ -22,6 +22,7 @@ model Playlist {
   id          Int     @id @default(autoincrement())
   name        String
   spotifyLink String?
+  unratedPlaylistId String?  // Spotify playlist ID for unrated songs
   artworkUrl  String?
   year        Int?
   songs       Song[]

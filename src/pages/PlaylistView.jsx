@@ -18,28 +18,10 @@ function CreateUnratedSpotifyModal({ open, onClose, playlist }) {
     setError(null);
     setSuccessUrl(null);
     try {
-      const unrated = (playlist.songs || []).filter(s => s.rating == null || s.rating === 0);
-      const trackUris = unrated
-        .map(s => {
-          if (s.spotifyLink) {
-            const match = s.spotifyLink.match(/track\/([a-zA-Z0-9]+)/);
-            if (match) return `spotify:track:${match[1]}`;
-          }
-          return null;
-        })
-        .filter(Boolean);
-      if (trackUris.length === 0) {
-        setError('No unrated songs with Spotify links to add.');
-        setLoading(false);
-        return;
-      }
       const res = await fetch('/api/spotify-proxy/create-unrated-playlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: `${playlist.name} - Not Rated`,
-          trackUris,
-        }),
+        body: JSON.stringify({ playlistId: playlist.id }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Unknown error');
@@ -56,18 +38,42 @@ function CreateUnratedSpotifyModal({ open, onClose, playlist }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70">
       <div className="bg-zinc-900 rounded-lg shadow-lg p-6 max-w-md w-full relative">
         <button onClick={onClose} className="absolute top-2 right-2 text-gray-400 hover:text-white text-2xl">&times;</button>
-        <h2 className="text-xl font-bold mb-4 text-white">Create Spotify Playlist of Unrated Songs</h2>
-        <p className="text-gray-300 mb-4">This will create a new Spotify playlist with all unrated songs from <span className="font-semibold text-white">{playlist.name}</span>.</p>
+        <h2 className="text-xl font-bold mb-4 text-white">
+          {playlist.unratedPlaylistId ? 'Sync Unrated Songs Playlist' : 'Create Unrated Songs Playlist'}
+        </h2>
+        <p className="text-gray-300 mb-4">
+          {playlist.unratedPlaylistId 
+            ? 'This will update the existing Spotify playlist with all unrated songs from '
+            : 'This will create a new Spotify playlist with all unrated songs from '}
+          <span className="font-semibold text-white">{playlist.name}</span>.
+        </p>
         {error && <div className="text-red-400 mb-2">{error}</div>}
         {successUrl ? (
-          <a href={successUrl} target="_blank" rel="noopener noreferrer" className="text-green-400 underline font-semibold">Open Playlist on Spotify</a>
+          <div className="space-y-2">
+            <a 
+              href={successUrl} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="text-green-400 underline font-semibold block"
+            >
+              Open Playlist on Spotify
+            </a>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-white"
+            >
+              Close
+            </button>
+          </div>
         ) : (
           <button
             className="px-4 py-2 bg-green-600 rounded text-white font-semibold hover:bg-green-500 disabled:opacity-50 w-full"
             onClick={handleCreate}
             disabled={loading}
           >
-            {loading ? 'Creating...' : 'Create Playlist'}
+            {loading 
+              ? (playlist.unratedPlaylistId ? 'Syncing...' : 'Creating...') 
+              : (playlist.unratedPlaylistId ? 'Sync Playlist' : 'Create Playlist')}
           </button>
         )}
       </div>
