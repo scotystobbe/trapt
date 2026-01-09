@@ -52,8 +52,21 @@ export default function App() {
     // Also set it on the safe area overlays directly
     const overlays = document.querySelectorAll('.safe-area-top-overlay, .safe-area-absolute-overlay');
     overlays.forEach(overlay => {
-      overlay.style.backgroundColor = '#18181b';
+      overlay.style.setProperty('background-color', '#18181b', 'important');
+      overlay.style.setProperty('background', '#18181b', 'important');
+      overlay.style.setProperty('opacity', '1', 'important');
     });
+    
+    // Also set body::before if it exists
+    const style = document.createElement('style');
+    style.textContent = `
+      body::before {
+        background-color: #18181b !important;
+        background: #18181b !important;
+        opacity: 1 !important;
+      }
+    `;
+    document.head.appendChild(style);
   }, []);
 
   return (

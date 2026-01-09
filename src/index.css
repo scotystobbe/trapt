@@ -23,6 +23,7 @@ html, body {
   background-color: #18181b !important;
   background: #18181b !important;
   background-image: none !important;
+  opacity: 1 !important;
   z-index: 9999;
   pointer-events: none;
 }
@@ -42,6 +43,7 @@ html, body {
   background-color: #18181b !important;
   background: #18181b !important;
   background-image: none !important;
+  opacity: 1 !important;
   z-index: 2147483647;
   pointer-events: none;
 }
