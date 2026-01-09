@@ -55,18 +55,40 @@ export default function App() {
       overlay.style.setProperty('background-color', '#18181b', 'important');
       overlay.style.setProperty('background', '#18181b', 'important');
       overlay.style.setProperty('opacity', '1', 'important');
+      overlay.style.setProperty('mix-blend-mode', 'normal', 'important');
+      overlay.style.setProperty('backdrop-filter', 'none', 'important');
+      overlay.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
     });
     
-    // Also set body::before if it exists
-    const style = document.createElement('style');
-    style.textContent = `
-      body::before {
+    // Force set on body and html
+    document.body.style.setProperty('background-color', '#18181b', 'important');
+    document.documentElement.style.setProperty('background-color', '#18181b', 'important');
+    
+    // Create additional overlay divs as backup
+    const createOverlay = (zIndex) => {
+      const overlay = document.createElement('div');
+      overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: env(safe-area-inset-top, 60px);
+        height: constant(safe-area-inset-top, 60px);
         background-color: #18181b !important;
         background: #18181b !important;
         opacity: 1 !important;
-      }
-    `;
-    document.head.appendChild(style);
+        mix-blend-mode: normal !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        z-index: ${zIndex};
+        pointer-events: none;
+      `;
+      document.body.appendChild(overlay);
+    };
+    
+    // Add multiple overlay layers
+    createOverlay(9999999);
+    createOverlay(9999998);
   }, []);
 
   return (

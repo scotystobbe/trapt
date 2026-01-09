@@ -28,8 +28,9 @@
         background: #18181b !important;
         background-image: none !important;
         opacity: 1 !important;
+        mix-blend-mode: normal !important;
       }
-      /* Cover the entire top safe area */
+      /* Cover the entire top safe area with multiple layers */
       body::before {
         content: '';
         position: fixed;
@@ -41,7 +42,24 @@
         background-color: #18181b !important;
         background: #18181b !important;
         opacity: 1 !important;
+        mix-blend-mode: normal !important;
         z-index: 999999;
+        pointer-events: none;
+      }
+      /* Additional overlay layer */
+      html::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: env(safe-area-inset-top, 60px);
+        height: constant(safe-area-inset-top, 60px);
+        background-color: #18181b !important;
+        background: #18181b !important;
+        opacity: 1 !important;
+        mix-blend-mode: normal !important;
+        z-index: 999998;
         pointer-events: none;
       }
     </style>
