@@ -62,15 +62,23 @@ function ScrollingText({ text, className }) {
   const [needsScroll, setNeedsScroll] = React.useState(false);
   const [scrollDistance, setScrollDistance] = React.useState(0);
   const animationIdRef = React.useRef(null);
+  const uniqueIdRef = React.useRef(Math.random().toString(36).substr(2, 9));
 
   React.useEffect(() => {
-    if (!containerRef.current || !textRef.current) return;
+    if (!containerRef.current || !textRef.current || !text) return;
     
     const updateSizes = () => {
+      // Ensure text is set to nowrap for measurement
+      textRef.current.style.whiteSpace = 'nowrap';
+      textRef.current.style.display = 'inline-block';
+      
+      // Force a reflow
+      void textRef.current.offsetWidth;
+      
       const containerWidth = containerRef.current.offsetWidth;
       const textWidth = textRef.current.scrollWidth;
       
-      if (textWidth > containerWidth) {
+      if (textWidth > containerWidth && containerWidth > 0) {
         setNeedsScroll(true);
         setScrollDistance(textWidth - containerWidth);
       } else {
@@ -79,24 +87,30 @@ function ScrollingText({ text, className }) {
       }
     };
     
-    // Use requestAnimationFrame to ensure DOM is ready
-    animationIdRef.current = requestAnimationFrame(() => {
+    // Use multiple delays to ensure DOM is ready
+    const timeout1 = setTimeout(() => {
       updateSizes();
-    });
+    }, 50);
+    
+    const timeout2 = setTimeout(() => {
+      updateSizes();
+    }, 300);
     
     window.addEventListener('resize', updateSizes);
     return () => {
+      clearTimeout(timeout1);
+      clearTimeout(timeout2);
       if (animationIdRef.current) {
         cancelAnimationFrame(animationIdRef.current);
       }
       window.removeEventListener('resize', updateSizes);
     };
-  }, [text]);
+  }, [text, className]);
 
   if (!needsScroll || scrollDistance === 0) {
     return (
-      <div ref={containerRef} className="overflow-hidden w-full text-center">
-        <p ref={textRef} className={className}>{text}</p>
+      <div ref={containerRef} className="overflow-hidden w-full text-center" style={{ whiteSpace: 'nowrap', maxWidth: '100%' }}>
+        <span ref={textRef} className={className} style={{ whiteSpace: 'nowrap', display: 'inline-block' }}>{text}</span>
       </div>
     );
   }
@@ -108,20 +122,20 @@ function ScrollingText({ text, className }) {
   const scrollEndPercent = ((pauseTime + scrollTime) / totalTime) * 100;
 
   return (
-    <div ref={containerRef} className="overflow-hidden w-full text-center relative">
-      <p
+    <div ref={containerRef} className="overflow-hidden w-full text-center relative" style={{ whiteSpace: 'nowrap', maxWidth: '100%' }}>
+      <span
         ref={textRef}
         className={className}
         style={{
           display: 'inline-block',
           whiteSpace: 'nowrap',
-          animation: `scroll-text-${Math.floor(scrollDistance)} ${totalTime}s linear infinite`,
+          animation: `scroll-text-${uniqueIdRef.current} ${totalTime}s linear infinite`,
         }}
       >
         {text}
-      </p>
+      </span>
       <style>{`
-        @keyframes scroll-text-${Math.floor(scrollDistance)} {
+        @keyframes scroll-text-${uniqueIdRef.current} {
           0%, ${pausePercent}% {
             transform: translateX(0);
           }
@@ -360,16 +374,16 @@ export default function NowPlaying() {
             >
               {dbSong ? dbSong.title : ''}
             </h2>
-            <div className="mb-1 w-full">
+            <div className="mb-1 w-full max-w-full" style={{ overflow: 'hidden' }}>
               <ScrollingText 
                 text={dbSong.artist} 
-                className={"text-3xl text-center " + (nightMode ? 'text-red-800' : 'text-white')}
+                className={"text-3xl " + (nightMode ? 'text-red-800' : 'text-white')}
               />
             </div>
-            <div className="mb-2 w-full">
+            <div className="mb-2 w-full max-w-full" style={{ overflow: 'hidden' }}>
               <ScrollingText 
                 text={dbSong.album || track?.album?.name || ''} 
-                className={"text-lg text-center " + (nightMode ? 'text-red-900' : 'text-gray-500')}
+                className={"text-lg " + (nightMode ? 'text-red-900' : 'text-gray-500')}
               />
             </div>
             <EditableStarRating rating={dbSong.rating} onRatingChange={isAdmin ? handleRatingChange : undefined} size={72} nightMode={nightMode} emptyColor={nightMode ? '#18181b' : undefined} />
