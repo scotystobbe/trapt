@@ -232,11 +232,16 @@ export default function PlaylistView() {
     </div>
   );
 
+  // For TRAPT and TRAPT+, use id-based sorting for "sortOrder" since songs come from multiple playlists
+  const isSpecialPlaylist = playlist.name === 'TRAPT' || playlist.name === 'TRAPT+';
+  
   const sortedSongs = [...playlist.songs]
     .filter(song => song.title.toLowerCase().includes(search.toLowerCase()) || song.artist.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => {
       if (sort === 'title') return a.title.localeCompare(b.title);
       if (sort === 'artist') return a.artist.localeCompare(b.artist) || a.title.localeCompare(b.title);
+      // For special playlists, sort by id; otherwise use sortOrder
+      if (isSpecialPlaylist) return a.id - b.id;
       return a.sortOrder - b.sortOrder;
     });
 

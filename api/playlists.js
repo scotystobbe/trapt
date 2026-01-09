@@ -15,6 +15,27 @@ module.exports = async (req, res) => {
         include: { songs: true },
         orderBy: { name: 'asc' },
       });
+
+      // Handle special playlists: TRAPT+ and TRAPT
+      // These should show songs from the database based on ratings, not their stored songs
+      for (const playlist of playlists) {
+        if (playlist.name === 'TRAPT+') {
+          // TRAPT+ shows all 5-star rated songs, ordered by database id
+          const traptPlusSongs = await prisma.song.findMany({
+            where: { rating: 5 },
+            orderBy: { id: 'asc' },
+          });
+          playlist.songs = traptPlusSongs;
+        } else if (playlist.name === 'TRAPT') {
+          // TRAPT shows all 4- and 5-star rated songs, ordered by database id
+          const traptSongs = await prisma.song.findMany({
+            where: { rating: { gte: 4 } },
+            orderBy: { id: 'asc' },
+          });
+          playlist.songs = traptSongs;
+        }
+      }
+
       res.setHeader('Cache-Control', 'no-store');
       res.status(200).json(playlists);
     } catch (error) {
