@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import HamburgerMenu from '../components/HamburgerMenu';
 import LogoHeader from '../components/LogoHeader';
-import { FaTrash, FaUserShield } from 'react-icons/fa';
+import { FaTrash, FaUserShield, FaApple } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
 import { SiGenius } from 'react-icons/si';
 import { FaSpotify } from 'react-icons/fa';
 import Button from '../components/Button';
 import { useAuth } from '../components/AuthProvider';
 import { useNavigate } from 'react-router-dom';
+import AppleMusicConverter from '../components/AppleMusicConverter';
 
 function extractPlaylistId(url) {
   // Handles URLs like https://open.spotify.com/playlist/{id} or spotify:playlist:{id}
@@ -104,7 +105,10 @@ export default function Admin() {
       };
       const res = await fetch('/api/import-playlist', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
         body: JSON.stringify(dataToImport),
       });
       const data = await res.json();
@@ -130,7 +134,10 @@ export default function Admin() {
     try {
       await fetch('/api/playlists', {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
         body: JSON.stringify({ id }),
       });
       setConfirmDeleteId(null);
@@ -196,6 +203,11 @@ export default function Admin() {
       </LogoHeader>
       <div className="max-w-4xl mx-auto w-full p-6">
         <h1 className="text-2xl font-bold mb-8 text-white text-center">Admin</h1>
+
+        {/* Apple Music to Spotify Converter */}
+        <ExpandableSection title={<span><FaApple className="inline mr-2" />Convert Apple Music Playlist</span>} defaultOpen={false}>
+          <AppleMusicConverter />
+        </ExpandableSection>
 
         {/* Merge Sync/Import and Manage Playlists into one section */}
         <ExpandableSection title="Manage Playlists" defaultOpen={false}>

@@ -21,9 +21,29 @@ A music playlist rating application built with React, Vite, and Vercel serverles
    ```env
    DATABASE_URL="postgresql://user:password@localhost:5432/trapt"
    JWT_SECRET="your-secret-key-here"
+   SPOTIFY_CLIENT_ID="your-spotify-client-id"
+   SPOTIFY_CLIENT_SECRET="your-spotify-client-secret"
+   SPOTIFY_REDIRECT_URI="http://localhost:5173/api/spotify-proxy/callback"
    ```
    
    Replace the `DATABASE_URL` with your PostgreSQL connection string and set a secure `JWT_SECRET`.
+   
+   For Spotify integration, you'll need to:
+   - Create a Spotify app at [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
+   - Add `http://localhost:5173/api/spotify-proxy/callback` to your app's redirect URIs
+   - Copy your Client ID and Client Secret to the `.env` file
+   
+   **Apple Music API Setup:**
+   - Requires Apple Developer account with Media Identifier registered
+   - See `APPLE_MUSIC_SETUP.md` for detailed setup instructions
+   - After creating a private key, add to `.env`:
+     ```env
+     APPLE_MUSIC_TEAM_ID="your-team-id"
+     APPLE_MUSIC_KEY_ID="your-key-id"
+     APPLE_MUSIC_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
+     ```
+   - Generate developer token: `node scripts/generate-apple-music-token.js`
+   - The generated token will be saved to `.env` as `APPLE_MUSIC_DEVELOPER_TOKEN`
 
 3. **Set up the database:**
    
