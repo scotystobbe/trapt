@@ -5,7 +5,8 @@
 html, body {
   height: 100%;
   margin: 0;
-  background-color: #18181b; /* Tailwind's bg-gray-900 */
+  background-color: #18181b !important; /* Tailwind's bg-gray-900 */
+  background: #18181b !important;
 }
 
 #root {
@@ -19,7 +20,8 @@ html, body {
   right: 0;
   height: constant(safe-area-inset-top, 20px);
   height: env(safe-area-inset-top, 20px);
-  background: #18181b;
+  background-color: #18181b !important;
+  background: #18181b !important;
   z-index: 9999;
   pointer-events: none;
 }
@@ -32,7 +34,8 @@ html, body {
   width: 100vw;
   height: env(safe-area-inset-top, 20px);
   height: constant(safe-area-inset-top, 20px);
-  background: #18181b;
+  background-color: #18181b !important;
+  background: #18181b !important;
   z-index: 2147483647;
   pointer-events: none;
 }
