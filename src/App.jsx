@@ -44,6 +44,18 @@ function NightModeToggle() {
 }
 
 export default function App() {
+  // Ensure safe area background is set for PWA mode
+  React.useEffect(() => {
+    // Set body and html background for PWA standalone mode
+    document.body.style.backgroundColor = '#18181b';
+    document.documentElement.style.backgroundColor = '#18181b';
+    // Also set it on the safe area overlays directly
+    const overlays = document.querySelectorAll('.safe-area-top-overlay, .safe-area-absolute-overlay');
+    overlays.forEach(overlay => {
+      overlay.style.backgroundColor = '#18181b';
+    });
+  }, []);
+
   return (
     <AuthProvider>
       <NightModeProvider>
