@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import HamburgerMenu from '../components/HamburgerMenu';
 import LogoHeader from '../components/LogoHeader';
-import { FaTrash, FaUserShield, FaApple } from 'react-icons/fa';
+import { FaTrash, FaUserShield } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
 import { SiGenius } from 'react-icons/si';
 import { FaSpotify } from 'react-icons/fa';
 import Button from '../components/Button';
 import { useAuth } from '../components/AuthProvider';
 import { useNavigate } from 'react-router-dom';
-import AppleMusicConverter from '../components/AppleMusicConverter';
+// import AppleMusicConverter from '../components/AppleMusicConverter';
 
 function extractPlaylistId(url) {
   // Handles URLs like https://open.spotify.com/playlist/{id} or spotify:playlist:{id}
@@ -204,10 +204,10 @@ export default function Admin() {
       <div className="max-w-4xl mx-auto w-full p-6">
         <h1 className="text-2xl font-bold mb-8 text-white text-center">Admin</h1>
 
-        {/* Apple Music to Spotify Converter */}
-        <ExpandableSection title={<span><FaApple className="inline mr-2" />Convert Apple Music Playlist</span>} defaultOpen={false}>
+        {/* Apple Music to Spotify Converter - Hidden for now */}
+        {/* <ExpandableSection title={<span><FaApple className="inline mr-2" />Convert Apple Music Playlist</span>} defaultOpen={false}>
           <AppleMusicConverter />
-        </ExpandableSection>
+        </ExpandableSection> */}
 
         {/* Merge Sync/Import and Manage Playlists into one section */}
         <ExpandableSection title="Manage Playlists" defaultOpen={false}>
@@ -238,9 +238,9 @@ export default function Admin() {
           {tracks.length > 0 && (
             <div>
               <h2 className="text-lg font-semibold mb-2 text-white">Tracks to Import from <span className='italic text-white'>{playlistName}</span></h2>
-              <ul className="space-y-1 max-h-64 overflow-y-auto">
+              <ul className="space-y-1 max-h-64 overflow-y-auto mb-6">
                 {tracks.map((track, idx) => (
-                  <li key={idx}>{track.title} - {track.artist}</li>
+                  <li key={idx} className="text-white">{track.title} - {track.artist}</li>
                 ))}
               </ul>
               {existingPlaylist ? (
@@ -253,9 +253,11 @@ export default function Admin() {
                   </Button>
                 </div>
               ) : (
-                <Button variant="primary" onClick={() => handleImport(false)} disabled={importing}>
-                  {importing ? 'Importing...' : 'Import to Database'}
-                </Button>
+                <div className="mt-2">
+                  <Button variant="primary" onClick={() => handleImport(false)} disabled={importing}>
+                    {importing ? 'Importing...' : 'Import to Database'}
+                  </Button>
+                </div>
               )}
             </div>
           )}
