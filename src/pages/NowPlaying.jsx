@@ -116,7 +116,7 @@ function ScrollingText({ text, className }) {
   }
 
   const pauseTime = 3; // seconds to pause at start/end
-  const scrollTime = 15; // seconds to scroll (slow)
+  const scrollTime = 8; // seconds to scroll
   const totalTime = pauseTime * 2 + scrollTime;
   const pausePercent = (pauseTime / totalTime) * 100;
   const scrollEndPercent = ((pauseTime + scrollTime) / totalTime) * 100;
