@@ -82,6 +82,9 @@ function NightModeBodyWrapper({ children }) {
     } else {
       document.body.classList.remove('night-mode');
     }
+    // Ensure body and html have correct background for safe area
+    document.body.style.backgroundColor = '#18181b';
+    document.documentElement.style.backgroundColor = '#18181b';
   }, [nightMode]);
   return children;
 }

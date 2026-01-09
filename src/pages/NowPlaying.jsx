@@ -107,8 +107,11 @@ export default function NowPlaying() {
           // Don't update if editing notes
           return;
         }
-        setPrevTrack(track);
-        setPrevDbSong(dbSong);
+        // Only save current track as previous if we actually have a track and dbSong
+        if (track && dbSong) {
+          setPrevTrack(track);
+          setPrevDbSong(dbSong);
+        }
         setTrack(data.item);
         lastTrackId.current = data.item.id;
         // Use SWR-cached songs
@@ -123,6 +126,7 @@ export default function NowPlaying() {
       if (isInitial) setInitialLoading(false);
     }
   }, [editingNotes, track, dbSong, songs, setPrevTrack, setPrevDbSong]);
+
 
   useEffect(() => {
     if (songs.length === 0 && !songsError) return; // Wait for songs to load or error

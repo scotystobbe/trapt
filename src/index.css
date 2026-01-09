@@ -22,6 +22,7 @@ html, body {
   height: env(safe-area-inset-top, 20px);
   background-color: #18181b !important;
   background: #18181b !important;
+  background-image: none !important;
   z-index: 9999;
   pointer-events: none;
 }
@@ -36,6 +37,7 @@ html, body {
   height: constant(safe-area-inset-top, 20px);
   background-color: #18181b !important;
   background: #18181b !important;
+  background-image: none !important;
   z-index: 2147483647;
   pointer-events: none;
 }
