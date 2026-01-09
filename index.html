@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en" class="dark" style="background-color: #18181b; margin: 0; padding: 0;">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -14,10 +14,39 @@
     <meta name="apple-mobile-web-app-title" content="TRAPT" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#18181b" />
+    <style>
+      /* Force safe area background for PWA standalone mode */
+      html, body {
+        background-color: #18181b !important;
+        background: #18181b !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      .safe-area-absolute-overlay,
+      .safe-area-top-overlay {
+        background-color: #18181b !important;
+        background: #18181b !important;
+        background-image: none !important;
+      }
+      /* Cover the entire top safe area */
+      body::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: env(safe-area-inset-top, 60px);
+        height: constant(safe-area-inset-top, 60px);
+        background-color: #18181b !important;
+        background: #18181b !important;
+        z-index: 999999;
+        pointer-events: none;
+      }
+    </style>
   </head>
-  <body>
-    <div class="safe-area-absolute-overlay"></div>
-    <div id="root"></div>
+  <body style="background-color: #18181b; margin: 0; padding: 0;">
+    <div class="safe-area-absolute-overlay" style="background-color: #18181b !important; background: #18181b !important;"></div>
+    <div id="root" style="background-color: #18181b;"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
