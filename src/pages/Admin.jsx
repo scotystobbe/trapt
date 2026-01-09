@@ -380,6 +380,12 @@ export default function Admin() {
         <ExpandableSection title="Utilities" defaultOpen={false}>
           <div className="flex flex-col gap-4">
             <a
+              href="/admin/stats"
+              className="inline-block px-4 py-2 bg-indigo-700 rounded text-white hover:bg-indigo-600 font-semibold"
+            >
+              View Statistics & Reports
+            </a>
+            <a
               href="/admin/ImportRatings"
               className="inline-block px-4 py-2 bg-purple-700 rounded text-white hover:bg-purple-600 font-semibold"
             >

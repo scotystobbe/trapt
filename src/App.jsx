@@ -6,6 +6,7 @@ import Admin from './pages/Admin.jsx';
 import NowPlaying from './pages/NowPlaying.jsx';
 import Browse from './pages/Browse.jsx';
 import ImportRatings from './pages/admin/ImportRatings.tsx';
+import Stats from './pages/admin/Stats.jsx';
 import ScrollTest from './pages/ScrollTest.jsx';
 import GeniusEmbedPage from './pages/genius-embed/[songId]';
 import Login from './pages/Login.jsx';
@@ -59,6 +60,7 @@ export default function App() {
                 <Route path="/now-playing" element={<NowPlaying />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/admin/ImportRatings" element={<ImportRatings />} />
+                <Route path="/admin/stats" element={<Stats />} />
                 <Route path="/scroll-test" element={<ScrollTest />} />
                 <Route path="/genius-embed/:songId" element={<GeniusEmbedPage />} />
                 <Route path="/login" element={<Login />} />
