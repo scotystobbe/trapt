@@ -100,13 +100,13 @@ module.exports = async (req, res) => {
           }
         });
         
-        // Top 5 artists by count
+        // Top 10 artists by count
         const topArtistsByCount = Object.entries(artistCounts)
           .map(([artist, count]) => ({ artist, count }))
           .sort((a, b) => b.count - a.count)
-          .slice(0, 5);
+          .slice(0, 10);
         
-        // Top 5 artists by average rating (minimum 3 rated songs)
+        // Top 10 artists by average rating (minimum 3 rated songs)
         const topArtistsByRating = Object.entries(artistRatings)
           .filter(([artist, data]) => data.count >= 3)
           .map(([artist, data]) => ({
@@ -116,7 +116,7 @@ module.exports = async (req, res) => {
             totalCount: artistCounts[artist],
           }))
           .sort((a, b) => b.avgRating - a.avgRating)
-          .slice(0, 5);
+          .slice(0, 10);
         
         // Most featured artist (highest count)
         const mostFeaturedArtist = topArtistsByCount[0] || null;

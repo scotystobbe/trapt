@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import HamburgerMenu from '../../components/HamburgerMenu';
 import LogoHeader from '../../components/LogoHeader';
-import { FaArrowLeft, FaChartBar, FaMusic, FaStar, FaRegStar, FaStickyNote, FaImage, FaTrophy, FaSortAmountDown } from 'react-icons/fa';
+import { FaArrowLeft, FaChartBar, FaMusic, FaStar, FaRegStar, FaTrophy, FaSortAmountDown } from 'react-icons/fa';
 import { useAuth } from '../../components/AuthProvider';
 import { useNavigate } from 'react-router-dom';
 import Skeleton from '../../components/Skeleton';
@@ -161,20 +161,13 @@ export default function Stats() {
         </div>
 
         {/* Overview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <StatCard
             title="Total Songs"
             value={stats.totalSongs.toLocaleString()}
             subtitle={`Across ${stats.totalPlaylists} playlists`}
             icon={FaMusic}
             color="purple"
-          />
-          <StatCard
-            title="Rated Songs"
-            value={stats.ratedCount.toLocaleString()}
-            subtitle={`${stats.totalSongs > 0 ? Math.round((stats.ratedCount / stats.totalSongs) * 100) : 0}% of total`}
-            icon={FaStar}
-            color="yellow"
           />
           <StatCard
             title="Average Rating"
@@ -250,89 +243,14 @@ export default function Stats() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Songs with Notes */}
-          <div style={{ backgroundColor: '#27272a' }} className="p-6 rounded-xl">
-            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-              <FaStickyNote className="text-blue-400" />
-              Songs with Notes
-            </h2>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-white">With Notes</span>
-                <span className="text-white font-bold">{stats.songsWithNotes}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-400">Without Notes</span>
-                <span className="text-gray-400">{stats.songsWithoutNotes}</span>
-              </div>
-              <div className="w-full bg-gray-700 rounded-full h-3 mt-4">
-                <div
-                  className="bg-blue-500 h-3 rounded-full"
-                  style={{ width: `${stats.totalSongs > 0 ? (stats.songsWithNotes / stats.totalSongs) * 100 : 0}%` }}
-                />
-              </div>
-              <div className="text-sm text-gray-400 text-center mt-2">
-                {stats.totalSongs > 0 ? Math.round((stats.songsWithNotes / stats.totalSongs) * 100) : 0}% have notes
-              </div>
-            </div>
-          </div>
-
-          {/* Songs with Artwork */}
-          <div style={{ backgroundColor: '#27272a' }} className="p-6 rounded-xl">
-            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-              <FaImage className="text-green-400" />
-              Songs with Artwork
-            </h2>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-white">With Artwork</span>
-                <span className="text-white font-bold">{stats.songsWithArtwork}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-400">Without Artwork</span>
-                <span className="text-gray-400">{stats.songsWithoutArtwork}</span>
-              </div>
-              <div className="w-full bg-gray-700 rounded-full h-3 mt-4">
-                <div
-                  className="bg-green-500 h-3 rounded-full"
-                  style={{ width: `${stats.totalSongs > 0 ? (stats.songsWithArtwork / stats.totalSongs) * 100 : 0}%` }}
-                />
-              </div>
-              <div className="text-sm text-gray-400 text-center mt-2">
-                {stats.totalSongs > 0 ? Math.round((stats.songsWithArtwork / stats.totalSongs) * 100) : 0}% have artwork
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* Playlist Highlights */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {stats.mostSongsPlaylist && (
-            <div style={{ backgroundColor: '#27272a' }} className="p-6 rounded-xl">
-              <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <FaTrophy className="text-yellow-400" />
-                Most Songs
-              </h2>
-              <div className="text-2xl font-bold text-white mb-1">{stats.mostSongsPlaylist.name}</div>
-              <div className="text-gray-400">{stats.mostSongsPlaylist.songCount} songs</div>
-            </div>
-          )}
-          {stats.leastSongsPlaylist && stats.leastSongsPlaylist.songCount < stats.mostSongsPlaylist.songCount && (
-            <div style={{ backgroundColor: '#27272a' }} className="p-6 rounded-xl">
-              <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <FaMusic className="text-blue-400" />
-                Fewest Songs
-              </h2>
-              <div className="text-2xl font-bold text-white mb-1">{stats.leastSongsPlaylist.name}</div>
-              <div className="text-gray-400">{stats.leastSongsPlaylist.songCount} songs</div>
-            </div>
-          )}
           {stats.highestRatedPlaylist && (
             <div style={{ backgroundColor: '#27272a' }} className="p-6 rounded-xl">
               <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
                 <FaStar className="text-yellow-400" />
-                Highest Rated
+                Highest Rated Playlist
               </h2>
               <div className="text-2xl font-bold text-white mb-1">{stats.highestRatedPlaylist.name}</div>
               <div className="text-gray-400">
@@ -344,7 +262,7 @@ export default function Stats() {
             <div style={{ backgroundColor: '#27272a' }} className="p-6 rounded-xl">
               <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
                 <FaRegStar className="text-gray-400" />
-                Lowest Rated
+                Lowest Rated Playlist
               </h2>
               <div className="text-2xl font-bold text-white mb-1">{stats.lowestRatedPlaylist.name}</div>
               <div className="text-gray-400">
@@ -385,7 +303,7 @@ export default function Stats() {
           <div style={{ backgroundColor: '#27272a' }} className="p-6 rounded-xl mb-8">
             <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
               <FaMusic className="text-purple-400" />
-              Top 5 Artists by Count
+              Top 10 Artists by Count
             </h2>
             <div className="space-y-2">
               {stats.topArtistsByCount.map(({ artist, count }, idx) => (
@@ -406,7 +324,7 @@ export default function Stats() {
           <div style={{ backgroundColor: '#27272a' }} className="p-6 rounded-xl mb-8">
             <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
               <FaStar className="text-yellow-400" />
-              Top 5 Artists by Rating
+              Top 10 Artists by Rating
             </h2>
             <div className="space-y-2">
               {stats.topArtistsByRating.map(({ artist, avgRating, ratedCount, totalCount }, idx) => (
@@ -425,33 +343,6 @@ export default function Stats() {
           </div>
         )}
 
-        {/* Year Stats */}
-        {stats.yearStats && stats.yearStats.length > 0 && (
-          <div style={{ backgroundColor: '#27272a' }} className="p-6 rounded-xl">
-            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-              <FaChartBar className="text-indigo-400" />
-              Songs by Year
-            </h2>
-            <div className="space-y-3">
-              {stats.yearStats.map(({ year, count }) => (
-                <div key={year} className="flex items-center gap-4">
-                  <div className="text-white font-semibold w-16">{year}</div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-gray-400 text-sm">{count} songs</span>
-                    </div>
-                    <div className="w-full bg-gray-700 rounded-full h-2">
-                      <div
-                        className="bg-indigo-500 h-2 rounded-full"
-                        style={{ width: `${(count / stats.totalSongs) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
