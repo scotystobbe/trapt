@@ -55,6 +55,85 @@ function openGeniusAppOrWeb(songId, webUrl) {
   window.addEventListener('pagehide', () => clearTimeout(timeout), { once: true });
 }
 
+// Scrolling text component for artist/album
+function ScrollingText({ text, className }) {
+  const containerRef = React.useRef(null);
+  const textRef = React.useRef(null);
+  const [needsScroll, setNeedsScroll] = React.useState(false);
+  const [scrollDistance, setScrollDistance] = React.useState(0);
+  const animationIdRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!containerRef.current || !textRef.current) return;
+    
+    const updateSizes = () => {
+      const containerWidth = containerRef.current.offsetWidth;
+      const textWidth = textRef.current.scrollWidth;
+      
+      if (textWidth > containerWidth) {
+        setNeedsScroll(true);
+        setScrollDistance(textWidth - containerWidth);
+      } else {
+        setNeedsScroll(false);
+        setScrollDistance(0);
+      }
+    };
+    
+    // Use requestAnimationFrame to ensure DOM is ready
+    animationIdRef.current = requestAnimationFrame(() => {
+      updateSizes();
+    });
+    
+    window.addEventListener('resize', updateSizes);
+    return () => {
+      if (animationIdRef.current) {
+        cancelAnimationFrame(animationIdRef.current);
+      }
+      window.removeEventListener('resize', updateSizes);
+    };
+  }, [text]);
+
+  if (!needsScroll || scrollDistance === 0) {
+    return (
+      <div ref={containerRef} className="overflow-hidden w-full text-center">
+        <p ref={textRef} className={className}>{text}</p>
+      </div>
+    );
+  }
+
+  const pauseTime = 3; // seconds to pause at start/end
+  const scrollTime = 15; // seconds to scroll (slow)
+  const totalTime = pauseTime * 2 + scrollTime;
+  const pausePercent = (pauseTime / totalTime) * 100;
+  const scrollEndPercent = ((pauseTime + scrollTime) / totalTime) * 100;
+
+  return (
+    <div ref={containerRef} className="overflow-hidden w-full text-center relative">
+      <p
+        ref={textRef}
+        className={className}
+        style={{
+          display: 'inline-block',
+          whiteSpace: 'nowrap',
+          animation: `scroll-text-${Math.floor(scrollDistance)} ${totalTime}s linear infinite`,
+        }}
+      >
+        {text}
+      </p>
+      <style>{`
+        @keyframes scroll-text-${Math.floor(scrollDistance)} {
+          0%, ${pausePercent}% {
+            transform: translateX(0);
+          }
+          ${scrollEndPercent}%, 100% {
+            transform: translateX(-${scrollDistance}px);
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 export default function NowPlaying() {
   const { nightMode } = useNightMode();
   const [error, setError] = useState('');
@@ -267,14 +346,32 @@ export default function NowPlaying() {
               )}
             </div>
             <h2
-              className={"text-4xl font-bold mb-2 text-center " + (nightMode ? 'text-red-800' : 'text-white')}
+              className={"text-4xl font-bold mb-2 text-center line-clamp-2 " + (nightMode ? 'text-red-800' : 'text-white')}
               onClick={() => dbSong && setShowCustomGeniusModal(true)}
-              style={{ cursor: dbSong ? 'pointer' : 'default' }}
+              style={{ 
+                cursor: dbSong ? 'pointer' : 'default',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                maxWidth: '100%',
+              }}
             >
               {dbSong ? dbSong.title : ''}
             </h2>
-            <p className={"text-3xl mb-1 text-center " + (nightMode ? 'text-red-800' : 'text-white')}>{dbSong.artist}</p>
-            <p className={"text-lg mb-2 text-center " + (nightMode ? 'text-red-900' : 'text-gray-500')}>{dbSong.album || track?.album?.name}</p>
+            <div className="mb-1 w-full">
+              <ScrollingText 
+                text={dbSong.artist} 
+                className={"text-3xl text-center " + (nightMode ? 'text-red-800' : 'text-white')}
+              />
+            </div>
+            <div className="mb-2 w-full">
+              <ScrollingText 
+                text={dbSong.album || track?.album?.name || ''} 
+                className={"text-lg text-center " + (nightMode ? 'text-red-900' : 'text-gray-500')}
+              />
+            </div>
             <EditableStarRating rating={dbSong.rating} onRatingChange={isAdmin ? handleRatingChange : undefined} size={72} nightMode={nightMode} emptyColor={nightMode ? '#18181b' : undefined} />
             <div
               className={"rounded-lg p-4 w-full max-w-lg mt-2 min-h-[60px] text-left " + textClass}
