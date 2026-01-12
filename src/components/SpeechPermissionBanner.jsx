@@ -8,10 +8,28 @@ export { isIOS, isPWA };
 export default function SpeechPermissionBanner() {
   const [show, setShow] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [hasChecked, setHasChecked] = useState(false);
 
   useEffect(() => {
+    // Check if dismissed on mount
+    try {
+      const wasDismissed = sessionStorage.getItem('trapt_speech_banner_dismissed') === 'true';
+      if (wasDismissed) {
+        setDismissed(true);
+        return;
+      }
+    } catch (err) {
+      // Ignore
+    }
+
     // Only show on iOS/PWA when speech is enabled but not initialized
     const checkShouldShow = () => {
+      // Don't check if already dismissed
+      if (dismissed) {
+        setShow(false);
+        return;
+      }
+
       const speechMode = getSpeechMode();
       const isIOSDevice = isIOS();
       const isPWAMode = isPWA();
@@ -22,17 +40,25 @@ export default function SpeechPermissionBanner() {
       // 2. Speech mode is not OFF
       // 3. Permission hasn't been granted yet
       // 4. Not dismissed
-      if ((isIOSDevice || isPWAMode) && 
+      const shouldShow = (isIOSDevice || isPWAMode) && 
           speechMode !== SPEECH_MODES.OFF && 
           !hasPermission && 
-          !dismissed) {
+          !dismissed;
+      
+      if (shouldShow) {
         setShow(true);
-      } else {
+        setHasChecked(true);
+      } else if (hasPermission) {
+        // Only hide if we actually have permission
         setShow(false);
       }
     };
 
-    checkShouldShow();
+    // Initial check after a small delay to ensure state is ready
+    const initialTimeout = setTimeout(() => {
+      checkShouldShow();
+      setHasChecked(true);
+    }, 200);
 
     // Listen for speech initialization
     const handleInitialized = () => {
@@ -41,21 +67,28 @@ export default function SpeechPermissionBanner() {
 
     // Listen for speech mode changes
     const handleModeChange = () => {
-      checkShouldShow();
+      if (!dismissed) {
+        checkShouldShow();
+      }
     };
 
     window.addEventListener('speech-initialized', handleInitialized);
     window.addEventListener('storage', handleModeChange);
     
-    // Also check periodically in case speech mode changed
-    const interval = setInterval(checkShouldShow, 1000);
+    // Check periodically in case speech mode changed (but less frequently)
+    const interval = setInterval(() => {
+      if (!dismissed && hasChecked) {
+        checkShouldShow();
+      }
+    }, 3000);
 
     return () => {
+      clearTimeout(initialTimeout);
       window.removeEventListener('speech-initialized', handleInitialized);
       window.removeEventListener('storage', handleModeChange);
       clearInterval(interval);
     };
-  }, [dismissed]);
+  }, [dismissed, hasChecked]);
 
   const handleDismiss = () => {
     setDismissed(true);
@@ -68,17 +101,6 @@ export default function SpeechPermissionBanner() {
     }
   };
 
-  // Don't show if dismissed in this session
-  useEffect(() => {
-    try {
-      const wasDismissed = sessionStorage.getItem('trapt_speech_banner_dismissed') === 'true';
-      if (wasDismissed) {
-        setDismissed(true);
-      }
-    } catch (err) {
-      // Ignore
-    }
-  }, []);
 
   const handleEnable = (e) => {
     e.stopPropagation();

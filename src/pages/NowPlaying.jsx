@@ -449,7 +449,7 @@ export default function NowPlaying() {
           background: #000 !important;
         }
       `}</style>
-      <div className="max-w-2xl mx-auto w-full p-4 flex flex-col items-center">
+      <div className="max-w-2xl mx-auto w-full px-4 pt-2 pb-4 flex flex-col items-center">
         {initialLoading ? (
           <div className="w-full flex flex-col items-center">
             <div className="relative mb-8">
@@ -476,7 +476,7 @@ export default function NowPlaying() {
           <p className={"text-gray-300 " + textClass}>No track currently playing.</p>
         ) : track ? (
           <div className="w-full flex flex-col items-center">
-            <div className={"relative mb-8 " + dimClass}>
+            <div className={"relative mb-6 " + dimClass}>
               {(dbSong?.artworkUrl || track?.album?.images?.[0]?.url) && (
                 <img 
                   src={dbSong?.artworkUrl || track?.album?.images?.[0]?.url} 
@@ -514,35 +514,35 @@ export default function NowPlaying() {
             </div>
             {dbSong && (
               <>
-                <EditableStarRating rating={dbSong.rating} onRatingChange={isAdmin ? handleRatingChange : undefined} size={72} nightMode={nightMode} emptyColor={nightMode ? '#18181b' : undefined} />
-                <div
-                  className={"rounded-lg p-4 w-full max-w-lg mt-2 min-h-[60px] text-left " + textClass}
-                  style={{ backgroundColor: nightMode ? '#141416' : '#27272a', cursor: editingNotes ? 'auto' : 'text' }}
-                  onClick={() => isAdmin && !editingNotes && setEditingNotes(true)}
-                >
-                  {editingNotes ? (
-                    <div className="flex flex-col gap-2">
-                      <textarea
-                        value={notes}
-                        onChange={e => setNotes(e.target.value)}
-                        className={"w-full p-2 rounded bg-[#27272a] border border-[#3f3f46] text-white placeholder-gray-500 focus:ring-0 focus:border-[#3f3f46] focus:outline-none caret-white selection:bg-[#3f3f46] selection:text-white autofill:bg-[#27272a] autofill:text-white " + textClass}
-                        autoFocus
-                        disabled={!isAdmin}
-                      />
-                      {isAdmin && (
-                        <button
-                          onClick={handleNoteSave}
-                          className={"self-end px-3 py-1 bg-[#3f3f46] text-white rounded hover:bg-[#27272a] " + dimClass}
-                          disabled={saving}
-                        >{saving ? 'Saving...' : 'Save'}</button>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between w-full">
-                      <p className={"whitespace-pre-wrap flex-1 " + (dbSong.notes ? (nightMode ? 'text-red-800' : 'text-gray-400') : textClass)}>{dbSong.notes || <em className="text-gray-400">No notes</em>}</p>
-                    </div>
+            <EditableStarRating rating={dbSong.rating} onRatingChange={isAdmin ? handleRatingChange : undefined} size={72} nightMode={nightMode} emptyColor={nightMode ? '#18181b' : undefined} />
+            <div
+              className={"rounded-lg p-4 w-full max-w-lg mt-2 min-h-[60px] text-left " + textClass}
+              style={{ backgroundColor: nightMode ? '#141416' : '#27272a', cursor: editingNotes ? 'auto' : 'text' }}
+              onClick={() => isAdmin && !editingNotes && setEditingNotes(true)}
+            >
+              {editingNotes ? (
+                <div className="flex flex-col gap-2">
+                  <textarea
+                    value={notes}
+                    onChange={e => setNotes(e.target.value)}
+                    className={"w-full p-2 rounded bg-[#27272a] border border-[#3f3f46] text-white placeholder-gray-500 focus:ring-0 focus:border-[#3f3f46] focus:outline-none caret-white selection:bg-[#3f3f46] selection:text-white autofill:bg-[#27272a] autofill:text-white " + textClass}
+                    autoFocus
+                    disabled={!isAdmin}
+                  />
+                  {isAdmin && (
+                    <button
+                      onClick={handleNoteSave}
+                      className={"self-end px-3 py-1 bg-[#3f3f46] text-white rounded hover:bg-[#27272a] " + dimClass}
+                      disabled={saving}
+                    >{saving ? 'Saving...' : 'Save'}</button>
                   )}
                 </div>
+              ) : (
+                <div className="flex items-center justify-between w-full">
+                  <p className={"whitespace-pre-wrap flex-1 " + (dbSong.notes ? (nightMode ? 'text-red-800' : 'text-gray-400') : textClass)}>{dbSong.notes || <em className="text-gray-400">No notes</em>}</p>
+                </div>
+              )}
+            </div>
               </>
             )}
           </div>
