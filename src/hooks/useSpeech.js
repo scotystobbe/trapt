@@ -32,18 +32,20 @@ export function useSpeech() {
   const speak = useCallback((text) => {
     // Check if speech synthesis is available
     if (!('speechSynthesis' in window)) {
-      console.warn('Speech synthesis not supported');
+      console.warn('[Speech] Speech synthesis not supported in this browser');
       return;
     }
 
-    // Cancel any ongoing speech
-    if (synthRef.current) {
+    console.log('[Speech] Attempting to speak:', text);
+
+    // Cancel any ongoing speech to allow new speech
+    if (window.speechSynthesis.speaking) {
+      console.log('[Speech] Cancelling previous speech');
       window.speechSynthesis.cancel();
-    }
-
-    // Don't speak if already speaking
-    if (isSpeakingRef.current) {
-      return;
+      // Wait a bit for cancellation to complete
+      setTimeout(() => {
+        isSpeakingRef.current = false;
+      }, 100);
     }
 
     try {
@@ -53,21 +55,25 @@ export function useSpeech() {
       utterance.volume = 0.8;
       
       utterance.onstart = () => {
+        console.log('[Speech] Speech started');
         isSpeakingRef.current = true;
       };
       
       utterance.onend = () => {
+        console.log('[Speech] Speech ended');
         isSpeakingRef.current = false;
       };
       
-      utterance.onerror = () => {
+      utterance.onerror = (event) => {
+        console.error('[Speech] Speech error:', event.error);
         isSpeakingRef.current = false;
       };
 
       synthRef.current = utterance;
       window.speechSynthesis.speak(utterance);
+      console.log('[Speech] Speech queued');
     } catch (err) {
-      console.error('Speech error:', err);
+      console.error('[Speech] Speech error:', err);
       isSpeakingRef.current = false;
     }
   }, []);

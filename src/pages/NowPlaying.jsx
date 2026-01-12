@@ -187,20 +187,33 @@ export default function NowPlaying() {
   // Helper to speak track information
   const speakTrackInfo = useCallback((isStart = true) => {
     const speechMode = getSpeechMode();
-    if (speechMode === SPEECH_MODES.OFF) return;
-    if (isStart && speechMode !== SPEECH_MODES.BEGINNING_ONLY && speechMode !== SPEECH_MODES.BOTH) return;
-    if (!isStart && speechMode !== SPEECH_MODES.END_ONLY && speechMode !== SPEECH_MODES.BOTH) return;
+    if (speechMode === SPEECH_MODES.OFF) {
+      console.log('[Speech] Mode is OFF, skipping');
+      return;
+    }
+    if (isStart && speechMode !== SPEECH_MODES.BEGINNING_ONLY && speechMode !== SPEECH_MODES.BOTH) {
+      console.log('[Speech] Start speech disabled for mode:', speechMode);
+      return;
+    }
+    if (!isStart && speechMode !== SPEECH_MODES.END_ONLY && speechMode !== SPEECH_MODES.BOTH) {
+      console.log('[Speech] End speech disabled for mode:', speechMode);
+      return;
+    }
 
     // Use dbSong if available (more accurate), otherwise use track data from Spotify
     const trackName = dbSong?.title || track?.name || '';
     const artistName = dbSong?.artist || (track?.artists?.[0]?.name) || '';
 
-    if (!trackName || !artistName) return;
+    if (!trackName || !artistName) {
+      console.log('[Speech] Missing track info:', { trackName, artistName, hasTrack: !!track, hasDbSong: !!dbSong });
+      return;
+    }
 
     const text = isStart 
       ? `This is ${trackName} by ${artistName}`
       : `That was ${trackName} by ${artistName}`;
     
+    console.log('[Speech] Speaking:', text);
     speak(text);
   }, [track, dbSong, speak]);
 
@@ -231,12 +244,13 @@ export default function NowPlaying() {
         return;
       }
 
-      // Store progress and duration for end detection
+      // Store progress and duration for end detection (update on every poll)
       trackProgressRef.current = data.progress_ms || 0;
       trackDurationRef.current = data.item.duration_ms || 0;
 
       // Only update if the track has changed
       if (lastTrackId.current !== data.item.id) {
+        console.log('[Speech] Track changed:', data.item.name, 'Previous:', lastTrackId.current);
         if (editingNotes) {
           // Don't update if editing notes
           return;
@@ -274,21 +288,35 @@ export default function NowPlaying() {
 
   // Effect to speak at track start
   useEffect(() => {
-    if (!track || hasSpokenStartRef.current) return;
+    if (!track) {
+      console.log('[Speech] No track, skipping start speech');
+      return;
+    }
+    if (hasSpokenStartRef.current) {
+      console.log('[Speech] Already spoken start for track:', track.id);
+      return;
+    }
     
+    console.log('[Speech] Setting up start speech for track:', track.name);
     // Small delay to ensure track data is fully loaded (and dbSong if available)
     const timeout = setTimeout(() => {
+      console.log('[Speech] Executing start speech, hasDbSong:', !!dbSong);
       speakTrackInfo(true);
       hasSpokenStartRef.current = true;
-    }, 500);
+    }, 1000); // Increased delay to allow dbSong to match
     
     return () => clearTimeout(timeout);
-  }, [track?.id, speakTrackInfo]);
+  }, [track?.id, speakTrackInfo, dbSong?.id]);
 
   // Effect to monitor track progress and speak at end
   useEffect(() => {
-    if (!track || !trackDurationRef.current) return;
+    if (!track) return;
+    if (!trackDurationRef.current) {
+      console.log('[Speech] No duration yet, waiting...');
+      return;
+    }
     
+    console.log('[Speech] Setting up end detection for track:', track.name, 'Duration:', trackDurationRef.current);
     // Check every second if we're near the end
     endCheckIntervalRef.current = setInterval(() => {
       const progress = trackProgressRef.current || 0;
@@ -298,6 +326,7 @@ export default function NowPlaying() {
       if (duration > 0 && progress > 0 && !hasSpokenEndRef.current) {
         const remaining = duration - progress;
         if (remaining <= 2000 || progress >= duration) {
+          console.log('[Speech] Track ending, speaking. Progress:', progress, 'Duration:', duration, 'Remaining:', remaining);
           speakTrackInfo(false);
           hasSpokenEndRef.current = true;
         }
@@ -419,7 +448,7 @@ export default function NowPlaying() {
           background: #000 !important;
         }
       `}</style>
-      <div className="max-w-2xl mx-auto w-full p-4 flex flex-col items-center pt-8">
+      <div className="max-w-2xl mx-auto w-full p-4 flex flex-col items-center">
         {initialLoading ? (
           <div className="w-full flex flex-col items-center">
             <div className="relative mb-8">
@@ -444,11 +473,15 @@ export default function NowPlaying() {
           </button>
         ) : !track ? (
           <p className={"text-gray-300 " + textClass}>No track currently playing.</p>
-        ) : dbSong ? (
+        ) : track ? (
           <div className="w-full flex flex-col items-center">
             <div className={"relative mb-8 " + dimClass}>
-              {dbSong.artworkUrl && (
-                <img src={dbSong.artworkUrl} alt={dbSong.title} className={"w-56 h-56 rounded-2xl object-cover shadow-lg " + dimClass} />
+              {(dbSong?.artworkUrl || track?.album?.images?.[0]?.url) && (
+                <img 
+                  src={dbSong?.artworkUrl || track?.album?.images?.[0]?.url} 
+                  alt={dbSong?.title || track?.name || ''} 
+                  className={"w-56 h-56 rounded-2xl object-cover shadow-lg " + dimClass} 
+                />
               )}
             </div>
             <h2
@@ -464,49 +497,53 @@ export default function NowPlaying() {
                 maxWidth: '100%',
               }}
             >
-              {dbSong ? dbSong.title : ''}
+              {dbSong?.title || track?.name || ''}
             </h2>
             <div className="mb-1 w-full max-w-full" style={{ overflow: 'hidden' }}>
               <ScrollingText 
-                text={dbSong.artist} 
+                text={dbSong?.artist || track?.artists?.[0]?.name || ''} 
                 className={"text-3xl " + (nightMode ? 'text-red-800' : 'text-white')}
               />
             </div>
             <div className="mb-2 w-full max-w-full" style={{ overflow: 'hidden' }}>
               <ScrollingText 
-                text={dbSong.album || track?.album?.name || ''} 
+                text={dbSong?.album || track?.album?.name || ''} 
                 className={"text-lg " + (nightMode ? 'text-red-900' : 'text-gray-500')}
               />
             </div>
-            <EditableStarRating rating={dbSong.rating} onRatingChange={isAdmin ? handleRatingChange : undefined} size={72} nightMode={nightMode} emptyColor={nightMode ? '#18181b' : undefined} />
-            <div
-              className={"rounded-lg p-4 w-full max-w-lg mt-2 min-h-[60px] text-left " + textClass}
-              style={{ backgroundColor: nightMode ? '#141416' : '#27272a', cursor: editingNotes ? 'auto' : 'text' }}
-              onClick={() => isAdmin && !editingNotes && setEditingNotes(true)}
-            >
-              {editingNotes ? (
-                <div className="flex flex-col gap-2">
-                  <textarea
-                    value={notes}
-                    onChange={e => setNotes(e.target.value)}
-                    className={"w-full p-2 rounded bg-[#27272a] border border-[#3f3f46] text-white placeholder-gray-500 focus:ring-0 focus:border-[#3f3f46] focus:outline-none caret-white selection:bg-[#3f3f46] selection:text-white autofill:bg-[#27272a] autofill:text-white " + textClass}
-                    autoFocus
-                    disabled={!isAdmin}
-                  />
-                  {isAdmin && (
-                    <button
-                      onClick={handleNoteSave}
-                      className={"self-end px-3 py-1 bg-[#3f3f46] text-white rounded hover:bg-[#27272a] " + dimClass}
-                      disabled={saving}
-                    >{saving ? 'Saving...' : 'Save'}</button>
+            {dbSong && (
+              <>
+                <EditableStarRating rating={dbSong.rating} onRatingChange={isAdmin ? handleRatingChange : undefined} size={72} nightMode={nightMode} emptyColor={nightMode ? '#18181b' : undefined} />
+                <div
+                  className={"rounded-lg p-4 w-full max-w-lg mt-2 min-h-[60px] text-left " + textClass}
+                  style={{ backgroundColor: nightMode ? '#141416' : '#27272a', cursor: editingNotes ? 'auto' : 'text' }}
+                  onClick={() => isAdmin && !editingNotes && setEditingNotes(true)}
+                >
+                  {editingNotes ? (
+                    <div className="flex flex-col gap-2">
+                      <textarea
+                        value={notes}
+                        onChange={e => setNotes(e.target.value)}
+                        className={"w-full p-2 rounded bg-[#27272a] border border-[#3f3f46] text-white placeholder-gray-500 focus:ring-0 focus:border-[#3f3f46] focus:outline-none caret-white selection:bg-[#3f3f46] selection:text-white autofill:bg-[#27272a] autofill:text-white " + textClass}
+                        autoFocus
+                        disabled={!isAdmin}
+                      />
+                      {isAdmin && (
+                        <button
+                          onClick={handleNoteSave}
+                          className={"self-end px-3 py-1 bg-[#3f3f46] text-white rounded hover:bg-[#27272a] " + dimClass}
+                          disabled={saving}
+                        >{saving ? 'Saving...' : 'Save'}</button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between w-full">
+                      <p className={"whitespace-pre-wrap flex-1 " + (dbSong.notes ? (nightMode ? 'text-red-800' : 'text-gray-400') : textClass)}>{dbSong.notes || <em className="text-gray-400">No notes</em>}</p>
+                    </div>
                   )}
                 </div>
-              ) : (
-                <div className="flex items-center justify-between w-full">
-                  <p className={"whitespace-pre-wrap flex-1 " + (dbSong.notes ? (nightMode ? 'text-red-800' : 'text-gray-400') : textClass)}>{dbSong.notes || <em className="text-gray-400">No notes</em>}</p>
-                </div>
-              )}
-            </div>
+              </>
+            )}
           </div>
         ) : null}
         {error && <div className={"text-red-400 mt-4 " + textClass}>{error}</div>}
