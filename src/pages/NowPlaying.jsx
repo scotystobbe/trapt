@@ -9,6 +9,7 @@ import { SiGenius } from 'react-icons/si';
 import usePrevTrackStore from '../data/usePrevTrackStore';
 import { useAuth } from '../components/AuthProvider';
 import { useSpeech, getSpeechMode, SPEECH_MODES } from '../hooks/useSpeech';
+import SpeechPermissionBanner from '../components/SpeechPermissionBanner';
 
 function EditableStarRating({ rating, onRatingChange, size = 56, nightMode, emptyColor }) {
   return (
@@ -630,6 +631,7 @@ export default function NowPlaying() {
           </div>
         </div>
       )}
+      <SpeechPermissionBanner />
     </div>
   );
 } 

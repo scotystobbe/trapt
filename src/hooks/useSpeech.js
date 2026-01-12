@@ -10,13 +10,13 @@ export const SPEECH_MODES = {
 };
 
 // Detect iOS
-function isIOS() {
+export function isIOS() {
   return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 }
 
 // Detect if running as PWA
-function isPWA() {
+export function isPWA() {
   return window.matchMedia('(display-mode: standalone)').matches ||
          window.navigator.standalone === true ||
          document.referrer.includes('android-app://');
@@ -38,6 +38,25 @@ export function setSpeechMode(mode) {
   }
 }
 
+const SPEECH_PERMISSION_KEY = 'trapt_speech_permission_granted';
+
+export function hasSpeechPermission() {
+  try {
+    return sessionStorage.getItem(SPEECH_PERMISSION_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export function grantSpeechPermission() {
+  try {
+    sessionStorage.setItem(SPEECH_PERMISSION_KEY, 'true');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function useSpeech() {
   const synthRef = useRef(null);
   const isSpeakingRef = useRef(false);
@@ -46,6 +65,24 @@ export function useSpeech() {
   const isIOSDevice = useRef(isIOS());
   const isPWAMode = useRef(isPWA());
   const executeSpeakRef = useRef(null);
+  
+  // Check if we already have permission from a previous session
+  useEffect(() => {
+    if (hasSpeechPermission() && (isIOSDevice.current || isPWAMode.current)) {
+      // Try to initialize immediately if we have permission
+      try {
+        const dummyUtterance = new SpeechSynthesisUtterance('');
+        dummyUtterance.volume = 0;
+        dummyUtterance.rate = 0.1;
+        window.speechSynthesis.speak(dummyUtterance);
+        window.speechSynthesis.cancel();
+        isInitializedRef.current = true;
+        console.log('[Speech] Auto-initialized with stored permission');
+      } catch (err) {
+        console.error('[Speech] Auto-initialization failed:', err);
+      }
+    }
+  }, []);
 
   // The actual speech execution function
   const executeSpeak = useCallback((text) => {
@@ -131,43 +168,53 @@ export function useSpeech() {
   // Store reference for use in initialization
   executeSpeakRef.current = executeSpeak;
 
+  // The initialization function
+  const initializeSpeech = useCallback(() => {
+    if (isInitializedRef.current) return;
+    
+    try {
+      // Create a dummy utterance to initialize the speech synthesis engine
+      const dummyUtterance = new SpeechSynthesisUtterance('');
+      dummyUtterance.volume = 0;
+      dummyUtterance.rate = 0.1;
+      window.speechSynthesis.speak(dummyUtterance);
+      window.speechSynthesis.cancel(); // Cancel immediately
+      isInitializedRef.current = true;
+      grantSpeechPermission(); // Store permission for this session
+      console.log('[Speech] Initialized for iOS/PWA');
+      
+      // Process any pending speeches
+      if (pendingSpeechesRef.current.length > 0) {
+        const pending = pendingSpeechesRef.current.shift();
+        setTimeout(() => {
+          if (executeSpeakRef.current) {
+            executeSpeakRef.current(pending.text);
+          }
+        }, 100);
+      }
+      
+      // Dispatch event to hide permission banner
+      window.dispatchEvent(new CustomEvent('speech-initialized'));
+    } catch (err) {
+      console.error('[Speech] Initialization error:', err);
+    }
+  }, []);
+
   // Initialize speech synthesis on iOS/PWA - this needs to happen on user interaction
   useEffect(() => {
     if (!('speechSynthesis' in window)) return;
-
-    // For iOS/PWA, we need to "warm up" speech synthesis on first user interaction
-    const initializeSpeech = () => {
-      if (isInitializedRef.current) return;
-      
-      try {
-        // Create a dummy utterance to initialize the speech synthesis engine
-        const dummyUtterance = new SpeechSynthesisUtterance('');
-        dummyUtterance.volume = 0;
-        dummyUtterance.rate = 0.1;
-        window.speechSynthesis.speak(dummyUtterance);
-        window.speechSynthesis.cancel(); // Cancel immediately
-        isInitializedRef.current = true;
-        console.log('[Speech] Initialized for iOS/PWA');
-        
-        // Process any pending speeches
-        if (pendingSpeechesRef.current.length > 0) {
-          const pending = pendingSpeechesRef.current.shift();
-          setTimeout(() => {
-            if (executeSpeakRef.current) {
-              executeSpeakRef.current(pending.text);
-            }
-          }, 100);
-        }
-      } catch (err) {
-        console.error('[Speech] Initialization error:', err);
-      }
-    };
 
     // Initialize on any user interaction
     const events = ['touchstart', 'touchend', 'click', 'keydown'];
     events.forEach(event => {
       document.addEventListener(event, initializeSpeech, { once: true, passive: true });
     });
+
+    // Listen for manual initialization from banner
+    const handleManualInit = () => {
+      initializeSpeech();
+    };
+    window.addEventListener('speech-manual-init', handleManualInit);
 
     // Also try to initialize after a short delay (in case user already interacted)
     const timeout = setTimeout(initializeSpeech, 1000);
@@ -176,9 +223,10 @@ export function useSpeech() {
       events.forEach(event => {
         document.removeEventListener(event, initializeSpeech);
       });
+      window.removeEventListener('speech-manual-init', handleManualInit);
       clearTimeout(timeout);
     };
-  }, []);
+  }, [initializeSpeech]);
 
   // Public speak function that handles initialization
   const speak = useCallback((text) => {
@@ -202,6 +250,9 @@ export function useSpeech() {
         window.speechSynthesis.speak(dummyUtterance);
         window.speechSynthesis.cancel();
         isInitializedRef.current = true;
+        grantSpeechPermission(); // Store permission
+        // Dispatch event to hide permission banner
+        window.dispatchEvent(new CustomEvent('speech-initialized'));
         // Process the queued speech after a short delay
         setTimeout(() => {
           const pending = pendingSpeechesRef.current.shift();
