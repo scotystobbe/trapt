@@ -45,6 +45,7 @@ export default function Admin() {
   const [matchSelections, setMatchSelections] = useState({}); // { songId: { geniusId, geniusUrl } }
   const [manualEntries, setManualEntries] = useState({}); // { songId: { geniusUrl } }
   const [showManualEntry, setShowManualEntry] = useState({}); // { songId: boolean }
+  const [savedMatches, setSavedMatches] = useState({}); // { songId: true } - tracks which matches have been saved
 
   React.useEffect(() => {
     if (!loading && user?.role !== 'ADMIN') {
@@ -351,7 +352,7 @@ export default function Admin() {
               Make sure you're connected to Genius first.
             </p>
             <div className="space-y-2">
-              {playlists.map(p => (
+              {playlists.filter(p => p.name !== 'TRAPT' && p.name !== 'TRAPT+').map(p => (
                 <div key={p.id} className="flex items-center gap-4 p-2 bg-gray-800 rounded">
                   {p.artworkUrl && (
                     <img src={p.artworkUrl} alt={p.name} className="w-8 h-8 object-cover rounded" />
@@ -366,6 +367,7 @@ export default function Admin() {
                       setMatchSelections({});
                       setManualEntries({});
                       setShowManualEntry({});
+                      setSavedMatches({});
                       try {
                         const res = await fetch('/api/admin/match-genius', {
                           method: 'POST',
@@ -403,82 +405,8 @@ export default function Admin() {
             )}
             {geniusMatchResult && !geniusMatchResult.error && geniusMatchResult.results && (
               <div className="mt-4 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="text-white font-semibold">
-                    Review Matches ({geniusMatchResult.results.length} tracks)
-                  </div>
-                  <Button
-                    variant="primary"
-                    onClick={async () => {
-                      const matchesToSave = [];
-                      
-                      // Add selections from potential matches
-                      Object.entries(matchSelections).forEach(([songId, match]) => {
-                        if (match && match.geniusId) {
-                          matchesToSave.push({
-                            songId: parseInt(songId),
-                            geniusId: match.geniusId,
-                            geniusUrl: match.geniusUrl,
-                          });
-                        } else if (match && match.geniusUrl) {
-                          // Manual entry that was confirmed - extract ID from URL
-                          const urlMatch = match.geniusUrl.match(/genius\.com\/songs\/(\d+)/);
-                          if (urlMatch) {
-                            matchesToSave.push({
-                              songId: parseInt(songId),
-                              geniusId: parseInt(urlMatch[1]),
-                              geniusUrl: match.geniusUrl,
-                            });
-                          }
-                        }
-                      });
-                      
-                      // Add manual entries that weren't in selections
-                      Object.entries(manualEntries).forEach(([songId, entry]) => {
-                        if (entry && entry.geniusUrl && !matchSelections[songId]) {
-                          const urlMatch = entry.geniusUrl.match(/genius\.com\/songs\/(\d+)/);
-                          if (urlMatch) {
-                            matchesToSave.push({
-                              songId: parseInt(songId),
-                              geniusId: parseInt(urlMatch[1]),
-                              geniusUrl: entry.geniusUrl,
-                            });
-                          }
-                        }
-                      });
-
-                      if (matchesToSave.length === 0) {
-                        alert('No matches selected to save');
-                        return;
-                      }
-
-                      try {
-                        const res = await fetch('/api/admin/match-genius', {
-                          method: 'PUT',
-                          headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${localStorage.getItem('token')}`
-                          },
-                          body: JSON.stringify({ matches: matchesToSave }),
-                        });
-                        const data = await res.json();
-                        if (!res.ok) throw new Error(data.error || 'Failed to save matches');
-                        alert(`Successfully saved ${data.updated} matches!`);
-                        setGeniusMatchResult(null);
-                        setMatchSelections({});
-                        setManualEntries({});
-                        setShowManualEntry({});
-                        // Refresh playlists
-                        const playlistsRes = await fetch('/api/playlists?admin=1');
-                        const updatedPlaylists = await playlistsRes.json();
-                        setPlaylists(updatedPlaylists);
-                      } catch (err) {
-                        alert(`Error saving matches: ${err.message}`);
-                      }
-                    }}
-                  >
-                    Save {Object.keys(matchSelections).filter(id => matchSelections[id]).length + Object.keys(manualEntries).filter(id => manualEntries[id]?.geniusUrl).length} Matches
-                  </Button>
+                <div className="text-white font-semibold">
+                  Review Matches ({geniusMatchResult.results.length} tracks)
                 </div>
                 <div className="max-h-96 overflow-y-auto space-y-3">
                   {geniusMatchResult.results.map((result) => {
@@ -494,6 +422,25 @@ export default function Admin() {
                             <div className="text-gray-400 text-sm">{result.artist}</div>
                             {result.status === 'already_matched' && (
                               <div className="text-green-400 text-xs mt-1">✓ Already matched</div>
+                            )}
+                            {result.thumbnail && result.status === 'already_matched' && (
+                              <div className="mt-2 flex items-center gap-3">
+                                <img src={result.thumbnail} alt="" className="w-16 h-16 rounded object-cover" />
+                                <div>
+                                  <div className="text-white text-sm font-medium">{result.geniusTitle || 'Genius Song'}</div>
+                                  <div className="text-gray-400 text-xs">{result.geniusArtist || 'Artist'}</div>
+                                  {result.geniusUrl && (
+                                    <a
+                                      href={result.geniusUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-yellow-400 text-xs hover:underline mt-1 inline-block"
+                                    >
+                                      View on Genius →
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
                             )}
                             {result.status === 'error' && (
                               <div className="text-red-400 text-xs mt-1">✗ Error: {result.error}</div>
@@ -544,21 +491,64 @@ export default function Admin() {
                             />
                             <div className="flex gap-2 mt-2">
                               <button
-                                onClick={() => {
-                                  if (manualEntry?.geniusUrl) {
+                                onClick={async () => {
+                                  if (!manualEntry?.geniusUrl) return;
+                                  
+                                  // Extract Genius ID from URL
+                                  const urlMatch = manualEntry.geniusUrl.match(/genius\.com\/songs\/(\d+)/);
+                                  if (!urlMatch) {
+                                    alert('Invalid Genius URL. Please use a URL like: https://genius.com/artist-song-title');
+                                    return;
+                                  }
+                                  
+                                  const geniusId = parseInt(urlMatch[1]);
+                                  
+                                  // Save immediately
+                                  try {
+                                    const res = await fetch('/api/admin/match-genius', {
+                                      method: 'PUT',
+                                      headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                                      },
+                                      body: JSON.stringify({
+                                        matches: [{
+                                          songId: result.songId,
+                                          geniusId: geniusId,
+                                          geniusUrl: manualEntry.geniusUrl
+                                        }]
+                                      }),
+                                    });
+                                    const data = await res.json();
+                                    if (!res.ok) throw new Error(data.error || 'Failed to save match');
+                                    
+                                    // Mark as saved
+                                    setSavedMatches(prev => ({ ...prev, [result.songId]: true }));
                                     setMatchSelections(prev => ({
                                       ...prev,
                                       [result.songId]: {
-                                        geniusId: null, // Will be extracted from URL
+                                        geniusId: geniusId,
                                         geniusUrl: manualEntry.geniusUrl
                                       }
                                     }));
+                                    setShowManualEntry(prev => ({ ...prev, [result.songId]: false }));
+                                    
+                                    // Update the result to show as already matched
+                                    setGeniusMatchResult(prev => ({
+                                      ...prev,
+                                      results: prev.results.map(r => 
+                                        r.songId === result.songId 
+                                          ? { ...r, status: 'already_matched', geniusId: geniusId, geniusUrl: manualEntry.geniusUrl }
+                                          : r
+                                      )
+                                    }));
+                                  } catch (err) {
+                                    alert(`Error saving match: ${err.message}`);
                                   }
-                                  setShowManualEntry(prev => ({ ...prev, [result.songId]: false }));
                                 }}
                                 className="text-xs px-3 py-1 bg-yellow-600 text-white rounded hover:bg-yellow-500"
                               >
-                                Confirm
+                                Save
                               </button>
                               <button
                                 onClick={() => {
@@ -582,22 +572,53 @@ export default function Admin() {
                             <div className="text-sm text-gray-400 mb-2">Potential Matches:</div>
                             {result.potentialMatches.map((match, idx) => {
                               const isThisSelected = isSelected?.geniusId === match.id;
+                              const isSaved = savedMatches[result.songId] && isThisSelected;
                               return (
                                 <div
                                   key={match.id}
-                                  className={`flex items-center gap-3 p-2 rounded cursor-pointer transition ${
-                                    isThisSelected
-                                      ? 'bg-yellow-900 border-2 border-yellow-500'
-                                      : 'bg-gray-700 hover:bg-gray-600'
+                                  className={`flex items-center gap-3 p-2 rounded transition ${
+                                    isSaved
+                                      ? 'bg-green-900 border-2 border-green-500 cursor-default'
+                                      : isThisSelected
+                                      ? 'bg-yellow-900 border-2 border-yellow-500 cursor-pointer'
+                                      : 'bg-gray-700 hover:bg-gray-600 cursor-pointer'
                                   }`}
-                                  onClick={() => {
+                                  onClick={async () => {
+                                    if (isSaved || result.status === 'already_matched') {
+                                      // Already saved, do nothing
+                                      return;
+                                    }
                                     if (isThisSelected) {
+                                      // Deselect
                                       setMatchSelections(prev => {
                                         const next = { ...prev };
                                         delete next[result.songId];
                                         return next;
                                       });
-                                    } else {
+                                      return;
+                                    }
+                                    
+                                    // Save immediately
+                                    try {
+                                      const res = await fetch('/api/admin/match-genius', {
+                                        method: 'PUT',
+                                        headers: {
+                                          'Content-Type': 'application/json',
+                                          'Authorization': `Bearer ${localStorage.getItem('token')}`
+                                        },
+                                        body: JSON.stringify({
+                                          matches: [{
+                                            songId: result.songId,
+                                            geniusId: match.id,
+                                            geniusUrl: match.url
+                                          }]
+                                        }),
+                                      });
+                                      const data = await res.json();
+                                      if (!res.ok) throw new Error(data.error || 'Failed to save match');
+                                      
+                                      // Mark as saved
+                                      setSavedMatches(prev => ({ ...prev, [result.songId]: true }));
                                       setMatchSelections(prev => ({
                                         ...prev,
                                         [result.songId]: {
@@ -611,6 +632,18 @@ export default function Admin() {
                                         return next;
                                       });
                                       setShowManualEntry(prev => ({ ...prev, [result.songId]: false }));
+                                      
+                                      // Update the result to show as already matched
+                                      setGeniusMatchResult(prev => ({
+                                        ...prev,
+                                        results: prev.results.map(r => 
+                                          r.songId === result.songId 
+                                            ? { ...r, status: 'already_matched', geniusId: match.id, geniusUrl: match.url, thumbnail: match.thumbnail, geniusTitle: match.title, geniusArtist: match.artist }
+                                            : r
+                                        )
+                                      }));
+                                    } catch (err) {
+                                      alert(`Error saving match: ${err.message}`);
                                     }
                                   }}
                                 >
@@ -627,7 +660,10 @@ export default function Admin() {
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    {isThisSelected && (
+                                    {isSaved && (
+                                      <span className="text-green-400 text-sm font-semibold">✓ Saved</span>
+                                    )}
+                                    {isThisSelected && !isSaved && (
                                       <span className="text-yellow-400 text-sm">✓ Selected</span>
                                     )}
                                     <a

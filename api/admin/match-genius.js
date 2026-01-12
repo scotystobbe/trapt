@@ -139,8 +139,35 @@ module.exports = async (req, res) => {
 
         // Process each song
         for (const song of songs) {
-          // Skip if already has a Genius ID, but still include it in results
+          // Skip if already has a Genius ID - don't search for it
           if (song.geniusSongId) {
+            // Fetch Genius song details to show thumbnail and info
+            try {
+              const songRes = await fetch(`${GENIUS_BASE_URL}/songs/${song.geniusSongId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              if (songRes.ok) {
+                const songData = await songRes.json();
+                const geniusSong = songData.response?.song;
+                if (geniusSong) {
+                  results.push({
+                    songId: song.id,
+                    title: song.title,
+                    artist: song.artist,
+                    status: 'already_matched',
+                    geniusId: song.geniusSongId,
+                    geniusUrl: song.geniusUrl || geniusSong.url,
+                    geniusTitle: geniusSong.title,
+                    geniusArtist: geniusSong.primary_artist?.name,
+                    thumbnail: geniusSong.song_art_image_thumbnail_url,
+                  });
+                  continue;
+                }
+              }
+            } catch (err) {
+              console.error(`Error fetching Genius song ${song.geniusSongId}:`, err);
+            }
+            // Fallback if we can't fetch details
             results.push({
               songId: song.id,
               title: song.title,
