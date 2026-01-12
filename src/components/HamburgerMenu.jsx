@@ -91,7 +91,7 @@ export default function HamburgerMenu({ className = '' }) {
               <div className="flex items-center justify-between mb-2">
                 <span className="text-white text-sm flex items-center gap-2">
                   <FaVolumeUp className="text-xs" />
-                  Track Announcements
+                  Speak Track
                 </span>
               </div>
               <select
@@ -105,7 +105,7 @@ export default function HamburgerMenu({ className = '' }) {
                 onClick={(e) => e.stopPropagation()}
               >
                 <option value={SPEECH_MODES.OFF}>Off</option>
-                <option value={SPEECH_MODES.BEGINNING_ONLY}>Beginning Only</option>
+                <option value={SPEECH_MODES.BEGINNING_ONLY}>Start Only</option>
                 <option value={SPEECH_MODES.END_ONLY}>End Only</option>
                 <option value={SPEECH_MODES.BOTH}>Both</option>
               </select>
