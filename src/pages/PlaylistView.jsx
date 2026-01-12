@@ -242,9 +242,13 @@ export default function PlaylistView() {
   // Apply filters
   let filteredSongs = [...playlist.songs];
   if (filter === 'withComments') {
-    filteredSongs = filteredSongs.filter(song => song.hasComments);
+    // Show songs with any comments (top-level comments or responses)
+    filteredSongs = filteredSongs.filter(song => 
+      (song.commentCount > 0) || (song.responseCount > 0) || song.notes
+    );
   } else if (filter === 'withResponses' && isAdmin) {
-    filteredSongs = filteredSongs.filter(song => song.hasResponses);
+    // Show songs with responses/threads (replies to comments)
+    filteredSongs = filteredSongs.filter(song => song.responseCount > 0);
   }
   
   const sortedSongs = filteredSongs
@@ -412,7 +416,7 @@ export default function PlaylistView() {
             >
               With Comments
             </button>
-            {isAdmin && (
+            {isAdmin ? (
               <button
                 onClick={() => setFilter('withResponses')}
                 className={`px-4 py-2 rounded text-sm ${
@@ -421,7 +425,19 @@ export default function PlaylistView() {
                     : 'bg-[#27272a] text-gray-300 hover:bg-[#3f3f46]'
                 }`}
               >
-                With Responses
+                Show Responses
+              </button>
+            ) : (
+              <button
+                onClick={() => setFilter('withComments')}
+                className={`px-4 py-2 rounded text-sm ${
+                  filter === 'withComments'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-[#27272a] text-gray-300 hover:bg-[#3f3f46]'
+                }`}
+                title="Filter to show songs with notes you can respond to"
+              >
+                Add a Response
               </button>
             )}
           </div>
