@@ -48,10 +48,22 @@ function EditableStarRating({ rating, onRatingChange, size = 56, nightMode, empt
 }
 
 // Add helper function to open Genius app or fallback to web
-function openGeniusAppOrWeb(songId, webUrl) {
-  // Use direct link to avoid blank browser issue
-  // Open the web URL directly - it will open in the Genius app if installed, otherwise in browser
-  window.open(webUrl, '_blank', 'noopener,noreferrer');
+function openGeniusAppOrWeb(songId, webUrl, onOpen) {
+  // Create a temporary anchor element to open externally
+  // This avoids the blank internal browser issue in PWAs
+  const link = document.createElement('a');
+  link.href = webUrl;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  // Add to body, click, then remove
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  // Call callback if provided (e.g., to close modal)
+  if (onOpen) {
+    setTimeout(onOpen, 100);
+  }
 }
 
 // Scrolling text component for artist/album
@@ -412,7 +424,9 @@ export default function NowPlaying() {
     
     // If we have a stored Genius ID, use it directly
     if (dbSong.geniusSongId && dbSong.geniusUrl) {
-      openGeniusAppOrWeb(dbSong.geniusSongId, dbSong.geniusUrl);
+      openGeniusAppOrWeb(dbSong.geniusSongId, dbSong.geniusUrl, () => {
+        setShowCustomGeniusModal(false);
+      });
       return;
     }
     
@@ -456,7 +470,9 @@ export default function NowPlaying() {
         } catch (err) {
           console.error('Failed to save Genius ID:', err);
         }
-        openGeniusAppOrWeb(exact.result.id, exact.result.url);
+        openGeniusAppOrWeb(exact.result.id, exact.result.url, () => {
+          setShowCustomGeniusModal(false);
+        });
       } else {
         setSearchResults(hits);
         setShowResults(true);
@@ -665,9 +681,10 @@ export default function NowPlaying() {
                           console.error('Failed to save Genius ID:', err);
                         }
                       }
-                      openGeniusAppOrWeb(hit.result.id, hit.result.url); 
-                      setShowResults(false); 
-                      setShowCustomGeniusModal(false); 
+                      openGeniusAppOrWeb(hit.result.id, hit.result.url, () => {
+                        setShowResults(false);
+                        setShowCustomGeniusModal(false);
+                      }); 
                     }}>
                       {hit.result.song_art_image_thumbnail_url && (
                         <img src={hit.result.song_art_image_thumbnail_url} alt="art" className="w-10 h-10 rounded" />

@@ -465,7 +465,7 @@ export default function Admin() {
                     <span>Show unmatched only</span>
                   </label>
                 </div>
-                <div className="max-h-96 overflow-y-auto space-y-3">
+                <div id="genius-matches-container" className="max-h-96 overflow-y-auto space-y-3">
                   {geniusMatchResult.results
                     .filter(result => {
                       if (result.status === 'no_match_available') return false; // Always hide no-match songs
@@ -716,6 +716,14 @@ export default function Admin() {
                                       )
                                     }));
                                     
+                                    // Scroll to top of matches container
+                                    setTimeout(() => {
+                                      const container = document.getElementById('genius-matches-container');
+                                      if (container) {
+                                        container.scrollTo({ top: 0, behavior: 'smooth' });
+                                      }
+                                    }, 100);
+                                    
                                     // If showing unmatched only, the song will disappear from the list automatically due to the filter
                                   } catch (err) {
                                     alert(`Error saving match: ${err.message}`);
@@ -756,6 +764,8 @@ export default function Admin() {
                                       ? 'bg-green-900 border-2 border-green-500 cursor-default'
                                       : isThisSelected
                                       ? 'bg-yellow-900 border-2 border-yellow-500 cursor-pointer'
+                                      : match.matchType === 'exact'
+                                      ? 'bg-green-800 border-2 border-green-600 cursor-pointer hover:bg-green-700'
                                       : 'bg-gray-700 hover:bg-gray-600 cursor-pointer'
                                   }`}
                                   onClick={async () => {
@@ -817,6 +827,14 @@ export default function Admin() {
                                             : r
                                         )
                                       }));
+                                      
+                                      // Scroll to top of matches container
+                                      setTimeout(() => {
+                                        const container = document.getElementById('genius-matches-container');
+                                        if (container) {
+                                          container.scrollTo({ top: 0, behavior: 'smooth' });
+                                        }
+                                      }, 100);
                                       
                                       // If showing unmatched only, the song will disappear from the list automatically due to the filter
                                     } catch (err) {
