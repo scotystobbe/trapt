@@ -46,6 +46,7 @@ export default function Admin() {
   const [manualEntries, setManualEntries] = useState({}); // { songId: { geniusUrl } }
   const [showManualEntry, setShowManualEntry] = useState({}); // { songId: boolean }
   const [savedMatches, setSavedMatches] = useState({}); // { songId: true } - tracks which matches have been saved
+  const [showUnmatchedOnly, setShowUnmatchedOnly] = useState(true); // Filter to show only unmatched songs
 
   React.useEffect(() => {
     if (!loading && user?.role !== 'ADMIN') {
@@ -405,11 +406,24 @@ export default function Admin() {
             )}
             {geniusMatchResult && !geniusMatchResult.error && geniusMatchResult.results && (
               <div className="mt-4 space-y-4">
-                <div className="text-white font-semibold">
-                  Review Matches ({geniusMatchResult.results.length} tracks)
+                <div className="flex items-center justify-between">
+                  <div className="text-white font-semibold">
+                    Review Matches ({geniusMatchResult.results.filter(r => !showUnmatchedOnly || r.status !== 'already_matched').length} tracks)
+                  </div>
+                  <label className="flex items-center gap-2 text-gray-300 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showUnmatchedOnly}
+                      onChange={(e) => setShowUnmatchedOnly(e.target.checked)}
+                      className="w-4 h-4 rounded"
+                    />
+                    <span>Show unmatched only</span>
+                  </label>
                 </div>
                 <div className="max-h-96 overflow-y-auto space-y-3">
-                  {geniusMatchResult.results.map((result) => {
+                  {geniusMatchResult.results
+                    .filter(result => !showUnmatchedOnly || result.status !== 'already_matched')
+                    .map((result) => {
                     const isSelected = matchSelections[result.songId];
                     const manualEntry = manualEntries[result.songId];
                     const isManualEntryVisible = showManualEntry[result.songId];
@@ -542,6 +556,8 @@ export default function Admin() {
                                           : r
                                       )
                                     }));
+                                    
+                                    // If showing unmatched only, the song will disappear from the list automatically due to the filter
                                   } catch (err) {
                                     alert(`Error saving match: ${err.message}`);
                                   }
@@ -642,6 +658,8 @@ export default function Admin() {
                                             : r
                                         )
                                       }));
+                                      
+                                      // If showing unmatched only, the song will disappear from the list automatically due to the filter
                                     } catch (err) {
                                       alert(`Error saving match: ${err.message}`);
                                     }
