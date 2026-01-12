@@ -77,12 +77,70 @@ function findExactMatch(hits, title, artist) {
   return null;
 }
 
+// Helper: Resolve a Genius URL to a song ID
+async function resolveGeniusUrl(url, token) {
+  // Check if it's a direct song URL with ID
+  const songIdMatch = url.match(/genius\.com\/songs\/(\d+)/);
+  if (songIdMatch) {
+    return parseInt(songIdMatch[1]);
+  }
+  
+  // Check if it's a lyrics page URL (genius.com/artist-song-lyrics)
+  const lyricsMatch = url.match(/genius\.com\/([^\/]+)-lyrics/);
+  if (lyricsMatch) {
+    // Extract artist and song from the URL path
+    // Format: artist-song-title-lyrics
+    const path = lyricsMatch[1];
+    // Try to split on common patterns - usually it's artist-song-title
+    // For "Tenacious-d-baby-one-more-time", we need to identify where artist ends and song begins
+    // This is tricky, so let's search Genius API for the full path
+    const searchQuery = path.replace(/-/g, ' ');
+    const hits = await searchGeniusSong(searchQuery, token);
+    
+    if (hits && hits.length > 0) {
+      // Return the first result's ID - user can verify it's correct
+      return hits[0].result.id;
+    }
+  }
+  
+  // Try to extract artist/song from any genius.com URL
+  const urlMatch = url.match(/genius\.com\/([^\/\?]+)/);
+  if (urlMatch) {
+    const path = urlMatch[1];
+    const searchQuery = path.replace(/-/g, ' ');
+    const hits = await searchGeniusSong(searchQuery, token);
+    
+    if (hits && hits.length > 0) {
+      return hits[0].result.id;
+    }
+  }
+  
+  return null;
+}
+
 module.exports = async (req, res) => {
   authenticateJWT(req, res, () => {
     requireRole('ADMIN')(req, res, async () => {
       // Handle saving confirmed matches
       if (req.method === 'PUT') {
-        const { matches } = req.body;
+        const { matches, resolveUrls } = req.body;
+        
+        // Handle URL resolution request
+        if (resolveUrls && Array.isArray(resolveUrls)) {
+          const token = getTokenFromCookie(req);
+          if (!token) {
+            return res.status(401).json({ error: 'Not authenticated with Genius' });
+          }
+          
+          const resolved = [];
+          for (const url of resolveUrls) {
+            const songId = await resolveGeniusUrl(url, token);
+            resolved.push({ url, songId });
+          }
+          return res.status(200).json({ resolved });
+        }
+        
+        // Handle saving matches
         if (!Array.isArray(matches)) {
           return res.status(400).json({ error: 'Missing or invalid matches array' });
         }
@@ -91,19 +149,33 @@ module.exports = async (req, res) => {
           const updated = [];
           for (const match of matches) {
             const { songId, geniusId, geniusUrl } = match;
-            if (!songId || !geniusId || !geniusUrl) {
+            if (!songId || !geniusUrl) {
               continue;
             }
+            
+            // If geniusId is not provided, try to resolve it from the URL
+            let finalGeniusId = geniusId;
+            if (!finalGeniusId) {
+              const token = getTokenFromCookie(req);
+              if (token) {
+                finalGeniusId = await resolveGeniusUrl(geniusUrl, token);
+              }
+            }
+            
+            if (!finalGeniusId) {
+              return res.status(400).json({ error: `Could not resolve song ID from URL: ${geniusUrl}` });
+            }
+            
             const song = await prisma.song.update({
               where: { id: parseInt(songId) },
               data: {
-                geniusSongId: parseInt(geniusId),
+                geniusSongId: parseInt(finalGeniusId),
                 geniusUrl: geniusUrl,
               },
             });
             updated.push(song);
           }
-          return res.status(200).json({ success: true, updated: updated.length });
+          return res.status(200).json({ success: true, updated: updated.length, updatedSongs: updated });
         } catch (err) {
           console.error('Error saving matches:', err);
           return res.status(500).json({ error: 'Failed to save matches', details: err.message });

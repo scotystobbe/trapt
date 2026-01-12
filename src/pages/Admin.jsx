@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import HamburgerMenu from '../components/HamburgerMenu';
 import LogoHeader from '../components/LogoHeader';
-import { FaTrash, FaUserShield } from 'react-icons/fa';
+import { FaTrash, FaUserShield, FaSpinner } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
 import { SiGenius } from 'react-icons/si';
 import { FaSpotify } from 'react-icons/fa';
@@ -134,7 +134,14 @@ export default function Admin() {
   useEffect(() => {
     fetch('/api/playlists?admin=1')
       .then(res => res.json())
-      .then(setPlaylists);
+      .then(data => {
+        // Sort by name descending (newest to oldest: Rob 2024, Rob 2023, etc.)
+        const sorted = [...data].sort((a, b) => {
+          // Compare in reverse order to get descending (newest first)
+          return b.name.localeCompare(a.name, undefined, { numeric: true, sensitivity: 'base' });
+        });
+        setPlaylists(sorted);
+      });
   }, [importResult, deletingId]);
 
   const handleDelete = async (id) => {
@@ -399,7 +406,7 @@ export default function Admin() {
             {matchingGenius && matchingPlaylistId && (
               <div className="mt-4 p-4 bg-gray-800 rounded">
                 <div className="flex items-center gap-2 text-yellow-400">
-                  <div className="animate-spin">⏳</div>
+                  <FaSpinner className="animate-spin" />
                   <span>Searching Genius for matches... This may take a moment.</span>
                 </div>
               </div>
@@ -500,7 +507,7 @@ export default function Admin() {
                                   [result.songId]: { geniusUrl: e.target.value }
                                 }));
                               }}
-                              placeholder="https://genius.com/artist-song-title"
+                              placeholder="https://genius.com/artist-song-lyrics or https://genius.com/songs/12345"
                               className="w-full px-3 py-2 bg-gray-800 text-white rounded border border-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-500"
                             />
                             <div className="flex gap-2 mt-2">
@@ -508,16 +515,13 @@ export default function Admin() {
                                 onClick={async () => {
                                   if (!manualEntry?.geniusUrl) return;
                                   
-                                  // Extract Genius ID from URL
-                                  const urlMatch = manualEntry.geniusUrl.match(/genius\.com\/songs\/(\d+)/);
-                                  if (!urlMatch) {
-                                    alert('Invalid Genius URL. Please use a URL like: https://genius.com/artist-song-title');
+                                  // Validate it's a Genius URL
+                                  if (!manualEntry.geniusUrl.includes('genius.com')) {
+                                    alert('Please enter a valid Genius URL');
                                     return;
                                   }
                                   
-                                  const geniusId = parseInt(urlMatch[1]);
-                                  
-                                  // Save immediately
+                                  // Save immediately - API will resolve the song ID from the URL
                                   try {
                                     const res = await fetch('/api/admin/match-genius', {
                                       method: 'PUT',
@@ -528,20 +532,24 @@ export default function Admin() {
                                       body: JSON.stringify({
                                         matches: [{
                                           songId: result.songId,
-                                          geniusId: geniusId,
                                           geniusUrl: manualEntry.geniusUrl
+                                          // geniusId will be resolved by the API
                                         }]
                                       }),
                                     });
                                     const data = await res.json();
                                     if (!res.ok) throw new Error(data.error || 'Failed to save match');
                                     
+                                    // Get the resolved genius ID from the response
+                                    const savedSong = data.updatedSongs && data.updatedSongs[0];
+                                    const resolvedGeniusId = savedSong?.geniusSongId;
+                                    
                                     // Mark as saved
                                     setSavedMatches(prev => ({ ...prev, [result.songId]: true }));
                                     setMatchSelections(prev => ({
                                       ...prev,
                                       [result.songId]: {
-                                        geniusId: geniusId,
+                                        geniusId: resolvedGeniusId,
                                         geniusUrl: manualEntry.geniusUrl
                                       }
                                     }));
@@ -552,7 +560,7 @@ export default function Admin() {
                                       ...prev,
                                       results: prev.results.map(r => 
                                         r.songId === result.songId 
-                                          ? { ...r, status: 'already_matched', geniusId: geniusId, geniusUrl: manualEntry.geniusUrl }
+                                          ? { ...r, status: 'already_matched', geniusId: resolvedGeniusId, geniusUrl: manualEntry.geniusUrl }
                                           : r
                                       )
                                     }));
