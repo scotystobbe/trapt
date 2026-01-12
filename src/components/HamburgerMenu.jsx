@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaBars, FaMoon, FaSun } from 'react-icons/fa';
+import { FaBars, FaMoon, FaSun, FaVolumeUp } from 'react-icons/fa';
 import { useNightMode } from '../App';
 import { useAuth } from './AuthProvider';
+import { getSpeechMode, setSpeechMode, SPEECH_MODES } from '../hooks/useSpeech';
 
 export default function HamburgerMenu({ className = '' }) {
   const [open, setOpen] = useState(false);
@@ -11,6 +12,7 @@ export default function HamburgerMenu({ className = '' }) {
   const menuRef = useRef(null);
   const navigate = useNavigate();
   const [showLogoutMsg, setShowLogoutMsg] = useState(false);
+  const [speechMode, setSpeechModeState] = useState(() => getSpeechMode());
 
   useEffect(() => {
     if (!open) return;
@@ -84,6 +86,30 @@ export default function HamburgerMenu({ className = '' }) {
             </Link>
           )}
           <div className="border-t mt-2 pt-4 pb-4 flex flex-col items-center gap-2" style={{ borderColor: '#3f3f46' }}>
+            {/* Speech Announcement Toggle */}
+            <div className="w-full px-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-white text-sm flex items-center gap-2">
+                  <FaVolumeUp className="text-xs" />
+                  Track Announcements
+                </span>
+              </div>
+              <select
+                value={speechMode}
+                onChange={(e) => {
+                  const newMode = e.target.value;
+                  setSpeechModeState(newMode);
+                  setSpeechMode(newMode);
+                }}
+                className="w-full px-2 py-1 rounded bg-[#3f3f46] text-white text-sm border border-[#52525b] focus:outline-none focus:ring-1 focus:ring-purple-600"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <option value={SPEECH_MODES.OFF}>Off</option>
+                <option value={SPEECH_MODES.BEGINNING_ONLY}>Beginning Only</option>
+                <option value={SPEECH_MODES.END_ONLY}>End Only</option>
+                <option value={SPEECH_MODES.BOTH}>Both</option>
+              </select>
+            </div>
             <button
               onClick={() => setNightMode((v) => !v)}
               className={`relative w-12 h-6 rounded-full transition-colors duration-300 focus:outline-none ${nightMode ? 'bg-red-600' : ''}`}

@@ -8,6 +8,7 @@ import useSWR from 'swr';
 import { SiGenius } from 'react-icons/si';
 import usePrevTrackStore from '../data/usePrevTrackStore';
 import { useAuth } from '../components/AuthProvider';
+import { useSpeech, getSpeechMode, SPEECH_MODES } from '../hooks/useSpeech';
 
 function EditableStarRating({ rating, onRatingChange, size = 56, nightMode, emptyColor }) {
   return (
@@ -172,10 +173,36 @@ export default function NowPlaying() {
   const [searchError, setSearchError] = useState('');
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
+  const { speak } = useSpeech();
+  const trackProgressRef = useRef(null);
+  const trackDurationRef = useRef(null);
+  const hasSpokenStartRef = useRef(false);
+  const hasSpokenEndRef = useRef(false);
+  const endCheckIntervalRef = useRef(null);
 
   // SWR for songs
   const fetcher = url => fetch(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now()).then(res => res.json());
   const { data: songs = [], error: songsError, mutate: mutateSongs } = useSWR('/api/songs', fetcher);
+
+  // Helper to speak track information
+  const speakTrackInfo = useCallback((isStart = true) => {
+    const speechMode = getSpeechMode();
+    if (speechMode === SPEECH_MODES.OFF) return;
+    if (isStart && speechMode !== SPEECH_MODES.BEGINNING_ONLY && speechMode !== SPEECH_MODES.BOTH) return;
+    if (!isStart && speechMode !== SPEECH_MODES.END_ONLY && speechMode !== SPEECH_MODES.BOTH) return;
+
+    // Use dbSong if available (more accurate), otherwise use track data from Spotify
+    const trackName = dbSong?.title || track?.name || '';
+    const artistName = dbSong?.artist || (track?.artists?.[0]?.name) || '';
+
+    if (!trackName || !artistName) return;
+
+    const text = isStart 
+      ? `This is ${trackName} by ${artistName}`
+      : `That was ${trackName} by ${artistName}`;
+    
+    speak(text);
+  }, [track, dbSong, speak]);
 
   // Helper to check auth and fetch currently playing
   const fetchCurrentlyPlaying = useCallback(async (isInitial = false) => {
@@ -192,8 +219,22 @@ export default function NowPlaying() {
         if (isInitial) setTrack(null);
         if (isInitial) setDbSong(null);
         if (isInitial) setInitialLoading(false);
+        // Clear tracking when nothing is playing
+        trackProgressRef.current = null;
+        trackDurationRef.current = null;
+        hasSpokenStartRef.current = false;
+        hasSpokenEndRef.current = false;
+        if (endCheckIntervalRef.current) {
+          clearInterval(endCheckIntervalRef.current);
+          endCheckIntervalRef.current = null;
+        }
         return;
       }
+
+      // Store progress and duration for end detection
+      trackProgressRef.current = data.progress_ms || 0;
+      trackDurationRef.current = data.item.duration_ms || 0;
+
       // Only update if the track has changed
       if (lastTrackId.current !== data.item.id) {
         if (editingNotes) {
@@ -212,6 +253,16 @@ export default function NowPlaying() {
         setDbSong(match || null);
         setNotes(match?.notes || '');
         setEditingNotes(false);
+        
+        // Reset speech flags for new track
+        hasSpokenStartRef.current = false;
+        hasSpokenEndRef.current = false;
+        
+        // Clear any existing end check interval
+        if (endCheckIntervalRef.current) {
+          clearInterval(endCheckIntervalRef.current);
+          endCheckIntervalRef.current = null;
+        }
       }
       if (isInitial) setInitialLoading(false);
     } catch (err) {
@@ -221,10 +272,51 @@ export default function NowPlaying() {
   }, [editingNotes, track, dbSong, songs, setPrevTrack, setPrevDbSong]);
 
 
+  // Effect to speak at track start
+  useEffect(() => {
+    if (!track || hasSpokenStartRef.current) return;
+    
+    // Small delay to ensure track data is fully loaded (and dbSong if available)
+    const timeout = setTimeout(() => {
+      speakTrackInfo(true);
+      hasSpokenStartRef.current = true;
+    }, 500);
+    
+    return () => clearTimeout(timeout);
+  }, [track?.id, speakTrackInfo]);
+
+  // Effect to monitor track progress and speak at end
+  useEffect(() => {
+    if (!track || !trackDurationRef.current) return;
+    
+    // Check every second if we're near the end
+    endCheckIntervalRef.current = setInterval(() => {
+      const progress = trackProgressRef.current || 0;
+      const duration = trackDurationRef.current || 0;
+      
+      // Speak when we're within 2 seconds of the end (or if progress >= duration)
+      if (duration > 0 && progress > 0 && !hasSpokenEndRef.current) {
+        const remaining = duration - progress;
+        if (remaining <= 2000 || progress >= duration) {
+          speakTrackInfo(false);
+          hasSpokenEndRef.current = true;
+        }
+      }
+    }, 1000);
+    
+    return () => {
+      if (endCheckIntervalRef.current) {
+        clearInterval(endCheckIntervalRef.current);
+        endCheckIntervalRef.current = null;
+      }
+    };
+  }, [track?.id, speakTrackInfo]);
+
   useEffect(() => {
     if (songs.length === 0 && !songsError) return; // Wait for songs to load or error
     fetchCurrentlyPlaying(true);
-    const interval = setInterval(() => fetchCurrentlyPlaying(false), 5000);
+    // Poll every 3 seconds for faster track data updates (reduced from 5 seconds)
+    const interval = setInterval(() => fetchCurrentlyPlaying(false), 3000);
     return () => clearInterval(interval);
     // eslint-disable-next-line
   }, [fetchCurrentlyPlaying, songs.length, songsError]);
