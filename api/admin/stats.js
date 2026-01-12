@@ -7,8 +7,7 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  authenticateJWT(req, res, () => {
-    requireRole('ADMIN')(req, res, async () => {
+  authenticateJWT(req, res, async () => {
       try {
         // Get all songs
         const allSongs = await prisma.song.findMany({
@@ -169,6 +168,5 @@ module.exports = async (req, res) => {
         console.error('Error fetching stats:', error);
         res.status(500).json({ error: 'Failed to fetch stats', details: error.message });
       }
-    });
   });
 };

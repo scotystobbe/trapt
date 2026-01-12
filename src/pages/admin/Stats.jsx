@@ -15,16 +15,12 @@ export default function Stats() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!loading && user?.role !== 'ADMIN') {
-      navigate('/');
-    }
-  }, [user, loading, navigate]);
-
-  useEffect(() => {
-    if (user?.role === 'ADMIN') {
+    if (!loading && !user) {
+      navigate('/login');
+    } else if (!loading && user) {
       fetchStats();
     }
-  }, [user]);
+  }, [user, loading, navigate]);
 
   const fetchStats = async () => {
     setLoadingStats(true);
@@ -44,7 +40,7 @@ export default function Stats() {
     }
   };
 
-  if (loading || user?.role !== 'ADMIN') {
+  if (loading || !user) {
     return <div className="text-center text-gray-400 mt-12">Loading...</div>;
   }
 
@@ -53,7 +49,7 @@ export default function Stats() {
       <div style={{ backgroundColor: '#18181b' }} className="min-h-screen">
         <LogoHeader>
           <HamburgerMenu />
-          <Link to="/admin" className="p-2 rounded hover:bg-gray-700 focus:outline-none absolute z-30" style={{ left: 20, top: 16 }} title="Back to Admin">
+          <Link to="/" className="p-2 rounded hover:bg-gray-700 focus:outline-none absolute z-30" style={{ left: 20, top: 16 }} title="Back to Home">
             <span className="block min-w-[44px] min-h-[44px] p-2 -m-2 flex items-center justify-center">
               <FaArrowLeft className="text-2xl text-white" />
             </span>
@@ -79,7 +75,7 @@ export default function Stats() {
       <div style={{ backgroundColor: '#18181b' }} className="min-h-screen">
         <LogoHeader>
           <HamburgerMenu />
-          <Link to="/admin" className="p-2 rounded hover:bg-gray-700 focus:outline-none absolute z-30" style={{ left: 20, top: 16 }} title="Back to Admin">
+          <Link to="/" className="p-2 rounded hover:bg-gray-700 focus:outline-none absolute z-30" style={{ left: 20, top: 16 }} title="Back to Home">
             <span className="block min-w-[44px] min-h-[44px] p-2 -m-2 flex items-center justify-center">
               <FaArrowLeft className="text-2xl text-white" />
             </span>
@@ -148,7 +144,7 @@ export default function Stats() {
     <div style={{ backgroundColor: '#18181b' }} className="min-h-screen">
       <LogoHeader>
         <HamburgerMenu />
-        <Link to="/admin" className="p-2 rounded hover:bg-gray-700 focus:outline-none absolute z-30" style={{ left: 20, top: 16 }} title="Back to Admin">
+        <Link to="/" className="p-2 rounded hover:bg-gray-700 focus:outline-none absolute z-30" style={{ left: 20, top: 16 }} title="Back to Home">
           <span className="block min-w-[44px] min-h-[44px] p-2 -m-2 flex items-center justify-center">
             <FaArrowLeft className="text-2xl text-white" />
           </span>
