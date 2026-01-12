@@ -6,6 +6,7 @@ import LogoHeader from '../components/LogoHeader';
 import Skeleton from '../components/Skeleton';
 import { FaArrowLeft, FaSearch, FaStar, FaStarHalfAlt, FaRegStar } from 'react-icons/fa';
 import useSWR from 'swr';
+import { useAuth } from '../components/AuthProvider';
 
 // --- Helper component ---
 function CreateUnratedSpotifyModal({ open, onClose, playlist }) {
@@ -129,8 +130,11 @@ function AverageStarRating({ value }) {
 
 export default function PlaylistView() {
   const { id } = useParams();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
   const [sort, setSort] = useState('sortOrder');
   const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('all'); // 'all', 'withComments', 'withResponses'
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
   const sortButtonRef = useRef(null);
   const sortDropdownRef = useRef(null);
@@ -235,7 +239,15 @@ export default function PlaylistView() {
   // For TRAPT and TRAPT+, use id-based sorting for "sortOrder" since songs come from multiple playlists
   const isSpecialPlaylist = playlist.name === 'TRAPT' || playlist.name === 'TRAPT+';
   
-  const sortedSongs = [...playlist.songs]
+  // Apply filters
+  let filteredSongs = [...playlist.songs];
+  if (filter === 'withComments') {
+    filteredSongs = filteredSongs.filter(song => song.hasComments);
+  } else if (filter === 'withResponses' && isAdmin) {
+    filteredSongs = filteredSongs.filter(song => song.hasResponses);
+  }
+  
+  const sortedSongs = filteredSongs
     .filter(song => song.title.toLowerCase().includes(search.toLowerCase()) || song.artist.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => {
       if (sort === 'title') return a.title.localeCompare(b.title);
@@ -320,62 +332,98 @@ export default function PlaylistView() {
             );
           })()}
         </div>
-        <div className="flex flex-col sm:flex-row items-center gap-2 justify-between">
-          <div className="flex flex-row items-center gap-2 w-full sm:w-auto">
-            <div className="relative w-full sm:w-80">
-              <input
-                ref={searchInputRef}
-                type="text"
-                placeholder="Search songs..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="w-full p-2 rounded" style={{ backgroundColor: '#27272a', color: 'white', border: '1px solid #3f3f46' }}
-              />
-              {search && (
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col sm:flex-row items-center gap-2 justify-between">
+            <div className="flex flex-row items-center gap-2 w-full sm:w-auto">
+              <div className="relative w-full sm:w-80">
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Search songs..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="w-full p-2 rounded" style={{ backgroundColor: '#27272a', color: 'white', border: '1px solid #3f3f46' }}
+                />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 z-20 text-gray-400 hover:text-white focus:outline-none"
+                    aria-label="Clear search"
+                  >
+                    <span className="flex items-center justify-center min-w-[32px] min-h-[32px] p-1 text-xl">×</span>
+                  </button>
+                )}
+              </div>
+              <div className="relative flex items-center">
                 <button
+                  ref={sortButtonRef}
                   type="button"
-                  onClick={() => setSearch('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 z-20 text-gray-400 hover:text-white focus:outline-none"
-                  aria-label="Clear search"
+                  className="flex items-center gap-1 px-2 py-1 rounded text-gray-300 focus:outline-none"
+                  style={{ backgroundColor: '#232326', border: '1px solid #3f3f46' }}
+                  onMouseOver={e => e.currentTarget.style.backgroundColor = '#27272a'}
+                  onMouseOut={e => e.currentTarget.style.backgroundColor = '#232326'}
+                  onClick={() => setSortDropdownOpen((open) => !open)}
+                  title="Sort"
                 >
-                  <span className="flex items-center justify-center min-w-[32px] min-h-[32px] p-1 text-xl">×</span>
+                  <img src="/sort_icon.svg" alt="Sort" className="w-5 h-5" style={{ filter: 'invert(80%)' }} />
                 </button>
-              )}
+                {sortDropdownOpen && (
+                  <div
+                    ref={sortDropdownRef}
+                    className="absolute right-0 top-full mt-2 w-36 rounded shadow-lg z-10"
+                    style={{ backgroundColor: '#27272a', border: '1px solid #3f3f46' }}
+                  >
+                    <button
+                      className={`block w-full text-left px-4 py-2 text-gray-200 hover:bg-[#3f3f46] ${sort === 'sortOrder' ? 'font-bold' : ''}`}
+                      onClick={() => { setSort('sortOrder'); setSortDropdownOpen(false); }}
+                    >Original Order</button>
+                    <button
+                      className={`block w-full text-left px-4 py-2 text-gray-200 hover:bg-[#3f3f46] ${sort === 'title' ? 'font-bold' : ''}`}
+                      onClick={() => { setSort('title'); setSortDropdownOpen(false); }}
+                    >Title</button>
+                    <button
+                      className={`block w-full text-left px-4 py-2 text-gray-200 hover:bg-[#3f3f46] ${sort === 'artist' ? 'font-bold' : ''}`}
+                      onClick={() => { setSort('artist'); setSortDropdownOpen(false); }}
+                    >Artist</button>
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="relative flex items-center">
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => setFilter('all')}
+              className={`px-4 py-2 rounded text-sm ${
+                filter === 'all'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-[#27272a] text-gray-300 hover:bg-[#3f3f46]'
+              }`}
+            >
+              All Songs
+            </button>
+            <button
+              onClick={() => setFilter('withComments')}
+              className={`px-4 py-2 rounded text-sm ${
+                filter === 'withComments'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-[#27272a] text-gray-300 hover:bg-[#3f3f46]'
+              }`}
+            >
+              With Comments
+            </button>
+            {isAdmin && (
               <button
-                ref={sortButtonRef}
-                type="button"
-                className="flex items-center gap-1 px-2 py-1 rounded text-gray-300 focus:outline-none"
-                style={{ backgroundColor: '#232326', border: '1px solid #3f3f46' }}
-                onMouseOver={e => e.currentTarget.style.backgroundColor = '#27272a'}
-                onMouseOut={e => e.currentTarget.style.backgroundColor = '#232326'}
-                onClick={() => setSortDropdownOpen((open) => !open)}
-                title="Sort"
+                onClick={() => setFilter('withResponses')}
+                className={`px-4 py-2 rounded text-sm ${
+                  filter === 'withResponses'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-[#27272a] text-gray-300 hover:bg-[#3f3f46]'
+                }`}
               >
-                <img src="/sort_icon.svg" alt="Sort" className="w-5 h-5" style={{ filter: 'invert(80%)' }} />
+                With Responses
               </button>
-              {sortDropdownOpen && (
-                <div
-                  ref={sortDropdownRef}
-                  className="absolute right-0 top-full mt-2 w-36 rounded shadow-lg z-10"
-                  style={{ backgroundColor: '#27272a', border: '1px solid #3f3f46' }}
-                >
-                  <button
-                    className={`block w-full text-left px-4 py-2 text-gray-200 hover:bg-[#3f3f46] ${sort === 'sortOrder' ? 'font-bold' : ''}`}
-                    onClick={() => { setSort('sortOrder'); setSortDropdownOpen(false); }}
-                  >Original Order</button>
-                  <button
-                    className={`block w-full text-left px-4 py-2 text-gray-200 hover:bg-[#3f3f46] ${sort === 'title' ? 'font-bold' : ''}`}
-                    onClick={() => { setSort('title'); setSortDropdownOpen(false); }}
-                  >Title</button>
-                  <button
-                    className={`block w-full text-left px-4 py-2 text-gray-200 hover:bg-[#3f3f46] ${sort === 'artist' ? 'font-bold' : ''}`}
-                    onClick={() => { setSort('artist'); setSortDropdownOpen(false); }}
-                  >Artist</button>
-                </div>
-              )}
-            </div>
+            )}
           </div>
         </div>
         <div className="space-y-4">
