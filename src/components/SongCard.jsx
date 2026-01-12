@@ -67,6 +67,21 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
 
   const handleGeniusClick = async (e) => {
     e.preventDefault();
+    
+    // If we have a stored Genius ID, use it directly
+    if (song.geniusSongId && song.geniusUrl) {
+      openGeniusAppOrWeb(song.geniusSongId, song.geniusUrl);
+      return;
+    }
+    
+    // Otherwise, search (only for admin users on desktop)
+    if (!isAdmin) {
+      // Non-admin users can't search, show message or open web search
+      const searchUrl = `https://genius.com/search?q=${encodeURIComponent(song.artist + ' ' + song.title)}`;
+      window.open(searchUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    
     setSearchLoading(true);
     setSearchError('');
     setShowResults(false);
@@ -82,6 +97,8 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
         return t === song.title.trim().toLowerCase() && a === song.artist.trim().toLowerCase();
       });
       if (exact) {
+        // Store the match for future use
+        await saveSongUpdate({ geniusSongId: exact.result.id, geniusUrl: exact.result.url });
         openGeniusAppOrWeb(exact.result.id, exact.result.url);
       } else {
         setSearchResults(hits);
@@ -94,7 +111,11 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
     }
   };
 
-  const handleResultClick = (hit) => {
+  const handleResultClick = async (hit) => {
+    // Store the selected match for future use
+    if (isAdmin) {
+      await saveSongUpdate({ geniusSongId: hit.result.id, geniusUrl: hit.result.url });
+    }
     openGeniusAppOrWeb(hit.result.id, hit.result.url);
     setShowResults(false);
   };

@@ -1,29 +1,44 @@
 import React, { useState } from 'react';
 
-export default function GeniusLyricsModal({ open, onClose, songTitle, songArtist }) {
+export default function GeniusLyricsModal({ open, onClose, songTitle, songArtist, song, geniusSongId, geniusUrl }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searchPerformed, setSearchPerformed] = useState(false);
   const [needsAuth, setNeedsAuth] = useState(false);
 
+  // Get Genius ID from props or song object
+  const storedGeniusId = geniusSongId || song?.geniusSongId;
+  const storedGeniusUrl = geniusUrl || song?.geniusUrl;
+  const title = songTitle || song?.title;
+  const artist = songArtist || song?.artist;
+
   React.useEffect(() => {
-    if (open && songTitle && songArtist) {
+    if (open && title && artist) {
       setSearchResults([]);
       setError('');
       setSearchPerformed(false);
       setNeedsAuth(false);
+      
+      // If we have a stored Genius ID, use it directly
+      if (storedGeniusId) {
+        window.open(`/genius-embed/${storedGeniusId}`, '_blank', 'noopener,noreferrer');
+        onClose();
+        return;
+      }
+      
+      // Otherwise, search
       searchGenius();
     }
     // eslint-disable-next-line
-  }, [open, songTitle, songArtist]);
+  }, [open, title, artist, storedGeniusId]);
 
   async function searchGenius() {
     setLoading(true);
     setError('');
     setNeedsAuth(false);
     try {
-      const q = encodeURIComponent(`${songArtist} ${songTitle}`);
+      const q = encodeURIComponent(`${artist} ${title}`);
       const res = await fetch(`/api/genius?action=search&q=${q}`);
       if (res.status === 401) {
         setNeedsAuth(true);
@@ -37,7 +52,7 @@ export default function GeniusLyricsModal({ open, onClose, songTitle, songArtist
       const exact = hits.find(h => {
         const t = h.result.title.trim().toLowerCase();
         const a = h.result.primary_artist.name.trim().toLowerCase();
-        return t === songTitle.trim().toLowerCase() && a === songArtist.trim().toLowerCase();
+        return t === title.trim().toLowerCase() && a === artist.trim().toLowerCase();
       });
       if (exact) {
         window.open(`/genius-embed/${exact.result.id}`, '_blank', 'noopener,noreferrer');

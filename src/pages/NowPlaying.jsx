@@ -412,6 +412,21 @@ export default function NowPlaying() {
 
   const handleGeniusIconClick = async () => {
     if (!dbSong) return;
+    
+    // If we have a stored Genius ID, use it directly
+    if (dbSong.geniusSongId && dbSong.geniusUrl) {
+      openGeniusAppOrWeb(dbSong.geniusSongId, dbSong.geniusUrl);
+      return;
+    }
+    
+    // Otherwise, search (only for admin users on desktop)
+    if (!isAdmin) {
+      // Non-admin users can't search, open web search
+      const searchUrl = `https://genius.com/search?q=${encodeURIComponent(dbSong.artist + ' ' + dbSong.title)}`;
+      window.open(searchUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    
     setSearchLoading(true);
     setSearchError('');
     setShowResults(false);
@@ -426,6 +441,24 @@ export default function NowPlaying() {
         return t === dbSong.title.trim().toLowerCase() && a === dbSong.artist.trim().toLowerCase();
       });
       if (exact) {
+        // Store the match for future use
+        try {
+          await fetch('/api/songs', {
+            method: 'PUT',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({ 
+              id: dbSong.id, 
+              geniusSongId: exact.result.id, 
+              geniusUrl: exact.result.url 
+            }),
+          });
+          setDbSong({ ...dbSong, geniusSongId: exact.result.id, geniusUrl: exact.result.url });
+        } catch (err) {
+          console.error('Failed to save Genius ID:', err);
+        }
         openGeniusAppOrWeb(exact.result.id, exact.result.url);
       } else {
         setSearchResults(hits);
@@ -614,7 +647,31 @@ export default function NowPlaying() {
                 {searchError && <div className="text-red-500 mb-2">{searchError}</div>}
                 <ul className="space-y-2 max-h-60 overflow-y-auto">
                   {searchResults.map(hit => (
-                    <li key={hit.result.id} className="flex items-center gap-2 bg-zinc-800 rounded p-2 cursor-pointer hover:bg-zinc-700" onClick={() => { openGeniusAppOrWeb(hit.result.id, hit.result.url); setShowResults(false); setShowCustomGeniusModal(false); }}>
+                    <li key={hit.result.id} className="flex items-center gap-2 bg-zinc-800 rounded p-2 cursor-pointer hover:bg-zinc-700" onClick={async () => { 
+                      // Store the selected match for future use
+                      if (isAdmin && dbSong) {
+                        try {
+                          await fetch('/api/songs', {
+                            method: 'PUT',
+                            headers: { 
+                              'Content-Type': 'application/json',
+                              'Authorization': `Bearer ${localStorage.getItem('token')}`
+                            },
+                            body: JSON.stringify({ 
+                              id: dbSong.id, 
+                              geniusSongId: hit.result.id, 
+                              geniusUrl: hit.result.url 
+                            }),
+                          });
+                          setDbSong({ ...dbSong, geniusSongId: hit.result.id, geniusUrl: hit.result.url });
+                        } catch (err) {
+                          console.error('Failed to save Genius ID:', err);
+                        }
+                      }
+                      openGeniusAppOrWeb(hit.result.id, hit.result.url); 
+                      setShowResults(false); 
+                      setShowCustomGeniusModal(false); 
+                    }}>
                       {hit.result.song_art_image_thumbnail_url && (
                         <img src={hit.result.song_art_image_thumbnail_url} alt="art" className="w-10 h-10 rounded" />
                       )}

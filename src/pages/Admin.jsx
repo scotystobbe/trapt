@@ -39,6 +39,9 @@ export default function Admin() {
   const [userLoading, setUserLoading] = useState(false);
   const [userError, setUserError] = useState('');
   const [roleUpdating, setRoleUpdating] = useState({});
+  const [matchingGenius, setMatchingGenius] = useState(false);
+  const [geniusMatchResult, setGeniusMatchResult] = useState(null);
+  const [matchingPlaylistId, setMatchingPlaylistId] = useState(null);
 
   React.useEffect(() => {
     if (!loading && user?.role !== 'ADMIN') {
@@ -336,6 +339,96 @@ export default function Admin() {
               </li>
             ))}
           </ul>
+        </ExpandableSection>
+
+        <ExpandableSection title={<span><SiGenius className="inline mr-2" />Match Genius Songs</span>} defaultOpen={false}>
+          <div className="mb-4">
+            <p className="text-gray-300 text-sm mb-4">
+              Match songs in a playlist with Genius. This will search Genius for each song and store the match for faster access.
+              Make sure you're connected to Genius first.
+            </p>
+            <div className="space-y-2">
+              {playlists.map(p => (
+                <div key={p.id} className="flex items-center gap-4 p-2 bg-gray-800 rounded">
+                  {p.artworkUrl && (
+                    <img src={p.artworkUrl} alt={p.name} className="w-8 h-8 object-cover rounded" />
+                  )}
+                  <span className="text-white flex-1">{p.name}</span>
+                  <Button
+                    variant="yellow"
+                    onClick={async () => {
+                      setMatchingGenius(true);
+                      setGeniusMatchResult(null);
+                      setMatchingPlaylistId(p.id);
+                      try {
+                        const res = await fetch('/api/admin/match-genius', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                          },
+                          body: JSON.stringify({ playlistId: p.id }),
+                        });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.error || 'Failed to match Genius songs');
+                        setGeniusMatchResult(data);
+                        // Refresh playlists to show updated data
+                        const playlistsRes = await fetch('/api/playlists?admin=1');
+                        const updatedPlaylists = await playlistsRes.json();
+                        setPlaylists(updatedPlaylists);
+                      } catch (err) {
+                        setGeniusMatchResult({ error: err.message });
+                      } finally {
+                        setMatchingGenius(false);
+                        setMatchingPlaylistId(null);
+                      }
+                    }}
+                    disabled={matchingGenius}
+                    className="text-sm"
+                  >
+                    {matchingGenius && matchingPlaylistId === p.id ? 'Matching...' : 'Match Songs'}
+                  </Button>
+                </div>
+              ))}
+            </div>
+            {geniusMatchResult && (
+              <div className={`mt-4 p-4 rounded ${geniusMatchResult.error ? 'bg-red-900' : 'bg-green-900'}`}>
+                {geniusMatchResult.error ? (
+                  <div className="text-red-200">{geniusMatchResult.error}</div>
+                ) : (
+                  <div className="text-green-200">
+                    <div className="font-semibold mb-2">Match Results:</div>
+                    <div className="text-sm space-y-1">
+                      <div>Total: {geniusMatchResult.total}</div>
+                      <div>Matched: {geniusMatchResult.matched}</div>
+                      <div>No Match: {geniusMatchResult.noMatch}</div>
+                      <div>Skipped (already matched): {geniusMatchResult.skipped}</div>
+                      {geniusMatchResult.errors > 0 && (
+                        <div className="text-yellow-300">Errors: {geniusMatchResult.errors}</div>
+                      )}
+                    </div>
+                    {geniusMatchResult.results && geniusMatchResult.results.length > 0 && (
+                      <details className="mt-4">
+                        <summary className="cursor-pointer text-sm font-semibold">View Details</summary>
+                        <div className="mt-2 max-h-60 overflow-y-auto text-xs space-y-1">
+                          {geniusMatchResult.results.map((result, idx) => (
+                            <div key={idx} className="p-2 bg-gray-800 rounded">
+                              <div className="font-semibold">{result.title} - {result.artist}</div>
+                              <div className="text-gray-400">
+                                Status: {result.status}
+                                {result.geniusId && ` (Genius ID: ${result.geniusId})`}
+                                {result.reason && ` - ${result.reason}`}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </ExpandableSection>
 
         <ExpandableSection title={<span><FaUserShield className="inline mr-2" />User Management</span>} defaultOpen={false}>

@@ -29,17 +29,19 @@ model Playlist {
 }
 
 model Song {
-  id          Int      @id @default(autoincrement())
-  title       String
-  artist      String
-  album       String?
-  playlist    Playlist @relation(fields: [playlistId], references: [id])
-  playlistId  Int
-  rating      Int?
-  sortOrder   Int
-  notes       String?
-  spotifyLink String?
-  artworkUrl  String?
+  id           Int      @id @default(autoincrement())
+  title        String
+  artist       String
+  album        String?
+  playlist     Playlist @relation(fields: [playlistId], references: [id])
+  playlistId   Int
+  rating       Int?
+  sortOrder    Int
+  notes        String?
+  spotifyLink  String?
+  artworkUrl   String?
+  geniusSongId Int?
+  geniusUrl    String?
 }
 
 model User {
