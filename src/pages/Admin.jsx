@@ -131,9 +131,33 @@ export default function Admin() {
     }
   };
 
+  // Function to refresh stats for a specific playlist
+  const refreshPlaylistStats = useCallback((playlistId) => {
+    if (!playlistId) return;
+    // Add cache-busting parameter to ensure fresh data
+    fetch(`/api/songs?playlistId=${playlistId}&t=${Date.now()}`)
+      .then(res => res.json())
+      .then(songs => {
+        const matched = songs.filter(s => s.geniusSongId != null && s.geniusSongId !== undefined).length;
+        const noMatch = songs.filter(s => s.geniusNoMatch === true).length;
+        const unmatched = songs.length - matched - noMatch;
+        setPlaylistStats(prev => ({
+          ...prev,
+          [playlistId]: { matched, unmatched, noMatch }
+        }));
+      })
+      .catch(() => {
+        setPlaylistStats(prev => ({
+          ...prev,
+          [playlistId]: { matched: 0, unmatched: 0, noMatch: 0 }
+        }));
+      });
+  }, []);
+
   // Fetch playlists for admin delete section
   useEffect(() => {
-    fetch('/api/playlists?admin=1')
+    // Always fetch fresh data on page load/refresh
+    fetch(`/api/playlists?admin=1&t=${Date.now()}`)
       .then(res => res.json())
       .then(data => {
         // Sort by name descending (newest to oldest: Rob 2024, Rob 2023, etc.)
@@ -143,15 +167,15 @@ export default function Admin() {
         });
         setPlaylists(sorted);
         
-        // Fetch stats for each playlist
+        // Fetch stats for each playlist with cache-busting
         const statsPromises = sorted
           .filter(p => p.name !== 'TRAPT' && p.name !== 'TRAPT+')
           .map(playlist => 
-            fetch(`/api/songs?playlistId=${playlist.id}`)
+            fetch(`/api/songs?playlistId=${playlist.id}&t=${Date.now()}`)
               .then(res => res.json())
               .then(songs => {
-                const matched = songs.filter(s => s.geniusSongId).length;
-                const noMatch = songs.filter(s => s.geniusNoMatch).length;
+                const matched = songs.filter(s => s.geniusSongId != null && s.geniusSongId !== undefined).length;
+                const noMatch = songs.filter(s => s.geniusNoMatch === true).length;
                 const unmatched = songs.length - matched - noMatch;
                 return { playlistId: playlist.id, matched, unmatched, noMatch };
               })
@@ -547,6 +571,13 @@ export default function Admin() {
                                       )
                                     }));
                                     
+                                    // Refresh stats for this playlist (with small delay to ensure DB update completes)
+                                    if (geniusMatchResult?.playlistId) {
+                                      setTimeout(() => {
+                                        refreshPlaylistStats(geniusMatchResult.playlistId);
+                                      }, 300);
+                                    }
+                                    
                                     // Clear saved match state
                                     setSavedMatches(prev => {
                                       const next = { ...prev };
@@ -615,6 +646,13 @@ export default function Admin() {
                                               : r
                                           )
                                         }));
+                                        
+                                        // Refresh stats for this playlist (with small delay to ensure DB update completes)
+                                        if (geniusMatchResult?.playlistId) {
+                                          setTimeout(() => {
+                                            refreshPlaylistStats(geniusMatchResult.playlistId);
+                                          }, 300);
+                                        }
                                         
                                         // If showing unmatched only, the song will disappear automatically
                                       } catch (err) {
@@ -724,7 +762,14 @@ export default function Admin() {
                                       }
                                     }, 100);
                                     
-                                    // If showing unmatched only, the song will disappear from the list automatically due to the filter
+                                    // Refresh stats for this playlist (with small delay to ensure DB update completes)
+                                    if (geniusMatchResult?.playlistId) {
+                                      setTimeout(() => {
+                                        refreshPlaylistStats(geniusMatchResult.playlistId);
+                                      }, 300);
+                                    }
+                                    
+                                      // If showing unmatched only, the song will disappear from the list automatically due to the filter
                                   } catch (err) {
                                     alert(`Error saving match: ${err.message}`);
                                   }
@@ -835,6 +880,13 @@ export default function Admin() {
                                           container.scrollTo({ top: 0, behavior: 'smooth' });
                                         }
                                       }, 100);
+                                      
+                                      // Refresh stats for this playlist (with small delay to ensure DB update completes)
+                                      if (geniusMatchResult?.playlistId) {
+                                        setTimeout(() => {
+                                          refreshPlaylistStats(geniusMatchResult.playlistId);
+                                        }, 300);
+                                      }
                                       
                                       // If showing unmatched only, the song will disappear from the list automatically due to the filter
                                     } catch (err) {
