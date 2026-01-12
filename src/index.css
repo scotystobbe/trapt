@@ -10,7 +10,7 @@ html, body {
 }
 
 #root {
-  padding-top: env(safe-area-inset-top);
+  /* Removed padding-top to avoid double-counting safe area with App.jsx padding */
 }
 
 .safe-area-top-overlay {
