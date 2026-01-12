@@ -439,9 +439,6 @@ export default function NowPlaying() {
     }
   };
 
-  // Detect PWA mode for spacing adjustments
-  const isPWAMode = isPWA();
-  
   return (
     <div style={{ backgroundColor: nightMode ? '#000' : '#18181b' }} className={"min-h-screen " + (nightMode ? 'night-mode' : '')}>
       <LogoHeader logoClassName={dimClass}>
@@ -452,21 +449,7 @@ export default function NowPlaying() {
           background: #000 !important;
         }
       `}</style>
-      <div 
-        className="max-w-2xl mx-auto w-full px-4 pb-4 flex flex-col items-center"
-        style={{
-          // In PWA mode, the App.jsx padding (63px + safe-area + 20px) doesn't match the header height
-          // Header actual height: safe-area + 16px (paddingTop) + 60px (logo) + 8px (py-2) = safe-area + 84px
-          // We need to override App.jsx padding and set to exact header height
-          paddingTop: isPWAMode 
-            ? 'calc(env(safe-area-inset-top, 0px) + 84px)' 
-            : undefined,
-          // Counteract the App.jsx padding in PWA mode
-          marginTop: isPWAMode 
-            ? 'calc(-63px - env(safe-area-inset-top, 20px))' 
-            : undefined
-        }}
-      >
+      <div className="max-w-2xl mx-auto w-full p-4 flex flex-col items-center">
         {initialLoading ? (
           <div className="w-full flex flex-col items-center">
             <div className="relative mb-8">
