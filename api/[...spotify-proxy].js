@@ -76,6 +76,7 @@ async function handleLogin(res) {
   const scopes = [
     'user-read-currently-playing',
     'user-read-playback-state',
+    'user-modify-playback-state',
     'playlist-modify-private',
     'playlist-modify-public'
   ];
@@ -129,7 +130,7 @@ async function handleCallback(req, res, query) {
   }
 }
 
-async function handleCurrentlyPlaying(req, res) {
+async function getAccessToken(req, res) {
   let accessToken = getCookie(req, 'spotify_access_token');
   const refreshToken = getCookie(req, 'spotify_refresh_token');
   const expiresAt = parseInt(getCookie(req, 'spotify_expires_at'), 10);
@@ -155,16 +156,77 @@ async function handleCurrentlyPlaying(req, res) {
         setCookie(res, 'spotify_expires_at', Date.now() + (refreshData.expires_in || 3600) * 1000, { maxAge: refreshData.expires_in });
       } else {
         res.statusCode = 401;
-        return res.end(JSON.stringify({ error: 'Failed to refresh token', details: refreshData }));
+        return null;
       }
     } catch (err) {
       res.statusCode = 500;
-      return res.end(JSON.stringify({ error: 'Token refresh error', details: err.message }));
+      return null;
     }
   }
 
   if (!accessToken) {
     res.statusCode = 401;
+    return null;
+  }
+
+  return accessToken;
+}
+
+async function handlePause(req, res) {
+  const accessToken = await getAccessToken(req, res);
+  if (!accessToken) {
+    return res.end(JSON.stringify({ error: 'Not authenticated with Spotify' }));
+  }
+
+  try {
+    const pauseRes = await fetch('https://api.spotify.com/v1/me/player/pause', {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (pauseRes.status === 204 || pauseRes.status === 200) {
+      res.statusCode = 200;
+      return res.end(JSON.stringify({ success: true }));
+    }
+
+    const errorData = await pauseRes.json().catch(() => ({}));
+    res.statusCode = pauseRes.status;
+    return res.end(JSON.stringify({ error: 'Failed to pause', details: errorData }));
+  } catch (err) {
+    res.statusCode = 500;
+    return res.end(JSON.stringify({ error: 'Failed to pause playback', details: err.message }));
+  }
+}
+
+async function handlePlay(req, res) {
+  const accessToken = await getAccessToken(req, res);
+  if (!accessToken) {
+    return res.end(JSON.stringify({ error: 'Not authenticated with Spotify' }));
+  }
+
+  try {
+    const playRes = await fetch('https://api.spotify.com/v1/me/player/play', {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (playRes.status === 204 || playRes.status === 200) {
+      res.statusCode = 200;
+      return res.end(JSON.stringify({ success: true }));
+    }
+
+    const errorData = await playRes.json().catch(() => ({}));
+    res.statusCode = playRes.status;
+    return res.end(JSON.stringify({ error: 'Failed to play', details: errorData }));
+  } catch (err) {
+    res.statusCode = 500;
+    return res.end(JSON.stringify({ error: 'Failed to play playback', details: err.message }));
+  }
+}
+
+async function handleCurrentlyPlaying(req, res) {
+  const accessToken = await getAccessToken(req, res);
+  if (!accessToken) {
     return res.end(JSON.stringify({ error: 'Not authenticated with Spotify' }));
   }
 
@@ -211,6 +273,14 @@ module.exports = async (req, res) => {
 
   if (subroute === 'currently-playing') {
     return handleCurrentlyPlaying(req, res);
+  }
+
+  if (subroute === 'pause' && req.method === 'POST') {
+    return handlePause(req, res);
+  }
+
+  if (subroute === 'play' && req.method === 'POST') {
+    return handlePlay(req, res);
   }
 
   if (subroute === 'create-unrated-playlist' && req.method === 'POST') {

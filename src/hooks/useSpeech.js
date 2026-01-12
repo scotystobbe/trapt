@@ -84,8 +84,58 @@ export function useSpeech() {
     }
   }, []);
 
+  // Helper to find the best voice for natural speech
+  const findBestVoice = useCallback(() => {
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length === 0) return null;
+
+    // Prefer enhanced/premium voices for better quality
+    // On macOS: Look for "Samantha", "Alex", "Victoria", "Daniel", "Fiona"
+    // On iOS: Look for "Siri" voices or enhanced voices
+    // On other platforms: Look for "Google" voices or enhanced voices
+    
+    const preferredNames = [
+      'Samantha', 'Alex', 'Victoria', 'Daniel', 'Fiona', // macOS
+      'Siri', 'Enhanced', // iOS
+      'Google', 'Microsoft', // Other platforms
+    ];
+
+    // First, try to find a preferred voice
+    for (const name of preferredNames) {
+      const voice = voices.find(v => 
+        v.name.includes(name) || v.name.toLowerCase().includes(name.toLowerCase())
+      );
+      if (voice) {
+        console.log('[Speech] Using preferred voice:', voice.name);
+        return voice;
+      }
+    }
+
+    // Look for enhanced voices
+    const enhancedVoice = voices.find(v => 
+      v.name.toLowerCase().includes('enhanced') || 
+      v.name.toLowerCase().includes('premium') ||
+      v.localService === false // Cloud voices are often better quality
+    );
+    if (enhancedVoice) {
+      console.log('[Speech] Using enhanced voice:', enhancedVoice.name);
+      return enhancedVoice;
+    }
+
+    // Use default voice if available
+    const defaultVoice = voices.find(v => v.default);
+    if (defaultVoice) {
+      console.log('[Speech] Using default voice:', defaultVoice.name);
+      return defaultVoice;
+    }
+
+    // Fallback to first available voice
+    console.log('[Speech] Using fallback voice:', voices[0].name);
+    return voices[0];
+  }, []);
+
   // The actual speech execution function
-  const executeSpeak = useCallback((text) => {
+  const executeSpeak = useCallback(async (text) => {
     // Cancel any ongoing speech to allow new speech
     if (window.speechSynthesis.speaking) {
       console.log('[Speech] Cancelling previous speech');
@@ -96,22 +146,30 @@ export function useSpeech() {
       }, 100);
     }
 
+    // Pause Spotify playback before speaking
+    let wasPlaying = false;
+    try {
+      const pauseRes = await fetch('/api/spotify-proxy/pause', { method: 'POST' });
+      if (pauseRes.ok) {
+        wasPlaying = true;
+        console.log('[Speech] Paused Spotify playback');
+      }
+    } catch (err) {
+      console.warn('[Speech] Could not pause Spotify:', err);
+    }
+
     try {
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1.0;
-      utterance.pitch = 1.0;
-      utterance.volume = 0.8;
       
-      // For iOS, sometimes we need to set the voice explicitly
-      if (isIOSDevice.current) {
-        const voices = window.speechSynthesis.getVoices();
-        if (voices.length > 0) {
-          // Prefer a default voice, or use the first available
-          const defaultVoice = voices.find(v => v.default) || voices[0];
-          if (defaultVoice) {
-            utterance.voice = defaultVoice;
-          }
-        }
+      // Use more natural speech parameters
+      utterance.rate = 0.95; // Slightly slower for more natural speech
+      utterance.pitch = 1.0; // Natural pitch
+      utterance.volume = 0.9; // Slightly louder for clarity
+      
+      // Find and use the best available voice
+      const bestVoice = findBestVoice();
+      if (bestVoice) {
+        utterance.voice = bestVoice;
       }
       
       utterance.onstart = () => {
@@ -122,11 +180,34 @@ export function useSpeech() {
       utterance.onend = () => {
         console.log('[Speech] Speech ended');
         isSpeakingRef.current = false;
+        
+        // Resume Spotify playback after speech ends
+        if (wasPlaying) {
+          setTimeout(async () => {
+            try {
+              await fetch('/api/spotify-proxy/play', { method: 'POST' });
+              console.log('[Speech] Resumed Spotify playback');
+            } catch (err) {
+              console.warn('[Speech] Could not resume Spotify:', err);
+            }
+          }, 200); // Small delay to ensure speech is fully done
+        }
       };
       
       utterance.onerror = (event) => {
         console.error('[Speech] Speech error:', event.error);
         isSpeakingRef.current = false;
+        
+        // Resume Spotify even on error
+        if (wasPlaying) {
+          setTimeout(async () => {
+            try {
+              await fetch('/api/spotify-proxy/play', { method: 'POST' });
+            } catch (err) {
+              console.warn('[Speech] Could not resume Spotify:', err);
+            }
+          }, 200);
+        }
       };
 
       synthRef.current = utterance;
@@ -137,9 +218,9 @@ export function useSpeech() {
         const loadVoices = () => {
           const voices = window.speechSynthesis.getVoices();
           if (voices.length > 0) {
-            const defaultVoice = voices.find(v => v.default) || voices[0];
-            if (defaultVoice) {
-              utterance.voice = defaultVoice;
+            const bestVoice = findBestVoice();
+            if (bestVoice) {
+              utterance.voice = bestVoice;
             }
             window.speechSynthesis.speak(utterance);
             console.log('[Speech] Speech queued (voices loaded)');
@@ -156,14 +237,33 @@ export function useSpeech() {
         }
         loadVoices();
       } else {
+        // Try to get voices if not already loaded (for better voice selection)
+        const voices = window.speechSynthesis.getVoices();
+        if (voices.length > 0) {
+          const bestVoice = findBestVoice();
+          if (bestVoice && !utterance.voice) {
+            utterance.voice = bestVoice;
+          }
+        }
         window.speechSynthesis.speak(utterance);
         console.log('[Speech] Speech queued');
       }
     } catch (err) {
       console.error('[Speech] Speech error:', err);
       isSpeakingRef.current = false;
+      
+      // Resume Spotify on error
+      if (wasPlaying) {
+        setTimeout(async () => {
+          try {
+            await fetch('/api/spotify-proxy/play', { method: 'POST' });
+          } catch (err) {
+            console.warn('[Speech] Could not resume Spotify:', err);
+          }
+        }, 200);
+      }
     }
-  }, []);
+  }, [findBestVoice]);
 
   // Store reference for use in initialization
   executeSpeakRef.current = executeSpeak;
