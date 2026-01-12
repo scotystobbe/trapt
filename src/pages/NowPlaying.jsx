@@ -449,7 +449,7 @@ export default function NowPlaying() {
           background: #000 !important;
         }
       `}</style>
-      <div className="max-w-2xl mx-auto w-full p-4 flex flex-col items-center">
+      <div className="max-w-2xl mx-auto w-full px-4 pt-8 pb-4 flex flex-col items-center">
         {initialLoading ? (
           <div className="w-full flex flex-col items-center">
             <div className="relative mb-8">

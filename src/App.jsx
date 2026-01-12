@@ -96,7 +96,7 @@ export default function App() {
       <NightModeProvider>
         <div className="safe-area-top-overlay"></div>
         <NightModeBodyWrapper>
-          <div className="dark" style={{ backgroundColor: '#18181b', paddingTop: 'calc(84px + env(safe-area-inset-top, 0px))' }}>
+          <div className="dark" style={{ backgroundColor: '#18181b', paddingTop: 'calc(63px + env(safe-area-inset-top, 20px))' }}>
             <Router>
               <ScrollToTop />
               <Routes>

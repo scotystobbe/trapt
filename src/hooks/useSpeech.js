@@ -135,7 +135,7 @@ export function useSpeech() {
   }, []);
 
   // The actual speech execution function
-  const executeSpeak = useCallback(async (text) => {
+  const executeSpeak = useCallback((text) => {
     // Cancel any ongoing speech to allow new speech
     if (window.speechSynthesis.speaking) {
       console.log('[Speech] Cancelling previous speech');
@@ -144,18 +144,6 @@ export function useSpeech() {
       setTimeout(() => {
         isSpeakingRef.current = false;
       }, 100);
-    }
-
-    // Pause Spotify playback before speaking
-    let wasPlaying = false;
-    try {
-      const pauseRes = await fetch('/api/spotify-proxy/pause', { method: 'POST' });
-      if (pauseRes.ok) {
-        wasPlaying = true;
-        console.log('[Speech] Paused Spotify playback');
-      }
-    } catch (err) {
-      console.warn('[Speech] Could not pause Spotify:', err);
     }
 
     try {
@@ -180,34 +168,11 @@ export function useSpeech() {
       utterance.onend = () => {
         console.log('[Speech] Speech ended');
         isSpeakingRef.current = false;
-        
-        // Resume Spotify playback after speech ends
-        if (wasPlaying) {
-          setTimeout(async () => {
-            try {
-              await fetch('/api/spotify-proxy/play', { method: 'POST' });
-              console.log('[Speech] Resumed Spotify playback');
-            } catch (err) {
-              console.warn('[Speech] Could not resume Spotify:', err);
-            }
-          }, 200); // Small delay to ensure speech is fully done
-        }
       };
       
       utterance.onerror = (event) => {
         console.error('[Speech] Speech error:', event.error);
         isSpeakingRef.current = false;
-        
-        // Resume Spotify even on error
-        if (wasPlaying) {
-          setTimeout(async () => {
-            try {
-              await fetch('/api/spotify-proxy/play', { method: 'POST' });
-            } catch (err) {
-              console.warn('[Speech] Could not resume Spotify:', err);
-            }
-          }, 200);
-        }
       };
 
       synthRef.current = utterance;
