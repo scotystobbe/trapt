@@ -429,7 +429,11 @@ export default function Admin() {
                 </div>
                 <div className="max-h-96 overflow-y-auto space-y-3">
                   {geniusMatchResult.results
-                    .filter(result => !showUnmatchedOnly || result.status !== 'already_matched')
+                    .filter(result => {
+                      if (result.status === 'no_match_available') return false; // Always hide no-match songs
+                      if (showUnmatchedOnly && result.status === 'already_matched' && result.geniusId) return false; // Hide matched songs when filtered, but show cleared ones
+                      return true;
+                    })
                     .map((result) => {
                     const isSelected = matchSelections[result.songId];
                     const manualEntry = manualEntries[result.songId];
@@ -442,40 +446,149 @@ export default function Admin() {
                             <div className="text-white font-semibold">{result.title}</div>
                             <div className="text-gray-400 text-sm">{result.artist}</div>
                             {result.status === 'already_matched' && (
-                              <div className="text-green-400 text-xs mt-1">✓ Already matched</div>
-                            )}
-                            {result.thumbnail && result.status === 'already_matched' && (
-                              <div className="mt-2 flex items-center gap-3">
-                                <img src={result.thumbnail} alt="" className="w-16 h-16 rounded object-cover" />
-                                <div>
-                                  <div className="text-white text-sm font-medium">{result.geniusTitle || 'Genius Song'}</div>
-                                  <div className="text-gray-400 text-xs">{result.geniusArtist || 'Artist'}</div>
-                                  {result.geniusUrl && (
-                                    <a
-                                      href={result.geniusUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-yellow-400 text-xs hover:underline mt-1 inline-block"
-                                    >
-                                      View on Genius →
-                                    </a>
-                                  )}
-                                </div>
-                              </div>
+                              <>
+                                <div className="text-green-400 text-xs mt-1">✓ Already matched</div>
+                                {result.thumbnail && (
+                                  <div className="mt-2 flex items-center gap-3">
+                                    <img src={result.thumbnail} alt="" className="w-16 h-16 rounded object-cover" />
+                                    <div>
+                                      <div className="text-white text-sm font-medium">{result.geniusTitle || 'Genius Song'}</div>
+                                      <div className="text-gray-400 text-xs">{result.geniusArtist || 'Artist'}</div>
+                                      {result.geniusUrl && (
+                                        <a
+                                          href={result.geniusUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-yellow-400 text-xs hover:underline mt-1 inline-block"
+                                        >
+                                          View on Genius →
+                                        </a>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                              </>
                             )}
                             {result.status === 'error' && (
                               <div className="text-red-400 text-xs mt-1">✗ Error: {result.error}</div>
                             )}
+                            {result.status === 'no_match_available' && (
+                              <div className="text-gray-500 text-xs mt-1">⊘ No match available</div>
+                            )}
                           </div>
-                          {result.status !== 'already_matched' && result.status !== 'error' && (
+                          {result.status === 'already_matched' && (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={async () => {
+                                  if (!confirm('Clear this match? The song will be available for matching again.')) {
+                                    return;
+                                  }
+                                  try {
+                                    const res = await fetch('/api/admin/match-genius', {
+                                      method: 'POST',
+                                      headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                                      },
+                                      body: JSON.stringify({
+                                        action: 'clear-match',
+                                        songIds: [result.songId]
+                                      }),
+                                    });
+                                    const data = await res.json();
+                                    if (!res.ok) throw new Error(data.error || 'Failed to clear match');
+                                    
+                                    // Update the result to show it needs to be re-searched
+                                    // The song will now appear in the unmatched list
+                                    setGeniusMatchResult(prev => ({
+                                      ...prev,
+                                      results: prev.results.map(r => 
+                                        r.songId === result.songId 
+                                          ? { ...r, status: 'cleared', geniusId: null, geniusUrl: null, thumbnail: null, geniusTitle: null, geniusArtist: null, potentialMatches: [] }
+                                          : r
+                                      )
+                                    }));
+                                    
+                                    // Clear saved match state
+                                    setSavedMatches(prev => {
+                                      const next = { ...prev };
+                                      delete next[result.songId];
+                                      return next;
+                                    });
+                                    setMatchSelections(prev => {
+                                      const next = { ...prev };
+                                      delete next[result.songId];
+                                      return next;
+                                    });
+                                  } catch (err) {
+                                    alert(`Error clearing match: ${err.message}`);
+                                  }
+                                }}
+                                className="text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-500"
+                                title="Clear this match"
+                              >
+                                Clear Match
+                              </button>
+                            </div>
+                          )}
+                          {result.status === 'cleared' && (
+                            <div className="flex gap-2">
+                              <div className="text-xs px-2 py-1 bg-gray-700 text-gray-400 rounded">
+                                Match cleared - re-run search to find matches
+                              </div>
+                            </div>
+                          )}
+                          {(result.status !== 'already_matched' && result.status !== 'error' && result.status !== 'no_match_available' && result.status !== 'cleared') && (
                             <div className="flex gap-2">
                               {!isManualEntryVisible && (
-                                <button
-                                  onClick={() => setShowManualEntry(prev => ({ ...prev, [result.songId]: true }))}
-                                  className="text-xs px-2 py-1 bg-gray-700 text-white rounded hover:bg-gray-600"
-                                >
-                                  Manual Entry
-                                </button>
+                                <>
+                                  <button
+                                    onClick={() => setShowManualEntry(prev => ({ ...prev, [result.songId]: true }))}
+                                    className="text-xs px-2 py-1 bg-gray-700 text-white rounded hover:bg-gray-600"
+                                  >
+                                    Manual Entry
+                                  </button>
+                                  <button
+                                    onClick={async () => {
+                                      if (!confirm('Mark this song as "No match available"? It will be hidden from future searches.')) {
+                                        return;
+                                      }
+                                      try {
+                                        const res = await fetch('/api/admin/match-genius', {
+                                          method: 'POST',
+                                          headers: {
+                                            'Content-Type': 'application/json',
+                                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                                          },
+                                          body: JSON.stringify({
+                                            action: 'mark-no-match',
+                                            songIds: [result.songId]
+                                          }),
+                                        });
+                                        const data = await res.json();
+                                        if (!res.ok) throw new Error(data.error || 'Failed to mark as no match');
+                                        
+                                        // Update the result status
+                                        setGeniusMatchResult(prev => ({
+                                          ...prev,
+                                          results: prev.results.map(r => 
+                                            r.songId === result.songId 
+                                              ? { ...r, status: 'no_match_available' }
+                                              : r
+                                          )
+                                        }));
+                                        
+                                        // If showing unmatched only, the song will disappear automatically
+                                      } catch (err) {
+                                        alert(`Error marking as no match: ${err.message}`);
+                                      }
+                                    }}
+                                    className="text-xs px-2 py-1 bg-gray-600 text-white rounded hover:bg-gray-500"
+                                    title="Mark as no match available"
+                                  >
+                                    No Match
+                                  </button>
+                                </>
                               )}
                               {isSelected && (
                                 <button

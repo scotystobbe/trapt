@@ -42,6 +42,7 @@ model Song {
   artworkUrl   String?
   geniusSongId Int?
   geniusUrl    String?
+  geniusNoMatch Boolean @default(false)
 }
 
 model User {

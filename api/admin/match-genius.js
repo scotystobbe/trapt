@@ -182,6 +182,58 @@ module.exports = async (req, res) => {
         }
       }
 
+      // Handle marking songs as no match available
+      if (req.method === 'POST' && req.body.action === 'mark-no-match') {
+        const { songIds } = req.body;
+        if (!Array.isArray(songIds) || songIds.length === 0) {
+          return res.status(400).json({ error: 'Missing or invalid songIds array' });
+        }
+
+        try {
+          const updated = [];
+          for (const songId of songIds) {
+            const song = await prisma.song.update({
+              where: { id: parseInt(songId) },
+              data: {
+                geniusNoMatch: true,
+              },
+            });
+            updated.push(song);
+          }
+          return res.status(200).json({ success: true, updated: updated.length });
+        } catch (err) {
+          console.error('Error marking songs as no match:', err);
+          return res.status(500).json({ error: 'Failed to mark songs as no match', details: err.message });
+        }
+      }
+
+      // Handle clearing/removing a match
+      if (req.method === 'POST' && req.body.action === 'clear-match') {
+        const { songIds } = req.body;
+        if (!Array.isArray(songIds) || songIds.length === 0) {
+          return res.status(400).json({ error: 'Missing or invalid songIds array' });
+        }
+
+        try {
+          const updated = [];
+          for (const songId of songIds) {
+            const song = await prisma.song.update({
+              where: { id: parseInt(songId) },
+              data: {
+                geniusSongId: null,
+                geniusUrl: null,
+                geniusNoMatch: false, // Also clear the no-match flag so it can be searched again
+              },
+            });
+            updated.push(song);
+          }
+          return res.status(200).json({ success: true, updated: updated.length, updatedSongs: updated });
+        } catch (err) {
+          console.error('Error clearing matches:', err);
+          return res.status(500).json({ error: 'Failed to clear matches', details: err.message });
+        }
+      }
+
       if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
       }
@@ -211,6 +263,17 @@ module.exports = async (req, res) => {
 
         // Process each song
         for (const song of songs) {
+          // Skip if marked as no match available
+          if (song.geniusNoMatch) {
+            results.push({
+              songId: song.id,
+              title: song.title,
+              artist: song.artist,
+              status: 'no_match_available',
+            });
+            continue;
+          }
+          
           // Skip if already has a Genius ID - don't search for it
           if (song.geniusSongId) {
             // Fetch Genius song details to show thumbnail and info
