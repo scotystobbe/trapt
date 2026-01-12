@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaBars, FaMoon, FaSun, FaVolumeUp, FaChartBar } from 'react-icons/fa';
+import { FaBars, FaMoon, FaSun, FaVolumeUp } from 'react-icons/fa';
 import { useNightMode } from '../App';
 import { useAuth } from './AuthProvider';
 import { getSpeechMode, setSpeechMode, SPEECH_MODES } from '../hooks/useSpeech';
@@ -88,11 +88,10 @@ export default function HamburgerMenu({ className = '' }) {
           {user && (
             <Link
               to="/admin/stats"
-              className="block px-4 py-2 text-white hover:bg-[#3f3f46] flex items-center gap-2"
+              className="block px-4 py-2 text-white hover:bg-[#3f3f46]"
               onClick={() => setOpen(false)}
             >
-              <FaChartBar className="text-sm" />
-              Statistics
+              Stats
             </Link>
           )}
           <div className="border-t mt-2 pt-4 pb-4 flex flex-col items-center gap-2" style={{ borderColor: '#3f3f46' }}>

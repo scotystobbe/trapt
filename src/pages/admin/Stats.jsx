@@ -151,9 +151,8 @@ export default function Stats() {
         </Link>
       </LogoHeader>
       <div className="max-w-6xl mx-auto w-full p-6">
-        <div className="flex items-center gap-3 mb-8">
-          <FaChartBar className="text-3xl text-white" />
-          <h1 className="text-3xl font-bold text-white">Statistics & Reports</h1>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-white">Stats</h1>
         </div>
 
         {/* Overview Cards */}
