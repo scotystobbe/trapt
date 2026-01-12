@@ -49,12 +49,9 @@ function EditableStarRating({ rating, onRatingChange, size = 56, nightMode, empt
 
 // Add helper function to open Genius app or fallback to web
 function openGeniusAppOrWeb(songId, webUrl) {
-  const appUrl = `genius://songs/${songId}`;
-  const timeout = setTimeout(() => {
-    window.open(webUrl, '_blank', 'noopener,noreferrer');
-  }, 800);
-  window.location = appUrl;
-  window.addEventListener('pagehide', () => clearTimeout(timeout), { once: true });
+  // Use direct link to avoid blank browser issue
+  // Open the web URL directly - it will open in the Genius app if installed, otherwise in browser
+  window.open(webUrl, '_blank', 'noopener,noreferrer');
 }
 
 // Scrolling text component for artist/album
@@ -633,12 +630,12 @@ export default function NowPlaying() {
             )}
             <button
               onClick={handleGeniusIconClick}
-              className="text-yellow-400 hover:text-yellow-300 focus:outline-none"
-              style={{ fontSize: 36 }}
+              className="text-yellow-400 hover:text-yellow-300 focus:outline-none flex flex-col items-center gap-2"
               title="View on Genius"
               disabled={!dbSong || searchLoading}
             >
-              <SiGenius />
+              <SiGenius style={{ fontSize: 36 }} />
+              <span className="text-sm font-medium">Open Lyrics</span>
             </button>
             {searchLoading && <div className="text-gray-300 mt-4">Loading...</div>}
             {showResults && (

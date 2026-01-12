@@ -31,6 +31,7 @@ export default function Admin() {
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
   const [playlists, setPlaylists] = useState([]);
+  const [playlistStats, setPlaylistStats] = useState({}); // { playlistId: { matched, unmatched, noMatch } }
   const [deletingId, setDeletingId] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [existingPlaylist, setExistingPlaylist] = useState(null);
@@ -141,8 +142,35 @@ export default function Admin() {
           return b.name.localeCompare(a.name, undefined, { numeric: true, sensitivity: 'base' });
         });
         setPlaylists(sorted);
+        
+        // Fetch stats for each playlist
+        const statsPromises = sorted
+          .filter(p => p.name !== 'TRAPT' && p.name !== 'TRAPT+')
+          .map(playlist => 
+            fetch(`/api/songs?playlistId=${playlist.id}`)
+              .then(res => res.json())
+              .then(songs => {
+                const matched = songs.filter(s => s.geniusSongId).length;
+                const noMatch = songs.filter(s => s.geniusNoMatch).length;
+                const unmatched = songs.length - matched - noMatch;
+                return { playlistId: playlist.id, matched, unmatched, noMatch };
+              })
+              .catch(() => ({ playlistId: playlist.id, matched: 0, unmatched: 0, noMatch: 0 }))
+          );
+        
+        Promise.all(statsPromises).then(stats => {
+          const statsObj = {};
+          stats.forEach(stat => {
+            statsObj[stat.playlistId] = {
+              matched: stat.matched,
+              unmatched: stat.unmatched,
+              noMatch: stat.noMatch
+            };
+          });
+          setPlaylistStats(statsObj);
+        });
       });
-  }, [importResult, deletingId]);
+  }, [importResult, deletingId, geniusMatchResult]);
 
   const handleDelete = async (id) => {
     setDeletingId(id);
@@ -360,12 +388,21 @@ export default function Admin() {
               Make sure you're connected to Genius first.
             </p>
             <div className="space-y-2">
-              {playlists.filter(p => p.name !== 'TRAPT' && p.name !== 'TRAPT+').map(p => (
+              {playlists.filter(p => p.name !== 'TRAPT' && p.name !== 'TRAPT+').map(p => {
+                const stats = playlistStats[p.id] || { matched: 0, unmatched: 0, noMatch: 0 };
+                return (
                 <div key={p.id} className="flex items-center gap-4 p-2 bg-gray-800 rounded">
                   {p.artworkUrl && (
                     <img src={p.artworkUrl} alt={p.name} className="w-8 h-8 object-cover rounded" />
                   )}
-                  <span className="text-white flex-1">{p.name}</span>
+                  <div className="flex-1">
+                    <div className="text-white">{p.name}</div>
+                    <div className="text-xs text-gray-400 flex gap-3 mt-1">
+                      <span className="text-green-400">Matched: {stats.matched}</span>
+                      <span className="text-yellow-400">Unmatched: {stats.unmatched}</span>
+                      <span className="text-gray-500">No Match: {stats.noMatch}</span>
+                    </div>
+                  </div>
                   <Button
                     variant="yellow"
                     onClick={async () => {
@@ -401,7 +438,8 @@ export default function Admin() {
                     {matchingGenius && matchingPlaylistId === p.id ? 'Searching...' : 'Match Songs'}
                   </Button>
                 </div>
-              ))}
+              );
+              })}
             </div>
             {matchingGenius && matchingPlaylistId && (
               <div className="mt-4 p-4 bg-gray-800 rounded">
@@ -583,7 +621,7 @@ export default function Admin() {
                                         alert(`Error marking as no match: ${err.message}`);
                                       }
                                     }}
-                                    className="text-xs px-2 py-1 bg-gray-600 text-white rounded hover:bg-gray-500"
+                                    className="text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-500"
                                     title="Mark as no match available"
                                   >
                                     No Match
