@@ -55,7 +55,7 @@ export default function Login() {
             className="self-end px-6 py-2 rounded bg-green-600 text-white font-semibold hover:bg-green-500 transition shadow-none"
             disabled={loading}
           >
-            {loading ? 'Logging in...' : 'Login'}
+            {loading ? 'Logging in...' : 'Log In'}
           </button>
         </form>
       </div>

@@ -39,6 +39,9 @@ export default function Admin() {
   const [users, setUsers] = useState([]);
   const [userLoading, setUserLoading] = useState(false);
   const [userError, setUserError] = useState('');
+  const [showCreateUser, setShowCreateUser] = useState(false);
+  const [newUser, setNewUser] = useState({ email: '', username: '', password: '', name: '', role: 'VIEWER' });
+  const [creatingUser, setCreatingUser] = useState(false);
   const [roleUpdating, setRoleUpdating] = useState({});
   const [matchingGenius, setMatchingGenius] = useState(false);
   const [geniusMatchResult, setGeniusMatchResult] = useState(null);
@@ -260,6 +263,32 @@ export default function Admin() {
       setUserError(err.message);
     } finally {
       setRoleUpdating(r => ({ ...r, [id]: false }));
+    }
+  };
+
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    if (!newUser.email || !newUser.password) {
+      setUserError('Email and password are required');
+      return;
+    }
+    setCreatingUser(true);
+    setUserError('');
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+        body: JSON.stringify(newUser),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create user');
+      setUsers([...users, data.user]);
+      setNewUser({ email: '', username: '', password: '', name: '', role: 'VIEWER' });
+      setShowCreateUser(false);
+    } catch (err) {
+      setUserError(err.message);
+    } finally {
+      setCreatingUser(false);
     }
   };
 
@@ -949,38 +978,115 @@ export default function Admin() {
         <ExpandableSection title={<span><FaUserShield className="inline mr-2" />User Management</span>} defaultOpen={false}>
           {userLoading ? (
             <div className="text-gray-300">Loading users...</div>
-          ) : userError ? (
-            <div className="text-red-400">{userError}</div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-white text-sm">
-                <thead>
-                  <tr className="border-b border-gray-700">
-                    <th className="py-2 px-2 text-left">Username</th>
-                    <th className="py-2 px-2 text-left">Email</th>
-                    <th className="py-2 px-2 text-left">Role</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map(u => (
-                    <tr key={u.id} className="border-b border-gray-800">
-                      <td className="py-2 px-2">{u.username || <span className="italic text-gray-400">(none)</span>}</td>
-                      <td className="py-2 px-2">{u.email}</td>
-                      <td className="py-2 px-2">
-                        <select
-                          value={u.role}
-                          onChange={e => handleRoleChange(u.id, e.target.value)}
-                          className="bg-[#232326] border border-[#3f3f46] rounded px-2 py-1 text-white"
-                          disabled={roleUpdating[u.id]}
-                        >
-                          <option value="ADMIN">ADMIN</option>
-                          <option value="VIEWER">VIEWER</option>
-                        </select>
-                      </td>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-white font-semibold">Users ({users.length})</h3>
+                <button
+                  onClick={() => setShowCreateUser(!showCreateUser)}
+                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-500 text-sm font-semibold"
+                >
+                  {showCreateUser ? 'Cancel' : '+ Create User'}
+                </button>
+              </div>
+              
+              {userError && (
+                <div className="text-red-400 bg-red-900 bg-opacity-30 p-2 rounded">{userError}</div>
+              )}
+              
+              {showCreateUser && (
+                <form onSubmit={handleCreateUser} className="bg-[#232326] p-4 rounded space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm text-gray-300 mb-1">Email *</label>
+                      <input
+                        type="email"
+                        value={newUser.email}
+                        onChange={e => setNewUser({ ...newUser, email: e.target.value })}
+                        className="w-full px-3 py-2 rounded bg-[#18181b] border border-[#3f3f46] text-white text-sm"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-300 mb-1">Password *</label>
+                      <input
+                        type="password"
+                        value={newUser.password}
+                        onChange={e => setNewUser({ ...newUser, password: e.target.value })}
+                        className="w-full px-3 py-2 rounded bg-[#18181b] border border-[#3f3f46] text-white text-sm"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-300 mb-1">Username</label>
+                      <input
+                        type="text"
+                        value={newUser.username}
+                        onChange={e => setNewUser({ ...newUser, username: e.target.value })}
+                        className="w-full px-3 py-2 rounded bg-[#18181b] border border-[#3f3f46] text-white text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-300 mb-1">Name</label>
+                      <input
+                        type="text"
+                        value={newUser.name}
+                        onChange={e => setNewUser({ ...newUser, name: e.target.value })}
+                        className="w-full px-3 py-2 rounded bg-[#18181b] border border-[#3f3f46] text-white text-sm"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-sm text-gray-300 mb-1">Role</label>
+                      <select
+                        value={newUser.role}
+                        onChange={e => setNewUser({ ...newUser, role: e.target.value })}
+                        className="w-full px-3 py-2 rounded bg-[#18181b] border border-[#3f3f46] text-white text-sm"
+                      >
+                        <option value="VIEWER">VIEWER</option>
+                        <option value="ADMIN">ADMIN</option>
+                      </select>
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={creatingUser}
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500 text-sm font-semibold disabled:opacity-50"
+                  >
+                    {creatingUser ? 'Creating...' : 'Create User'}
+                  </button>
+                </form>
+              )}
+              
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-white text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-700">
+                      <th className="py-2 px-2 text-left">Username</th>
+                      <th className="py-2 px-2 text-left">Email</th>
+                      <th className="py-2 px-2 text-left">Role</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {users.map(u => (
+                      <tr key={u.id} className="border-b border-gray-800">
+                        <td className="py-2 px-2">{u.username || <span className="italic text-gray-400">(none)</span>}</td>
+                        <td className="py-2 px-2">{u.email}</td>
+                        <td className="py-2 px-2">
+                          <select
+                            value={u.role}
+                            onChange={e => handleRoleChange(u.id, e.target.value)}
+                            className="bg-[#232326] border border-[#3f3f46] rounded px-2 py-1 text-white"
+                            disabled={roleUpdating[u.id]}
+                          >
+                            <option value="ADMIN">ADMIN</option>
+                            <option value="VIEWER">VIEWER</option>
+                          </select>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </ExpandableSection>

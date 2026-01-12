@@ -36,6 +36,22 @@ module.exports = async (req, res) => {
         }
       }
 
+      // Add comment counts to all songs for filtering
+      for (const playlist of playlists) {
+        for (const song of playlist.songs) {
+          const commentCount = await prisma.comment.count({
+            where: { songId: song.id, parentCommentId: null },
+          });
+          const responseCount = await prisma.comment.count({
+            where: { songId: song.id, parentCommentId: { not: null } },
+          });
+          song.commentCount = commentCount;
+          song.responseCount = responseCount;
+          song.hasComments = commentCount > 0;
+          song.hasResponses = responseCount > 0;
+        }
+      }
+
       res.setHeader('Cache-Control', 'no-store');
       res.status(200).json(playlists);
     } catch (error) {

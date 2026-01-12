@@ -43,6 +43,7 @@ model Song {
   geniusSongId Int?
   geniusUrl    String?
   geniusNoMatch Boolean @default(false)
+  comments     Comment[]
 }
 
 model User {
@@ -52,4 +53,18 @@ model User {
   name     String?
   password String
   role     Role    @default(VIEWER)
+  comments Comment[]
+}
+
+model Comment {
+  id              Int       @id @default(autoincrement())
+  song            Song      @relation(fields: [songId], references: [id], onDelete: Cascade)
+  songId          Int
+  user            User      @relation(fields: [userId], references: [id])
+  userId          Int
+  content         String
+  parentCommentId Int?
+  parentComment   Comment?  @relation("CommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies         Comment[] @relation("CommentReplies")
+  createdAt       DateTime  @default(now())
 }

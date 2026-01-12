@@ -1,7 +1,7 @@
 import React from "react";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import StarRating from './StarRating';
-import { FaRegEdit } from 'react-icons/fa';
+import { FaRegEdit, FaComment } from 'react-icons/fa';
 import { mutate } from 'swr';
 import { SiGenius } from 'react-icons/si';
 import { useAuth } from './AuthProvider';
@@ -9,6 +9,7 @@ import { useAuth } from './AuthProvider';
 export default function SongCard({ song, playlistName, onSongUpdate }) {
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
+  const isViewer = user?.role === 'VIEWER';
   const [rating, setRating] = useState(song.rating);
   const [editing, setEditing] = useState(false);
   const [notes, setNotes] = useState(song.notes || '');
@@ -17,6 +18,12 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
   const [showResults, setShowResults] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState('');
+  const [comments, setComments] = useState([]);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [responseText, setResponseText] = useState('');
+  const [respondingTo, setRespondingTo] = useState(null);
+  const [submittingResponse, setSubmittingResponse] = useState(false);
 
   const saveSongUpdate = async (fields) => {
     if (!isAdmin) return;
@@ -120,6 +127,63 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
     setShowResults(false);
   };
 
+  const fetchComments = async () => {
+    if (loadingComments) return;
+    setLoadingComments(true);
+    try {
+      const res = await fetch(`/api/comments?songId=${song.id}`);
+      if (!res.ok) throw new Error('Failed to fetch comments');
+      const data = await res.json();
+      setComments(data);
+    } catch (err) {
+      console.error('Error fetching comments:', err);
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showComments && comments.length === 0 && !loadingComments) {
+      fetchComments();
+    }
+  }, [showComments, song.id]);
+
+  const handleSubmitResponse = async (e) => {
+    e.preventDefault();
+    if (!responseText.trim() || !user) return;
+    
+    setSubmittingResponse(true);
+    try {
+      const res = await fetch('/api/comments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          songId: song.id,
+          content: responseText.trim(),
+          parentCommentId: respondingTo || null,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to submit response');
+      setResponseText('');
+      setRespondingTo(null);
+      await fetchComments();
+      mutate('/api/playlists');
+    } catch (err) {
+      console.error('Error submitting response:', err);
+      setError('Could not submit response.');
+    } finally {
+      setSubmittingResponse(false);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   return (
     <div style={{ backgroundColor: '#27272a' }} className="p-4 rounded-xl flex flex-row gap-4 items-start">
       <div className="flex-shrink-0 w-24 h-24 rounded-md overflow-hidden flex items-center justify-center" style={{ backgroundColor: '#3f3f46' }}>
@@ -179,6 +243,171 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
             )}
           </div>
           {error && <div className="text-red-500 text-xs mt-1">{error}</div>}
+          
+          {/* Comments Section */}
+          {(notes || (song.commentCount > 0) || (song.responseCount > 0)) && (
+            <div className="mt-3 border-t border-gray-700 pt-3">
+              <div className="flex items-center justify-between mb-2">
+                <button
+                  onClick={() => {
+                    setShowComments(!showComments);
+                    if (!showComments) fetchComments();
+                  }}
+                  className="flex items-center gap-2 text-sm text-gray-400 hover:text-white"
+                >
+                  <FaComment />
+                  <span>
+                    {song.commentCount > 0 && `${song.commentCount} comment${song.commentCount !== 1 ? 's' : ''}`}
+                    {song.responseCount > 0 && ` • ${song.responseCount} response${song.responseCount !== 1 ? 's' : ''}`}
+                    {song.commentCount === 0 && song.responseCount === 0 && notes && 'View responses'}
+                  </span>
+                </button>
+              </div>
+              
+              {showComments && (
+                <div className="mt-3 space-y-3">
+                  {loadingComments ? (
+                    <div className="text-gray-400 text-sm">Loading comments...</div>
+                  ) : comments.length === 0 ? (
+                    <div className="text-gray-500 text-sm italic">No responses yet</div>
+                  ) : (
+                    comments.map(comment => (
+                      <div key={comment.id} className="bg-[#1f1f23] rounded p-3">
+                        <div className="flex items-start justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-white font-semibold text-sm">
+                              {comment.user.username || comment.user.name || 'Anonymous'}
+                            </span>
+                            {comment.user.role === 'ADMIN' && (
+                              <span className="text-xs bg-blue-600 px-2 py-0.5 rounded">ADMIN</span>
+                            )}
+                          </div>
+                          <span className="text-xs text-gray-500">{formatDate(comment.createdAt)}</span>
+                        </div>
+                        <p className="text-gray-300 text-sm whitespace-pre-wrap">{comment.content}</p>
+                        
+                        {/* Replies */}
+                        {comment.replies && comment.replies.length > 0 && (
+                          <div className="mt-2 ml-4 space-y-2 border-l-2 border-gray-700 pl-3">
+                            {comment.replies.map(reply => (
+                              <div key={reply.id} className="bg-[#18181b] rounded p-2">
+                                <div className="flex items-start justify-between mb-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-white font-semibold text-xs">
+                                      {reply.user.username || reply.user.name || 'Anonymous'}
+                                    </span>
+                                    {reply.user.role === 'ADMIN' && (
+                                      <span className="text-xs bg-blue-600 px-1.5 py-0.5 rounded text-[10px]">ADMIN</span>
+                                    )}
+                                  </div>
+                                  <span className="text-xs text-gray-500">{formatDate(reply.createdAt)}</span>
+                                </div>
+                                <p className="text-gray-300 text-xs whitespace-pre-wrap">{reply.content}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* Response form for VIEWER users */}
+                        {isViewer && notes && (
+                          <div className="mt-2">
+                            {respondingTo === comment.id ? (
+                              <form onSubmit={handleSubmitResponse} className="flex flex-col gap-2">
+                                <textarea
+                                  value={responseText}
+                                  onChange={e => setResponseText(e.target.value)}
+                                  placeholder="Write a response..."
+                                  className="w-full p-2 rounded bg-gray-900 border border-gray-700 text-white text-sm"
+                                  rows={2}
+                                />
+                                <div className="flex gap-2">
+                                  <button
+                                    type="submit"
+                                    disabled={!responseText.trim() || submittingResponse}
+                                    className="px-3 py-1 bg-blue-600 rounded hover:bg-blue-500 text-sm disabled:opacity-50"
+                                  >
+                                    {submittingResponse ? 'Submitting...' : 'Submit'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setRespondingTo(null);
+                                      setResponseText('');
+                                    }}
+                                    className="px-3 py-1 bg-gray-700 rounded hover:bg-gray-600 text-sm"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </form>
+                            ) : (
+                              <button
+                                onClick={() => setRespondingTo(comment.id)}
+                                className="text-xs text-blue-400 hover:text-blue-300"
+                              >
+                                Respond
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                  
+                  {/* Response form for VIEWER users when there are no comments yet but there's a note */}
+                  {isViewer && notes && comments.length === 0 && !loadingComments && (
+                    <div className="bg-[#1f1f23] rounded p-3">
+                      <form onSubmit={(e) => {
+                        e.preventDefault();
+                        handleSubmitResponse(e);
+                      }} className="flex flex-col gap-2">
+                        <textarea
+                          value={responseText}
+                          onChange={e => setResponseText(e.target.value)}
+                          placeholder="Respond to this note..."
+                          className="w-full p-2 rounded bg-gray-900 border border-gray-700 text-white text-sm"
+                          rows={3}
+                        />
+                        <button
+                          type="submit"
+                          disabled={!responseText.trim() || submittingResponse}
+                          className="self-end px-3 py-1 bg-blue-600 rounded hover:bg-blue-500 text-sm disabled:opacity-50"
+                        >
+                          {submittingResponse ? 'Submitting...' : 'Submit Response'}
+                        </button>
+                      </form>
+                    </div>
+                  )}
+                  
+                  {/* Response form for VIEWER users to add a new response to a note (top-level comment) */}
+                  {isViewer && notes && comments.length > 0 && !respondingTo && (
+                    <div className="mt-3 bg-[#1f1f23] rounded p-3">
+                      <form onSubmit={(e) => {
+                        e.preventDefault();
+                        setRespondingTo(null);
+                        handleSubmitResponse(e);
+                      }} className="flex flex-col gap-2">
+                        <textarea
+                          value={responseText}
+                          onChange={e => setResponseText(e.target.value)}
+                          placeholder="Add a response to this note..."
+                          className="w-full p-2 rounded bg-gray-900 border border-gray-700 text-white text-sm"
+                          rows={3}
+                        />
+                        <button
+                          type="submit"
+                          disabled={!responseText.trim() || submittingResponse}
+                          className="self-end px-3 py-1 bg-blue-600 rounded hover:bg-blue-500 text-sm disabled:opacity-50"
+                        >
+                          {submittingResponse ? 'Submitting...' : 'Submit Response'}
+                        </button>
+                      </form>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
         {showResults && (
           <div className="absolute z-50 bg-zinc-900 border border-yellow-400 rounded shadow-lg mt-2 p-4 w-80">

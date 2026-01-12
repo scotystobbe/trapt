@@ -136,7 +136,7 @@ export default function HamburgerMenu({ className = '' }) {
                 onClick={handleLogout}
                 className="mt-2 px-4 py-2 rounded bg-red-600 text-white font-semibold hover:bg-red-500 transition"
               >
-                Logout
+                Log Out
               </button>
             ) : (
               <Link
