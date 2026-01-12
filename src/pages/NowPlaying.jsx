@@ -449,15 +449,7 @@ export default function NowPlaying() {
           background: #000 !important;
         }
       `}</style>
-      <div 
-        className="max-w-2xl mx-auto w-full px-4 pb-4 flex flex-col items-center" 
-        style={{ 
-          // Header height: safe-area + 16px (pt-4/paddingTop) + 60px (image) + 8px (py-2 bottom) = safe-area + 84px
-          // Override App.jsx padding and set to exact header height
-          paddingTop: 'calc(env(safe-area-inset-top, 0px) + 84px)',
-          marginTop: 'calc(-63px - env(safe-area-inset-top, 20px))' // Counteract App.jsx padding
-        }}
-      >
+      <div className="max-w-2xl mx-auto w-full p-4 flex flex-col items-center">
         {initialLoading ? (
           <div className="w-full flex flex-col items-center">
             <div className="relative mb-8">
@@ -484,7 +476,7 @@ export default function NowPlaying() {
           <p className={"text-gray-300 " + textClass}>No track currently playing.</p>
         ) : track ? (
           <div className="w-full flex flex-col items-center">
-            <div className={"relative mb-4 " + dimClass}>
+            <div className={"relative mb-8 " + dimClass}>
               {(dbSong?.artworkUrl || track?.album?.images?.[0]?.url) && (
                 <img 
                   src={dbSong?.artworkUrl || track?.album?.images?.[0]?.url} 
