@@ -31,7 +31,7 @@ export default function HamburgerMenu({ className = '' }) {
     logout();
     setOpen(false);
     setShowLogoutMsg(true);
-    navigate('/');
+    navigate('/login');
     setTimeout(() => setShowLogoutMsg(false), 2000);
   };
 

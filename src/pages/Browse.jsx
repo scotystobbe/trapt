@@ -13,7 +13,17 @@ export default function Browse() {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('all'); // 'all', 'withComments', 'withResponses'
 
-  const fetcher = url => fetch(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now()).then(res => res.json());
+  const fetcher = url => fetch(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now())
+    .then(res => {
+      if (!res.ok) {
+        throw new Error(`Failed to fetch: ${res.statusText}`);
+      }
+      return res.json();
+    })
+    .catch(err => {
+      console.error('Error fetching playlists:', err);
+      throw err;
+    });
   const { data: playlists = [], error } = useSWR('/api/playlists', fetcher);
 
   const allSongs = playlists.flatMap(playlist =>
@@ -133,20 +143,26 @@ export default function Browse() {
         {filter === 'all' && !query && (
           <div>
             <h2 className="text-lg font-bold text-white mb-2">Playlists</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {playlists.length === 0 ? (
-                [...Array(6)].map((_, i) => (
-                  <div key={i} style={{ backgroundColor: '#27272a' }} className="p-4 rounded-xl">
-                    <Skeleton className="aspect-square w-full rounded-md mb-2" />
-                    <Skeleton className="h-6 w-3/4" />
-                  </div>
-                ))
-              ) : (
-                sortedPlaylists.map(playlist => (
-                  <PlaylistCard key={playlist.id} playlist={playlist} />
-                ))
-              )}
-            </div>
+            {error ? (
+              <div className="text-red-400 p-4 bg-red-900 bg-opacity-30 rounded">
+                Error loading playlists: {error.message || 'Unknown error'}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {playlists.length === 0 ? (
+                  [...Array(6)].map((_, i) => (
+                    <div key={i} style={{ backgroundColor: '#27272a' }} className="p-4 rounded-xl">
+                      <Skeleton className="aspect-square w-full rounded-md mb-2" />
+                      <Skeleton className="h-6 w-3/4" />
+                    </div>
+                  ))
+                ) : (
+                  sortedPlaylists.map(playlist => (
+                    <PlaylistCard key={playlist.id} playlist={playlist} />
+                  ))
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

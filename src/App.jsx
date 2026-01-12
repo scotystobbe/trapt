@@ -14,6 +14,7 @@ import Profile from './pages/Profile.jsx';
 import { FaMoon, FaSun } from 'react-icons/fa';
 import ScrollToTop from './components/ScrollToTop';
 import { AuthProvider } from './components/AuthProvider';
+import ProtectedRoute from './components/ProtectedRoute';
 
 const NightModeContext = createContext();
 export function useNightMode() {
@@ -100,18 +101,18 @@ export default function App() {
             <Router>
               <ScrollToTop />
               <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/browse" element={<Browse />} />
-                <Route path="/browse/playlist/:id" element={<PlaylistView />} />
-                <Route path="/playlist/:id" element={<Navigate to="/browse/playlist/:id" replace />} />
-                <Route path="/now-playing" element={<NowPlaying />} />
-                <Route path="/admin" element={<Admin />} />
-                <Route path="/admin/ImportRatings" element={<ImportRatings />} />
-                <Route path="/admin/stats" element={<Stats />} />
-                <Route path="/scroll-test" element={<ScrollTest />} />
-                <Route path="/genius-embed/:songId" element={<GeniusEmbedPage />} />
                 <Route path="/login" element={<Login />} />
-                <Route path="/profile" element={<Profile />} />
+                <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+                <Route path="/browse" element={<ProtectedRoute><Browse /></ProtectedRoute>} />
+                <Route path="/browse/playlist/:id" element={<ProtectedRoute><PlaylistView /></ProtectedRoute>} />
+                <Route path="/playlist/:id" element={<Navigate to="/browse/playlist/:id" replace />} />
+                <Route path="/now-playing" element={<ProtectedRoute><NowPlaying /></ProtectedRoute>} />
+                <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+                <Route path="/admin/ImportRatings" element={<ProtectedRoute><ImportRatings /></ProtectedRoute>} />
+                <Route path="/admin/stats" element={<ProtectedRoute><Stats /></ProtectedRoute>} />
+                <Route path="/scroll-test" element={<ProtectedRoute><ScrollTest /></ProtectedRoute>} />
+                <Route path="/genius-embed/:songId" element={<ProtectedRoute><GeniusEmbedPage /></ProtectedRoute>} />
+                <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               </Routes>
             </Router>
           </div>

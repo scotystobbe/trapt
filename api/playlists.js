@@ -36,19 +36,75 @@ module.exports = async (req, res) => {
         }
       }
 
-      // Add comment counts to all songs for filtering
-      for (const playlist of playlists) {
-        for (const song of playlist.songs) {
-          const commentCount = await prisma.comment.count({
-            where: { songId: song.id, parentCommentId: null },
+      // Add comment counts to all songs for filtering (optimized with batch queries)
+      try {
+        // Get all song IDs from all playlists
+        const allSongIds = playlists
+          .flatMap(p => (p.songs || []).map(s => s.id))
+          .filter(id => id != null);
+        
+        if (allSongIds.length > 0) {
+          // Get all comment counts in batch queries
+          const commentCounts = await prisma.comment.groupBy({
+            by: ['songId'],
+            where: {
+              songId: { in: allSongIds },
+              parentCommentId: null,
+            },
+            _count: true,
           });
-          const responseCount = await prisma.comment.count({
-            where: { songId: song.id, parentCommentId: { not: null } },
+          
+          const responseCounts = await prisma.comment.groupBy({
+            by: ['songId'],
+            where: {
+              songId: { in: allSongIds },
+              parentCommentId: { not: null },
+            },
+            _count: true,
           });
-          song.commentCount = commentCount;
-          song.responseCount = responseCount;
-          song.hasComments = commentCount > 0;
-          song.hasResponses = responseCount > 0;
+          
+          // Create lookup maps
+          const commentCountMap = new Map(commentCounts.map(c => [c.songId, c._count]));
+          const responseCountMap = new Map(responseCounts.map(c => [c.songId, c._count]));
+          
+          // Apply counts to songs
+          for (const playlist of playlists) {
+            if (playlist.songs && Array.isArray(playlist.songs)) {
+              for (const song of playlist.songs) {
+                const commentCount = commentCountMap.get(song.id) || 0;
+                const responseCount = responseCountMap.get(song.id) || 0;
+                song.commentCount = commentCount;
+                song.responseCount = responseCount;
+                song.hasComments = commentCount > 0;
+                song.hasResponses = responseCount > 0;
+              }
+            }
+          }
+        } else {
+          // No songs, set defaults for all
+          for (const playlist of playlists) {
+            if (playlist.songs && Array.isArray(playlist.songs)) {
+              for (const song of playlist.songs) {
+                song.commentCount = 0;
+                song.responseCount = 0;
+                song.hasComments = false;
+                song.hasResponses = false;
+              }
+            }
+          }
+        }
+      } catch (err) {
+        // If comment counting fails, set defaults for all songs
+        console.error('Error counting comments:', err);
+        for (const playlist of playlists) {
+          if (playlist.songs && Array.isArray(playlist.songs)) {
+            for (const song of playlist.songs) {
+              song.commentCount = 0;
+              song.responseCount = 0;
+              song.hasComments = false;
+              song.hasResponses = false;
+            }
+          }
         }
       }
 
