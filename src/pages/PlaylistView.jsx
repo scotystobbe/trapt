@@ -246,7 +246,7 @@ export default function PlaylistView() {
     filteredSongs = filteredSongs.filter(song => 
       (song.commentCount > 0) || (song.responseCount > 0) || song.notes
     );
-  } else if (filter === 'withResponses' && isAdmin) {
+  } else if (filter === 'withResponses') {
     // Show songs with responses/threads (replies to comments)
     filteredSongs = filteredSongs.filter(song => song.responseCount > 0);
   }
@@ -429,15 +429,14 @@ export default function PlaylistView() {
               </button>
             ) : (
               <button
-                onClick={() => setFilter('withComments')}
+                onClick={() => setFilter('withResponses')}
                 className={`px-4 py-2 rounded text-sm ${
-                  filter === 'withComments'
+                  filter === 'withResponses'
                     ? 'bg-blue-600 text-white'
                     : 'bg-[#27272a] text-gray-300 hover:bg-[#3f3f46]'
                 }`}
-                title="Filter to show songs with notes you can respond to"
               >
-                Add a Response
+                With Responses
               </button>
             )}
           </div>

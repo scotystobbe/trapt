@@ -1,5 +1,5 @@
 import React from "react";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import StarRating from './StarRating';
 import { FaRegEdit, FaComment } from 'react-icons/fa';
 import { mutate } from 'swr';
@@ -24,6 +24,7 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
   const [responseText, setResponseText] = useState('');
   const [respondingTo, setRespondingTo] = useState(null);
   const [submittingResponse, setSubmittingResponse] = useState(false);
+  const responseTextareaRef = useRef(null);
 
   const saveSongUpdate = async (fields) => {
     if (!isAdmin) return;
@@ -257,11 +258,30 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                 >
                   <FaComment />
                   <span>
-                    {song.commentCount > 0 && `${song.commentCount} comment${song.commentCount !== 1 ? 's' : ''}`}
-                    {song.responseCount > 0 && ` • ${song.responseCount} response${song.responseCount !== 1 ? 's' : ''}`}
-                    {song.commentCount === 0 && song.responseCount === 0 && notes && 'View responses'}
+                    {song.responseCount > 0 && `${song.responseCount} response${song.responseCount !== 1 ? 's' : ''}`}
+                    {song.commentCount > 0 && song.responseCount === 0 && `${song.commentCount} comment${song.commentCount !== 1 ? 's' : ''}`}
+                    {song.commentCount === 0 && song.responseCount === 0 && notes && 'No responses yet'}
                   </span>
                 </button>
+                {isViewer && notes && (
+                  <button
+                    onClick={() => {
+                      setShowComments(true);
+                      if (comments.length === 0) fetchComments();
+                      setRespondingTo(null);
+                      setResponseText('');
+                      // Focus the textarea after a brief delay to ensure it's rendered
+                      setTimeout(() => {
+                        if (responseTextareaRef.current) {
+                          responseTextareaRef.current.focus();
+                        }
+                      }, 100);
+                    }}
+                    className="px-3 py-1 bg-blue-600 rounded hover:bg-blue-500 text-sm text-white"
+                  >
+                    Add a Response
+                  </button>
+                )}
               </div>
               
               {showComments && (
@@ -354,43 +374,18 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                     ))
                   )}
                   
-                  {/* Response form for VIEWER users when there are no comments yet but there's a note */}
-                  {isViewer && notes && comments.length === 0 && !loadingComments && (
-                    <div className="bg-[#1f1f23] rounded p-3">
-                      <form onSubmit={(e) => {
-                        e.preventDefault();
-                        handleSubmitResponse(e);
-                      }} className="flex flex-col gap-2">
-                        <textarea
-                          value={responseText}
-                          onChange={e => setResponseText(e.target.value)}
-                          placeholder="Respond to this note..."
-                          className="w-full p-2 rounded bg-gray-900 border border-gray-700 text-white text-sm"
-                          rows={3}
-                        />
-                        <button
-                          type="submit"
-                          disabled={!responseText.trim() || submittingResponse}
-                          className="self-end px-3 py-1 bg-blue-600 rounded hover:bg-blue-500 text-sm disabled:opacity-50"
-                        >
-                          {submittingResponse ? 'Submitting...' : 'Submit Response'}
-                        </button>
-                      </form>
-                    </div>
-                  )}
-                  
-                  {/* Response form for VIEWER users to add a new response to a note (top-level comment) */}
-                  {isViewer && notes && comments.length > 0 && !respondingTo && (
+                  {/* Response form for VIEWER users - always show if there's a note and not responding to a specific comment */}
+                  {isViewer && notes && !respondingTo && showComments && (
                     <div className="mt-3 bg-[#1f1f23] rounded p-3">
                       <form onSubmit={(e) => {
                         e.preventDefault();
-                        setRespondingTo(null);
                         handleSubmitResponse(e);
                       }} className="flex flex-col gap-2">
                         <textarea
+                          ref={responseTextareaRef}
                           value={responseText}
                           onChange={e => setResponseText(e.target.value)}
-                          placeholder="Add a response to this note..."
+                          placeholder={comments.length === 0 ? "Respond to this note..." : "Add a response..."}
                           className="w-full p-2 rounded bg-gray-900 border border-gray-700 text-white text-sm"
                           rows={3}
                         />
