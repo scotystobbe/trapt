@@ -80,6 +80,36 @@ function findExactMatch(hits, title, artist) {
 module.exports = async (req, res) => {
   authenticateJWT(req, res, () => {
     requireRole('ADMIN')(req, res, async () => {
+      // Handle saving confirmed matches
+      if (req.method === 'PUT') {
+        const { matches } = req.body;
+        if (!Array.isArray(matches)) {
+          return res.status(400).json({ error: 'Missing or invalid matches array' });
+        }
+
+        try {
+          const updated = [];
+          for (const match of matches) {
+            const { songId, geniusId, geniusUrl } = match;
+            if (!songId || !geniusId || !geniusUrl) {
+              continue;
+            }
+            const song = await prisma.song.update({
+              where: { id: parseInt(songId) },
+              data: {
+                geniusSongId: parseInt(geniusId),
+                geniusUrl: geniusUrl,
+              },
+            });
+            updated.push(song);
+          }
+          return res.status(200).json({ success: true, updated: updated.length });
+        } catch (err) {
+          console.error('Error saving matches:', err);
+          return res.status(500).json({ error: 'Failed to save matches', details: err.message });
+        }
+      }
+
       if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
       }
@@ -106,22 +136,19 @@ module.exports = async (req, res) => {
         }
 
         const results = [];
-        let matched = 0;
-        let skipped = 0;
-        let errors = 0;
 
         // Process each song
         for (const song of songs) {
-          // Skip if already has a Genius ID
+          // Skip if already has a Genius ID, but still include it in results
           if (song.geniusSongId) {
             results.push({
               songId: song.id,
               title: song.title,
               artist: song.artist,
-              status: 'skipped',
-              reason: 'Already has Genius ID',
+              status: 'already_matched',
+              geniusId: song.geniusSongId,
+              geniusUrl: song.geniusUrl,
             });
-            skipped++;
             continue;
           }
 
@@ -130,55 +157,46 @@ module.exports = async (req, res) => {
             const query = `${song.artist} ${song.title}`;
             const hits = await searchGeniusSong(query, token);
             
-            if (!hits) {
+            if (!hits || hits.length === 0) {
               results.push({
                 songId: song.id,
                 title: song.title,
                 artist: song.artist,
-                status: 'error',
-                reason: 'Search failed',
+                status: 'no_results',
+                potentialMatches: [],
               });
-              errors++;
               continue;
             }
 
-            // Find match
-            const match = findExactMatch(hits, song.title, song.artist);
+            // Return top 5 potential matches
+            const potentialMatches = hits.slice(0, 5).map(hit => ({
+              id: hit.result.id,
+              url: hit.result.url,
+              title: hit.result.title,
+              artist: hit.result.primary_artist.name,
+              thumbnail: hit.result.song_art_image_thumbnail_url,
+              matchType: (() => {
+                const t = hit.result.title.trim().toLowerCase();
+                const a = hit.result.primary_artist.name.trim().toLowerCase();
+                const songTitle = song.title.trim().toLowerCase();
+                const songArtist = song.artist.trim().toLowerCase();
+                if (t === songTitle && a === songArtist) return 'exact';
+                if (t === songTitle || a === songArtist) return 'partial';
+                return 'possible';
+              })(),
+            }));
+
+            // Check if there's an exact match
+            const exactMatch = potentialMatches.find(m => m.matchType === 'exact');
             
-            if (match) {
-              // Update song with Genius ID
-              await prisma.song.update({
-                where: { id: song.id },
-                data: {
-                  geniusSongId: match.id,
-                  geniusUrl: match.url,
-                },
-              });
-              
-              results.push({
-                songId: song.id,
-                title: song.title,
-                artist: song.artist,
-                status: 'matched',
-                geniusId: match.id,
-                geniusTitle: match.title,
-                geniusArtist: match.artist,
-                matchType: match.matchType || 'exact',
-              });
-              matched++;
-            } else {
-              results.push({
-                songId: song.id,
-                title: song.title,
-                artist: song.artist,
-                status: 'no_match',
-                reason: 'No matching song found',
-                topResult: hits[0] ? {
-                  title: hits[0].result.title,
-                  artist: hits[0].result.primary_artist.name,
-                } : null,
-              });
-            }
+            results.push({
+              songId: song.id,
+              title: song.title,
+              artist: song.artist,
+              status: exactMatch ? 'exact_match_found' : 'matches_found',
+              potentialMatches,
+              suggestedMatch: exactMatch || potentialMatches[0],
+            });
           } catch (err) {
             console.error(`Error processing song ${song.id}:`, err);
             results.push({
@@ -186,9 +204,9 @@ module.exports = async (req, res) => {
               title: song.title,
               artist: song.artist,
               status: 'error',
-              reason: err.message,
+              error: err.message,
+              potentialMatches: [],
             });
-            errors++;
           }
 
           // Add small delay to avoid rate limiting
@@ -198,10 +216,6 @@ module.exports = async (req, res) => {
         return res.status(200).json({
           success: true,
           total: songs.length,
-          matched,
-          skipped,
-          errors,
-          noMatch: songs.length - matched - skipped - errors,
           results,
         });
       } catch (err) {

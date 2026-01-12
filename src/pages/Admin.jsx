@@ -42,6 +42,9 @@ export default function Admin() {
   const [matchingGenius, setMatchingGenius] = useState(false);
   const [geniusMatchResult, setGeniusMatchResult] = useState(null);
   const [matchingPlaylistId, setMatchingPlaylistId] = useState(null);
+  const [matchSelections, setMatchSelections] = useState({}); // { songId: { geniusId, geniusUrl } }
+  const [manualEntries, setManualEntries] = useState({}); // { songId: { geniusUrl } }
+  const [showManualEntry, setShowManualEntry] = useState({}); // { songId: boolean }
 
   React.useEffect(() => {
     if (!loading && user?.role !== 'ADMIN') {
@@ -360,6 +363,9 @@ export default function Admin() {
                       setMatchingGenius(true);
                       setGeniusMatchResult(null);
                       setMatchingPlaylistId(p.id);
+                      setMatchSelections({});
+                      setManualEntries({});
+                      setShowManualEntry({});
                       try {
                         const res = await fetch('/api/admin/match-genius', {
                           method: 'POST',
@@ -371,13 +377,9 @@ export default function Admin() {
                         });
                         const data = await res.json();
                         if (!res.ok) throw new Error(data.error || 'Failed to match Genius songs');
-                        setGeniusMatchResult(data);
-                        // Refresh playlists to show updated data
-                        const playlistsRes = await fetch('/api/playlists?admin=1');
-                        const updatedPlaylists = await playlistsRes.json();
-                        setPlaylists(updatedPlaylists);
+                        setGeniusMatchResult({ ...data, playlistId: p.id });
                       } catch (err) {
-                        setGeniusMatchResult({ error: err.message });
+                        setGeniusMatchResult({ error: err.message, playlistId: p.id });
                       } finally {
                         setMatchingGenius(false);
                         setMatchingPlaylistId(null);
@@ -386,46 +388,276 @@ export default function Admin() {
                     disabled={matchingGenius}
                     className="text-sm"
                   >
-                    {matchingGenius && matchingPlaylistId === p.id ? 'Matching...' : 'Match Songs'}
+                    {matchingGenius && matchingPlaylistId === p.id ? 'Searching...' : 'Match Songs'}
                   </Button>
                 </div>
               ))}
             </div>
-            {geniusMatchResult && (
-              <div className={`mt-4 p-4 rounded ${geniusMatchResult.error ? 'bg-red-900' : 'bg-green-900'}`}>
-                {geniusMatchResult.error ? (
-                  <div className="text-red-200">{geniusMatchResult.error}</div>
-                ) : (
-                  <div className="text-green-200">
-                    <div className="font-semibold mb-2">Match Results:</div>
-                    <div className="text-sm space-y-1">
-                      <div>Total: {geniusMatchResult.total}</div>
-                      <div>Matched: {geniusMatchResult.matched}</div>
-                      <div>No Match: {geniusMatchResult.noMatch}</div>
-                      <div>Skipped (already matched): {geniusMatchResult.skipped}</div>
-                      {geniusMatchResult.errors > 0 && (
-                        <div className="text-yellow-300">Errors: {geniusMatchResult.errors}</div>
-                      )}
-                    </div>
-                    {geniusMatchResult.results && geniusMatchResult.results.length > 0 && (
-                      <details className="mt-4">
-                        <summary className="cursor-pointer text-sm font-semibold">View Details</summary>
-                        <div className="mt-2 max-h-60 overflow-y-auto text-xs space-y-1">
-                          {geniusMatchResult.results.map((result, idx) => (
-                            <div key={idx} className="p-2 bg-gray-800 rounded">
-                              <div className="font-semibold">{result.title} - {result.artist}</div>
-                              <div className="text-gray-400">
-                                Status: {result.status}
-                                {result.geniusId && ` (Genius ID: ${result.geniusId})`}
-                                {result.reason && ` - ${result.reason}`}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </details>
-                    )}
+            {matchingGenius && matchingPlaylistId && (
+              <div className="mt-4 p-4 bg-gray-800 rounded">
+                <div className="flex items-center gap-2 text-yellow-400">
+                  <div className="animate-spin">⏳</div>
+                  <span>Searching Genius for matches... This may take a moment.</span>
+                </div>
+              </div>
+            )}
+            {geniusMatchResult && !geniusMatchResult.error && geniusMatchResult.results && (
+              <div className="mt-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="text-white font-semibold">
+                    Review Matches ({geniusMatchResult.results.length} tracks)
                   </div>
-                )}
+                  <Button
+                    variant="primary"
+                    onClick={async () => {
+                      const matchesToSave = [];
+                      
+                      // Add selections from potential matches
+                      Object.entries(matchSelections).forEach(([songId, match]) => {
+                        if (match && match.geniusId) {
+                          matchesToSave.push({
+                            songId: parseInt(songId),
+                            geniusId: match.geniusId,
+                            geniusUrl: match.geniusUrl,
+                          });
+                        } else if (match && match.geniusUrl) {
+                          // Manual entry that was confirmed - extract ID from URL
+                          const urlMatch = match.geniusUrl.match(/genius\.com\/songs\/(\d+)/);
+                          if (urlMatch) {
+                            matchesToSave.push({
+                              songId: parseInt(songId),
+                              geniusId: parseInt(urlMatch[1]),
+                              geniusUrl: match.geniusUrl,
+                            });
+                          }
+                        }
+                      });
+                      
+                      // Add manual entries that weren't in selections
+                      Object.entries(manualEntries).forEach(([songId, entry]) => {
+                        if (entry && entry.geniusUrl && !matchSelections[songId]) {
+                          const urlMatch = entry.geniusUrl.match(/genius\.com\/songs\/(\d+)/);
+                          if (urlMatch) {
+                            matchesToSave.push({
+                              songId: parseInt(songId),
+                              geniusId: parseInt(urlMatch[1]),
+                              geniusUrl: entry.geniusUrl,
+                            });
+                          }
+                        }
+                      });
+
+                      if (matchesToSave.length === 0) {
+                        alert('No matches selected to save');
+                        return;
+                      }
+
+                      try {
+                        const res = await fetch('/api/admin/match-genius', {
+                          method: 'PUT',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                          },
+                          body: JSON.stringify({ matches: matchesToSave }),
+                        });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.error || 'Failed to save matches');
+                        alert(`Successfully saved ${data.updated} matches!`);
+                        setGeniusMatchResult(null);
+                        setMatchSelections({});
+                        setManualEntries({});
+                        setShowManualEntry({});
+                        // Refresh playlists
+                        const playlistsRes = await fetch('/api/playlists?admin=1');
+                        const updatedPlaylists = await playlistsRes.json();
+                        setPlaylists(updatedPlaylists);
+                      } catch (err) {
+                        alert(`Error saving matches: ${err.message}`);
+                      }
+                    }}
+                  >
+                    Save {Object.keys(matchSelections).filter(id => matchSelections[id]).length + Object.keys(manualEntries).filter(id => manualEntries[id]?.geniusUrl).length} Matches
+                  </Button>
+                </div>
+                <div className="max-h-96 overflow-y-auto space-y-3">
+                  {geniusMatchResult.results.map((result) => {
+                    const isSelected = matchSelections[result.songId];
+                    const manualEntry = manualEntries[result.songId];
+                    const isManualEntryVisible = showManualEntry[result.songId];
+                    
+                    return (
+                      <div key={result.songId} className="bg-gray-800 rounded p-4 border border-gray-700">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <div className="text-white font-semibold">{result.title}</div>
+                            <div className="text-gray-400 text-sm">{result.artist}</div>
+                            {result.status === 'already_matched' && (
+                              <div className="text-green-400 text-xs mt-1">✓ Already matched</div>
+                            )}
+                            {result.status === 'error' && (
+                              <div className="text-red-400 text-xs mt-1">✗ Error: {result.error}</div>
+                            )}
+                          </div>
+                          {result.status !== 'already_matched' && result.status !== 'error' && (
+                            <div className="flex gap-2">
+                              {!isManualEntryVisible && (
+                                <button
+                                  onClick={() => setShowManualEntry(prev => ({ ...prev, [result.songId]: true }))}
+                                  className="text-xs px-2 py-1 bg-gray-700 text-white rounded hover:bg-gray-600"
+                                >
+                                  Manual Entry
+                                </button>
+                              )}
+                              {isSelected && (
+                                <button
+                                  onClick={() => {
+                                    setMatchSelections(prev => {
+                                      const next = { ...prev };
+                                      delete next[result.songId];
+                                      return next;
+                                    });
+                                  }}
+                                  className="text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-500"
+                                >
+                                  Clear
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {isManualEntryVisible && (
+                          <div className="mb-3 p-3 bg-gray-900 rounded">
+                            <div className="text-sm text-gray-300 mb-2">Enter Genius URL:</div>
+                            <input
+                              type="text"
+                              value={manualEntry?.geniusUrl || ''}
+                              onChange={(e) => {
+                                setManualEntries(prev => ({
+                                  ...prev,
+                                  [result.songId]: { geniusUrl: e.target.value }
+                                }));
+                              }}
+                              placeholder="https://genius.com/artist-song-title"
+                              className="w-full px-3 py-2 bg-gray-800 text-white rounded border border-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                            />
+                            <div className="flex gap-2 mt-2">
+                              <button
+                                onClick={() => {
+                                  if (manualEntry?.geniusUrl) {
+                                    setMatchSelections(prev => ({
+                                      ...prev,
+                                      [result.songId]: {
+                                        geniusId: null, // Will be extracted from URL
+                                        geniusUrl: manualEntry.geniusUrl
+                                      }
+                                    }));
+                                  }
+                                  setShowManualEntry(prev => ({ ...prev, [result.songId]: false }));
+                                }}
+                                className="text-xs px-3 py-1 bg-yellow-600 text-white rounded hover:bg-yellow-500"
+                              >
+                                Confirm
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setShowManualEntry(prev => ({ ...prev, [result.songId]: false }));
+                                  setManualEntries(prev => {
+                                    const next = { ...prev };
+                                    delete next[result.songId];
+                                    return next;
+                                  });
+                                }}
+                                className="text-xs px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-600"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {result.potentialMatches && result.potentialMatches.length > 0 && (
+                          <div className="space-y-2">
+                            <div className="text-sm text-gray-400 mb-2">Potential Matches:</div>
+                            {result.potentialMatches.map((match, idx) => {
+                              const isThisSelected = isSelected?.geniusId === match.id;
+                              return (
+                                <div
+                                  key={match.id}
+                                  className={`flex items-center gap-3 p-2 rounded cursor-pointer transition ${
+                                    isThisSelected
+                                      ? 'bg-yellow-900 border-2 border-yellow-500'
+                                      : 'bg-gray-700 hover:bg-gray-600'
+                                  }`}
+                                  onClick={() => {
+                                    if (isThisSelected) {
+                                      setMatchSelections(prev => {
+                                        const next = { ...prev };
+                                        delete next[result.songId];
+                                        return next;
+                                      });
+                                    } else {
+                                      setMatchSelections(prev => ({
+                                        ...prev,
+                                        [result.songId]: {
+                                          geniusId: match.id,
+                                          geniusUrl: match.url
+                                        }
+                                      }));
+                                      setManualEntries(prev => {
+                                        const next = { ...prev };
+                                        delete next[result.songId];
+                                        return next;
+                                      });
+                                      setShowManualEntry(prev => ({ ...prev, [result.songId]: false }));
+                                    }
+                                  }}
+                                >
+                                  {match.thumbnail && (
+                                    <img src={match.thumbnail} alt="" className="w-12 h-12 rounded object-cover" />
+                                  )}
+                                  <div className="flex-1">
+                                    <div className="text-white font-medium">{match.title}</div>
+                                    <div className="text-gray-400 text-sm">{match.artist}</div>
+                                    <div className="text-xs text-gray-500 mt-1">
+                                      {match.matchType === 'exact' && '✓ Exact match'}
+                                      {match.matchType === 'partial' && '~ Partial match'}
+                                      {match.matchType === 'possible' && '? Possible match'}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {isThisSelected && (
+                                      <span className="text-yellow-400 text-sm">✓ Selected</span>
+                                    )}
+                                    <a
+                                      href={match.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="text-xs px-2 py-1 bg-gray-600 text-white rounded hover:bg-gray-500"
+                                    >
+                                      View
+                                    </a>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {result.status === 'no_results' && !isManualEntryVisible && (
+                          <div className="text-gray-400 text-sm">No matches found. Use "Manual Entry" to add a link.</div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {geniusMatchResult && geniusMatchResult.error && (
+              <div className="mt-4 p-4 bg-red-900 rounded">
+                <div className="text-red-200">{geniusMatchResult.error}</div>
               </div>
             )}
           </div>
