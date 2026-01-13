@@ -28,6 +28,7 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingText, setEditingText] = useState('');
   const [deletingCommentId, setDeletingCommentId] = useState(null);
+  const [menuOpenId, setMenuOpenId] = useState(null);
 
   const saveSongUpdate = async (fields) => {
     if (!isAdmin) return;
@@ -152,6 +153,18 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
     }
   }, [showComments, song.id]);
 
+  // Close menu when clicking outside
+  useEffect(() => {
+    if (!menuOpenId) return;
+    function handleClickOutside(event) {
+      if (!event.target.closest('.relative')) {
+        setMenuOpenId(null);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [menuOpenId]);
+
   const handleSubmitResponse = async (e) => {
     e.preventDefault();
     if (!responseText.trim() || !user) return;
@@ -185,7 +198,15 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const year = date.getFullYear().toString().slice(-2);
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12;
+    const displayMinutes = minutes.toString().padStart(2, '0');
+    return `${month}/${day}/${year} ${displayHours}:${displayMinutes} ${ampm}`;
   };
 
   const handleEditComment = (comment) => {
@@ -353,257 +374,214 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                     <div className="text-gray-400 text-sm">Loading comments...</div>
                   ) : (
                     <>
-                      {comments.map(comment => (
-                      <div key={comment.id} className="bg-[#1f1f23] rounded p-3">
-                        <div className="flex items-start justify-between mb-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-white font-semibold text-sm">
-                              {comment.user.username || comment.user.name || 'Anonymous'}
-                            </span>
-                            {comment.user.role === 'ADMIN' && (
-                              <span className="text-xs bg-blue-600 px-2 py-0.5 rounded">ADMIN</span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-500">{formatDate(comment.createdAt)}</span>
-                            {user && comment.user.id === user.id && (
-                              <div className="flex items-center gap-1">
-                                <button
-                                  onClick={() => handleEditComment(comment)}
-                                  className="text-xs text-gray-400 hover:text-blue-400"
-                                  disabled={editingCommentId === comment.id || deletingCommentId === comment.id}
-                                >
-                                  <FaRegEdit />
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteComment(comment.id)}
-                                  className="text-xs text-gray-400 hover:text-red-400"
-                                  disabled={editingCommentId === comment.id || deletingCommentId === comment.id}
-                                >
-                                  <FaTrash />
-                                </button>
+                      {(() => {
+                        // Flatten all responses (comments + replies) and sort by date (oldest first)
+                        const allResponses = [];
+                        comments.forEach(comment => {
+                          allResponses.push({ ...comment, isReply: false });
+                          if (comment.replies && comment.replies.length > 0) {
+                            comment.replies.forEach(reply => {
+                              allResponses.push({ ...reply, isReply: true, parentCommentId: comment.id });
+                            });
+                          }
+                        });
+                        allResponses.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+                        return allResponses.map(response => (
+                          <div key={response.id} className="bg-[#1f1f23] rounded p-3">
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex items-center gap-3 flex-1">
+                                <span className="text-white font-semibold text-sm">
+                                  {response.user.username || response.user.name || 'Anonymous'}
+                                </span>
+                                {response.user.role === 'ADMIN' && (
+                                  <span className="text-xs bg-blue-600 px-2 py-0.5 rounded">ADMIN</span>
+                                )}
+                                <span className="text-xs text-gray-500">{formatDate(response.createdAt)}</span>
                               </div>
-                            )}
-                          </div>
-                        </div>
-                        {editingCommentId === comment.id ? (
-                          <div className="flex flex-col gap-2 mt-2">
-                            <textarea
-                              value={editingText}
-                              onChange={e => setEditingText(e.target.value)}
-                              className="w-full p-2 rounded bg-gray-900 border border-gray-700 text-white"
-                              rows={3}
-                              style={{ fontSize: '16px' }}
-                            />
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => handleSaveEdit(comment.id)}
-                                disabled={!editingText.trim()}
-                                className="px-3 py-1 bg-blue-600 rounded hover:bg-blue-500 text-sm disabled:opacity-50"
-                              >
-                                Save
-                              </button>
-                              <button
-                                onClick={handleCancelEdit}
-                                className="px-3 py-1 bg-gray-700 rounded hover:bg-gray-600 text-sm"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <p className="text-gray-300 text-sm whitespace-pre-wrap">{comment.content}</p>
-                        )}
-                        
-                        {/* Replies */}
-                        {comment.replies && comment.replies.length > 0 && (
-                          <div className="mt-2 ml-4 space-y-2 border-l-2 border-gray-700 pl-3">
-                            {comment.replies.map(reply => (
-                              <div key={reply.id} className="bg-[#18181b] rounded p-2">
-                                <div className="flex items-start justify-between mb-1">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-white font-semibold text-xs">
-                                      {reply.user.username || reply.user.name || 'Anonymous'}
-                                    </span>
-                                    {reply.user.role === 'ADMIN' && (
-                                      <span className="text-xs bg-blue-600 px-1.5 py-0.5 rounded text-[10px]">ADMIN</span>
-                                    )}
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-xs text-gray-500">{formatDate(reply.createdAt)}</span>
-                                    {user && reply.user.id === user.id && (
-                                      <div className="flex items-center gap-1">
-                                        <button
-                                          onClick={() => handleEditComment(reply)}
-                                          className="text-xs text-gray-400 hover:text-blue-400"
-                                          disabled={editingCommentId === reply.id || deletingCommentId === reply.id}
-                                        >
-                                          <FaRegEdit />
-                                        </button>
-                                        <button
-                                          onClick={() => handleDeleteComment(reply.id)}
-                                          className="text-xs text-gray-400 hover:text-red-400"
-                                          disabled={editingCommentId === reply.id || deletingCommentId === reply.id}
-                                        >
-                                          <FaTrash />
-                                        </button>
-                                      </div>
-                                    )}
-                                  </div>
+                              {user && response.user.id === user.id && (
+                                <div className="relative">
+                                  <button
+                                    onClick={() => setMenuOpenId(menuOpenId === response.id ? null : response.id)}
+                                    className="text-gray-400 hover:text-white p-1 text-sm"
+                                    disabled={editingCommentId === response.id || deletingCommentId === response.id}
+                                  >
+                                    ⋮
+                                  </button>
+                                  {menuOpenId === response.id && (
+                                    <div className="absolute right-0 top-full mt-1 bg-[#27272a] border border-[#3f3f46] rounded shadow-lg z-10 min-w-[120px]">
+                                      <button
+                                        onClick={() => {
+                                          handleEditComment(response);
+                                          setMenuOpenId(null);
+                                        }}
+                                        className="block w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-[#3f3f46]"
+                                      >
+                                        Edit
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          handleDeleteComment(response.id);
+                                          setMenuOpenId(null);
+                                        }}
+                                        className="block w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-[#3f3f46]"
+                                      >
+                                        Delete
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
-                                {editingCommentId === reply.id ? (
-                                  <div className="flex flex-col gap-2 mt-2">
+                              )}
+                            </div>
+                            {editingCommentId === response.id ? (
+                              <div className="flex flex-col gap-2 mt-2">
+                                <textarea
+                                  value={editingText}
+                                  onChange={e => setEditingText(e.target.value)}
+                                  className="w-full p-2 rounded bg-gray-900 border border-gray-700 text-white"
+                                  rows={3}
+                                  style={{ fontSize: '16px' }}
+                                />
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => handleSaveEdit(response.id)}
+                                    disabled={!editingText.trim()}
+                                    className="px-3 py-1 bg-blue-600 rounded hover:bg-blue-500 text-sm disabled:opacity-50"
+                                  >
+                                    Save
+                                  </button>
+                                  <button
+                                    onClick={handleCancelEdit}
+                                    className="px-3 py-1 bg-gray-700 rounded hover:bg-gray-600 text-sm"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="text-gray-300 text-sm whitespace-pre-wrap">{response.content}</p>
+                            )}
+                            {/* Response form for VIEWER users */}
+                            {isViewer && notes && !response.isReply && (
+                              <div className="mt-2">
+                                {respondingTo === response.id ? (
+                                  <form onSubmit={handleSubmitResponse} className="flex flex-col gap-2">
+                                    <div className="text-xs text-gray-400 mb-1">
+                                      Responding to original comment
+                                    </div>
                                     <textarea
-                                      value={editingText}
-                                      onChange={e => setEditingText(e.target.value)}
+                                      value={responseText}
+                                      onChange={e => setResponseText(e.target.value)}
+                                      placeholder="Write a response..."
                                       className="w-full p-2 rounded bg-gray-900 border border-gray-700 text-white"
                                       rows={2}
                                       style={{ fontSize: '16px' }}
                                     />
                                     <div className="flex gap-2">
                                       <button
-                                        onClick={() => handleSaveEdit(reply.id)}
-                                        disabled={!editingText.trim()}
-                                        className="px-2 py-1 bg-blue-600 rounded hover:bg-blue-500 text-xs disabled:opacity-50"
+                                        type="submit"
+                                        disabled={!responseText.trim() || submittingResponse}
+                                        className="px-3 py-1 bg-blue-600 rounded hover:bg-blue-500 text-sm disabled:opacity-50"
                                       >
-                                        Save
+                                        {submittingResponse ? 'Submitting...' : 'Submit'}
                                       </button>
                                       <button
-                                        onClick={handleCancelEdit}
-                                        className="px-2 py-1 bg-gray-700 rounded hover:bg-gray-600 text-xs"
+                                        type="button"
+                                        onClick={() => {
+                                          setRespondingTo(null);
+                                          setResponseText('');
+                                        }}
+                                        className="px-3 py-1 bg-gray-700 rounded hover:bg-gray-600 text-sm"
                                       >
                                         Cancel
                                       </button>
                                     </div>
-                                  </div>
+                                  </form>
                                 ) : (
-                                  <p className="text-gray-300 text-xs whitespace-pre-wrap">{reply.content}</p>
-                                )}
-                                {/* Response form for replies */}
-                                {isViewer && notes && (
-                                  <div className="mt-2">
-                                    {respondingTo === reply.id ? (
-                                      <form onSubmit={handleSubmitResponse} className="flex flex-col gap-2">
-                                        <div className="text-xs text-gray-400 mb-1">
-                                          Responding to a response
-                                        </div>
-                                        <textarea
-                                          value={responseText}
-                                          onChange={e => setResponseText(e.target.value)}
-                                          placeholder="Write a response..."
-                                          className="w-full p-2 rounded bg-gray-900 border border-gray-700 text-white"
-                                          rows={2}
-                                          style={{ fontSize: '16px' }}
-                                        />
-                                        <div className="flex gap-2">
-                                          <button
-                                            type="submit"
-                                            disabled={!responseText.trim() || submittingResponse}
-                                            className="px-2 py-1 bg-blue-600 rounded hover:bg-blue-500 text-xs disabled:opacity-50"
-                                          >
-                                            {submittingResponse ? 'Submitting...' : 'Submit'}
-                                          </button>
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              setRespondingTo(null);
-                                              setResponseText('');
-                                            }}
-                                            className="px-2 py-1 bg-gray-700 rounded hover:bg-gray-600 text-xs"
-                                          >
-                                            Cancel
-                                          </button>
-                                        </div>
-                                      </form>
-                                    ) : (
-                                      <button
-                                        onClick={() => setRespondingTo(reply.id)}
-                                        className="text-xs text-blue-400 hover:text-blue-300"
-                                      >
-                                        Respond
-                                      </button>
-                                    )}
-                                  </div>
+                                  <button
+                                    onClick={() => setRespondingTo(response.id)}
+                                    className="text-xs text-blue-400 hover:text-blue-300"
+                                  >
+                                    Respond
+                                  </button>
                                 )}
                               </div>
-                            ))}
-                          </div>
-                        )}
-                        
-                        {/* Response form for VIEWER users - responding to original comment */}
-                        {isViewer && notes && (
-                          <div className="mt-2">
-                            {respondingTo === comment.id ? (
-                              <form onSubmit={handleSubmitResponse} className="flex flex-col gap-2">
-                                <div className="text-xs text-gray-400 mb-1">
-                                  Responding to original comment
-                                </div>
-                                <textarea
-                                  value={responseText}
-                                  onChange={e => setResponseText(e.target.value)}
-                                  placeholder="Write a response..."
-                                  className="w-full p-2 rounded bg-gray-900 border border-gray-700 text-white"
-                                  rows={2}
-                                  style={{ fontSize: '16px' }}
-                                />
-                                <div className="flex gap-2">
+                            )}
+                            {/* Response form for replies */}
+                            {isViewer && notes && response.isReply && (
+                              <div className="mt-2">
+                                {respondingTo === response.id ? (
+                                  <form onSubmit={handleSubmitResponse} className="flex flex-col gap-2">
+                                    <div className="text-xs text-gray-400 mb-1">
+                                      Responding to a response
+                                    </div>
+                                    <textarea
+                                      value={responseText}
+                                      onChange={e => setResponseText(e.target.value)}
+                                      placeholder="Write a response..."
+                                      className="w-full p-2 rounded bg-gray-900 border border-gray-700 text-white"
+                                      rows={2}
+                                      style={{ fontSize: '16px' }}
+                                    />
+                                    <div className="flex gap-2">
+                                      <button
+                                        type="submit"
+                                        disabled={!responseText.trim() || submittingResponse}
+                                        className="px-3 py-1 bg-blue-600 rounded hover:bg-blue-500 text-sm disabled:opacity-50"
+                                      >
+                                        {submittingResponse ? 'Submitting...' : 'Submit'}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setRespondingTo(null);
+                                          setResponseText('');
+                                        }}
+                                        className="px-3 py-1 bg-gray-700 rounded hover:bg-gray-600 text-sm"
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  </form>
+                                ) : (
                                   <button
-                                    type="submit"
-                                    disabled={!responseText.trim() || submittingResponse}
-                                    className="px-3 py-1 bg-blue-600 rounded hover:bg-blue-500 text-sm disabled:opacity-50"
+                                    onClick={() => setRespondingTo(response.id)}
+                                    className="text-xs text-blue-400 hover:text-blue-300"
                                   >
-                                    {submittingResponse ? 'Submitting...' : 'Submit'}
+                                    Respond
                                   </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setRespondingTo(null);
-                                      setResponseText('');
-                                    }}
-                                    className="px-3 py-1 bg-gray-700 rounded hover:bg-gray-600 text-sm"
-                                  >
-                                    Cancel
-                                  </button>
-                                </div>
-                              </form>
-                            ) : (
-                              <button
-                                onClick={() => setRespondingTo(comment.id)}
-                                className="text-xs text-blue-400 hover:text-blue-300"
-                              >
-                                Respond
-                              </button>
+                                )}
+                              </div>
                             )}
                           </div>
-                        )}
-                      </div>
-                      ))}
+                        ));
+                      })()}
                       
                       {/* Response form for VIEWER users - always show if there's a note and not responding to a specific comment */}
                       {isViewer && notes && !respondingTo && (
-                    <div className="mt-3 bg-[#1f1f23] rounded p-3">
-                      <form onSubmit={(e) => {
-                        e.preventDefault();
-                        handleSubmitResponse(e);
-                      }} className="flex flex-col gap-2">
-                        <textarea
-                          ref={responseTextareaRef}
-                          value={responseText}
-                          onChange={e => setResponseText(e.target.value)}
-                          placeholder={comments.length === 0 ? "Respond to this note..." : "Add a response..."}
-                          className="w-full p-2 rounded bg-gray-900 border border-gray-700 text-white"
-                          style={{ fontSize: '16px' }}
-                          rows={3}
-                        />
-                        <button
-                          type="submit"
-                          disabled={!responseText.trim() || submittingResponse}
-                          className="self-end px-3 py-1 bg-blue-600 rounded hover:bg-blue-500 text-sm disabled:opacity-50"
-                        >
-                          {submittingResponse ? 'Submitting...' : 'Submit Response'}
-                        </button>
-                      </form>
-                    </div>
+                        <div className="mt-3 bg-[#1f1f23] rounded p-3">
+                          <form onSubmit={(e) => {
+                            e.preventDefault();
+                            handleSubmitResponse(e);
+                          }} className="flex flex-col gap-2">
+                            <textarea
+                              ref={responseTextareaRef}
+                              value={responseText}
+                              onChange={e => setResponseText(e.target.value)}
+                              placeholder={comments.length === 0 ? "Respond to this note..." : "Add a response..."}
+                              className="w-full p-2 rounded bg-gray-900 border border-gray-700 text-white"
+                              style={{ fontSize: '16px' }}
+                              rows={3}
+                            />
+                            <button
+                              type="submit"
+                              disabled={!responseText.trim() || submittingResponse}
+                              className="self-end px-3 py-1 bg-blue-600 rounded hover:bg-blue-500 text-sm disabled:opacity-50"
+                            >
+                              {submittingResponse ? 'Submitting...' : 'Submit Response'}
+                            </button>
+                          </form>
+                        </div>
                       )}
                     </>
                   )}
