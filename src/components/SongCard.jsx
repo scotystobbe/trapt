@@ -271,37 +271,35 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
   };
 
   return (
-    <div style={{ backgroundColor: '#27272a' }} className="p-4 rounded-xl flex flex-row gap-4 items-start">
-      <div className="flex-shrink-0 w-24 h-24 rounded-md overflow-hidden flex items-center justify-center" style={{ backgroundColor: '#3f3f46' }}>
+    <div style={{ backgroundColor: '#27272a' }} className="p-3 sm:p-4 rounded-xl flex flex-row gap-2 sm:gap-4 items-start">
+      <div className="flex-shrink-0 w-16 h-16 sm:w-24 sm:h-24 rounded-md overflow-hidden flex items-center justify-center" style={{ backgroundColor: '#3f3f46' }}>
         {song.artworkUrl ? (
           <img src={song.artworkUrl} alt={song.title} className="object-cover w-full h-full" />
         ) : (
-          <span className="text-gray-400">No Art</span>
+          <span className="text-gray-400 text-xs">No Art</span>
         )}
       </div>
-      <div className="flex-1 flex flex-col justify-between w-full">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-semibold text-white">{song.title}</h2>
+      <div className="flex-1 flex flex-col justify-between w-full min-w-0">
+        <div className="flex flex-col gap-1 sm:gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+            <h2 className="text-base sm:text-lg font-semibold text-white truncate">{song.title}</h2>
               <button
                 onClick={handleGeniusClick}
                 title="View on Genius"
-                className="text-yellow-400 hover:text-yellow-300 text-xl"
+              className="text-yellow-400 hover:text-yellow-300 text-lg sm:text-xl flex-shrink-0"
                 disabled={searchLoading}
               >
                 <SiGenius />
               </button>
             </div>
-            <p className="text-sm text-gray-300">{song.artist}</p>
-            <p className="text-sm text-gray-400 italic">{playlistName}</p>
-          </div>
+          <p className="text-xs sm:text-sm text-gray-300 truncate">{song.artist}</p>
+          <p className="text-xs sm:text-sm text-gray-400 italic truncate">{playlistName}</p>
         </div>
-        <div className="mt-3 flex flex-col gap-2">
+        <div className="mt-2 sm:mt-3 flex flex-col gap-2">
           <div className="flex items-center">
-            <StarRating rating={rating} onRatingChange={isAdmin ? handleRatingChange : undefined} size={32} />
+            <StarRating rating={rating} onRatingChange={isAdmin ? handleRatingChange : undefined} size={28} />
           </div>
-          <div className="text-sm text-gray-300">
+          <div className="text-xs sm:text-sm text-gray-300">
             {editing ? (
               <div className="flex flex-col gap-2">
                 <textarea
@@ -314,16 +312,16 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                 {isAdmin && (
                   <button
                     onClick={handleNoteSave}
-                    className="self-end px-3 py-1 bg-blue-600 rounded hover:bg-blue-500"
+                    className="self-end px-2 py-1 sm:px-3 sm:py-1 bg-blue-600 rounded hover:bg-blue-500 text-xs sm:text-sm"
                   >Save</button>
                 )}
               </div>
             ) : (
-              <div className="flex items-center justify-between">
-                <p className={`whitespace-pre-wrap flex-1 ${notes ? '' : 'text-gray-500'}`}>{notes || <em>No notes</em>}</p>
+              <div className="flex items-start justify-between gap-2">
+                <p className={`whitespace-pre-wrap flex-1 break-words ${notes ? '' : 'text-gray-500'}`}>{notes || <em>No notes</em>}</p>
                 {isAdmin && (
-                  <button onClick={() => setEditing(true)} className="ml-2 text-gray-400 hover:text-white">
-                    <FaRegEdit />
+                  <button onClick={() => setEditing(true)} className="text-gray-400 hover:text-white flex-shrink-0 mt-0.5">
+                    <FaRegEdit className="text-sm" />
                   </button>
                 )}
               </div>
@@ -333,18 +331,18 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
           
           {/* Comments Section */}
           {(notes || (song.commentCount > 0) || (song.responseCount > 0)) && (
-            <div className="mt-3 border-t border-gray-700 pt-3">
-              <div className="flex items-center justify-between mb-2">
+            <div className="mt-2 sm:mt-3 border-t border-gray-700 pt-2 sm:pt-3">
+              <div className="flex items-center justify-between mb-2 gap-2">
                 {((song.commentCount > 0) || (song.responseCount > 0)) ? (
                   <button
                     onClick={() => {
                       setShowComments(!showComments);
                       if (!showComments) fetchComments();
                     }}
-                    className="flex items-center gap-2 text-sm text-gray-400 hover:text-white"
+                    className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-gray-400 hover:text-white"
                   >
-                    <FaComment />
-                    <span>
+                    <FaComment className="text-sm sm:text-base" />
+                    <span className="whitespace-nowrap">
                       {song.responseCount > 0 && `${song.responseCount} response${song.responseCount !== 1 ? 's' : ''}`}
                       {song.commentCount > 0 && song.responseCount === 0 && `${song.commentCount} response${song.commentCount !== 1 ? 's' : ''}`}
                     </span>
@@ -361,17 +359,17 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                       setRespondingTo(null);
                       setResponseText('');
                     }}
-                    className="px-3 py-1 bg-blue-600 rounded hover:bg-blue-500 text-sm text-white"
+                    className="px-2 py-1 sm:px-3 sm:py-1 bg-blue-600 rounded hover:bg-blue-500 text-xs sm:text-sm text-white whitespace-nowrap"
                   >
-                    Add a Response
+                    Add Response
                   </button>
                 )}
               </div>
               
               {showComments && (
-                <div className="mt-3 space-y-3">
+                <div className="mt-2 sm:mt-3 space-y-2 sm:space-y-3">
                   {loadingComments ? (
-                    <div className="text-gray-400 text-sm">Loading comments...</div>
+                    <div className="text-gray-400 text-xs sm:text-sm">Loading comments...</div>
                   ) : (
                     <>
                       {(() => {
@@ -388,34 +386,34 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                         allResponses.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
                         return allResponses.map(response => (
-                          <div key={response.id} className="bg-[#1f1f23] rounded p-3">
-                            <div className="flex items-start justify-between mb-2">
-                              <div className="flex items-center gap-3 flex-1">
-                                <span className="text-white font-semibold text-sm">
+                          <div key={response.id} className="bg-[#1f1f23] rounded p-2 sm:p-3">
+                            <div className="flex items-start justify-between mb-1 sm:mb-2 gap-2">
+                              <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                                <span className="text-white font-semibold text-xs sm:text-sm truncate">
                                   {response.user.username || response.user.name || 'Anonymous'}
                                 </span>
                                 {response.user.role === 'ADMIN' && (
-                                  <span className="text-xs bg-blue-600 px-2 py-0.5 rounded">ADMIN</span>
+                                  <span className="text-[10px] sm:text-xs bg-blue-600 px-1.5 sm:px-2 py-0.5 rounded flex-shrink-0">ADMIN</span>
                                 )}
-                                <span className="text-xs text-gray-500">{formatDate(response.createdAt)}</span>
+                                <span className="text-[10px] sm:text-xs text-gray-500 whitespace-nowrap flex-shrink-0">{formatDate(response.createdAt)}</span>
                               </div>
                               {user && response.user.id === user.id && (
-                                <div className="relative">
+                                <div className="relative flex-shrink-0">
                                   <button
                                     onClick={() => setMenuOpenId(menuOpenId === response.id ? null : response.id)}
-                                    className="text-gray-400 hover:text-white p-1 text-sm"
+                                    className="text-gray-400 hover:text-white p-1 text-xs sm:text-sm"
                                     disabled={editingCommentId === response.id || deletingCommentId === response.id}
                                   >
                                     ⋮
                                   </button>
                                   {menuOpenId === response.id && (
-                                    <div className="absolute right-0 top-full mt-1 bg-[#27272a] border border-[#3f3f46] rounded shadow-lg z-10 min-w-[120px]">
+                                    <div className="absolute right-0 top-full mt-1 bg-[#27272a] border border-[#3f3f46] rounded shadow-lg z-10 min-w-[100px] sm:min-w-[120px]">
                                       <button
                                         onClick={() => {
                                           handleEditComment(response);
                                           setMenuOpenId(null);
                                         }}
-                                        className="block w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-[#3f3f46]"
+                                        className="block w-full text-left px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-gray-300 hover:bg-[#3f3f46]"
                                       >
                                         Edit
                                       </button>
@@ -424,7 +422,7 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                                           handleDeleteComment(response.id);
                                           setMenuOpenId(null);
                                         }}
-                                        className="block w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-[#3f3f46]"
+                                        className="block w-full text-left px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-red-400 hover:bg-[#3f3f46]"
                                       >
                                         Delete
                                       </button>
@@ -446,27 +444,27 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                                   <button
                                     onClick={() => handleSaveEdit(response.id)}
                                     disabled={!editingText.trim()}
-                                    className="px-3 py-1 bg-blue-600 rounded hover:bg-blue-500 text-sm disabled:opacity-50"
+                                    className="px-2 py-1 sm:px-3 sm:py-1 bg-blue-600 rounded hover:bg-blue-500 text-xs sm:text-sm disabled:opacity-50"
                                   >
                                     Save
                                   </button>
                                   <button
                                     onClick={handleCancelEdit}
-                                    className="px-3 py-1 bg-gray-700 rounded hover:bg-gray-600 text-sm"
+                                    className="px-2 py-1 sm:px-3 sm:py-1 bg-gray-700 rounded hover:bg-gray-600 text-xs sm:text-sm"
                                   >
                                     Cancel
                                   </button>
                                 </div>
                               </div>
                             ) : (
-                              <p className="text-gray-300 text-sm whitespace-pre-wrap">{response.content}</p>
+                              <p className="text-gray-300 text-xs sm:text-sm whitespace-pre-wrap break-words">{response.content}</p>
                             )}
                             {/* Response form for VIEWER users */}
                             {isViewer && notes && !response.isReply && (
                               <div className="mt-2">
                                 {respondingTo === response.id ? (
                                   <form onSubmit={handleSubmitResponse} className="flex flex-col gap-2">
-                                    <div className="text-xs text-gray-400 mb-1">
+                                    <div className="text-[10px] sm:text-xs text-gray-400 mb-1">
                                       Responding to original comment
                                     </div>
                                     <textarea
@@ -481,7 +479,7 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                                       <button
                                         type="submit"
                                         disabled={!responseText.trim() || submittingResponse}
-                                        className="px-3 py-1 bg-blue-600 rounded hover:bg-blue-500 text-sm disabled:opacity-50"
+                                        className="px-2 py-1 sm:px-3 sm:py-1 bg-blue-600 rounded hover:bg-blue-500 text-xs sm:text-sm disabled:opacity-50"
                                       >
                                         {submittingResponse ? 'Submitting...' : 'Submit'}
                                       </button>
@@ -491,7 +489,7 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                                           setRespondingTo(null);
                                           setResponseText('');
                                         }}
-                                        className="px-3 py-1 bg-gray-700 rounded hover:bg-gray-600 text-sm"
+                                        className="px-2 py-1 sm:px-3 sm:py-1 bg-gray-700 rounded hover:bg-gray-600 text-xs sm:text-sm"
                                       >
                                         Cancel
                                       </button>
@@ -500,7 +498,7 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                                 ) : (
                                   <button
                                     onClick={() => setRespondingTo(response.id)}
-                                    className="text-xs text-blue-400 hover:text-blue-300"
+                                    className="text-[10px] sm:text-xs text-blue-400 hover:text-blue-300"
                                   >
                                     Respond
                                   </button>
@@ -512,7 +510,7 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                               <div className="mt-2">
                                 {respondingTo === response.id ? (
                                   <form onSubmit={handleSubmitResponse} className="flex flex-col gap-2">
-                                    <div className="text-xs text-gray-400 mb-1">
+                                    <div className="text-[10px] sm:text-xs text-gray-400 mb-1">
                                       Responding to a response
                                     </div>
                                     <textarea
@@ -527,7 +525,7 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                                       <button
                                         type="submit"
                                         disabled={!responseText.trim() || submittingResponse}
-                                        className="px-3 py-1 bg-blue-600 rounded hover:bg-blue-500 text-sm disabled:opacity-50"
+                                        className="px-2 py-1 sm:px-3 sm:py-1 bg-blue-600 rounded hover:bg-blue-500 text-xs sm:text-sm disabled:opacity-50"
                                       >
                                         {submittingResponse ? 'Submitting...' : 'Submit'}
                                       </button>
@@ -537,7 +535,7 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                                           setRespondingTo(null);
                                           setResponseText('');
                                         }}
-                                        className="px-3 py-1 bg-gray-700 rounded hover:bg-gray-600 text-sm"
+                                        className="px-2 py-1 sm:px-3 sm:py-1 bg-gray-700 rounded hover:bg-gray-600 text-xs sm:text-sm"
                                       >
                                         Cancel
                                       </button>
@@ -546,7 +544,7 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                                 ) : (
                                   <button
                                     onClick={() => setRespondingTo(response.id)}
-                                    className="text-xs text-blue-400 hover:text-blue-300"
+                                    className="text-[10px] sm:text-xs text-blue-400 hover:text-blue-300"
                                   >
                                     Respond
                                   </button>
@@ -559,7 +557,7 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                       
                       {/* Response form for VIEWER users - always show if there's a note and not responding to a specific comment */}
                       {isViewer && notes && !respondingTo && (
-                        <div className="mt-3 bg-[#1f1f23] rounded p-3">
+                        <div className="mt-2 sm:mt-3 bg-[#1f1f23] rounded p-2 sm:p-3">
                           <form onSubmit={(e) => {
                             e.preventDefault();
                             handleSubmitResponse(e);
@@ -576,7 +574,7 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                             <button
                               type="submit"
                               disabled={!responseText.trim() || submittingResponse}
-                              className="self-end px-3 py-1 bg-blue-600 rounded hover:bg-blue-500 text-sm disabled:opacity-50"
+                              className="self-end px-2 py-1 sm:px-3 sm:py-1 bg-blue-600 rounded hover:bg-blue-500 text-xs sm:text-sm disabled:opacity-50"
                             >
                               {submittingResponse ? 'Submitting...' : 'Submit Response'}
                             </button>
