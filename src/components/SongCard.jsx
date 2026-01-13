@@ -69,12 +69,16 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
 
   // Add helper function to open Genius app or fallback to web
   function openGeniusAppOrWeb(songId, webUrl) {
-    const appUrl = `genius://songs/${songId}`;
-    const timeout = setTimeout(() => {
-      window.open(webUrl, '_blank', 'noopener,noreferrer');
-    }, 800);
-    window.location = appUrl;
-    window.addEventListener('pagehide', () => clearTimeout(timeout), { once: true });
+    // Create a temporary anchor element to open externally
+    // This avoids the blank internal browser issue in PWAs
+    const link = document.createElement('a');
+    link.href = webUrl;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    // Add to body, click, then remove
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   const handleGeniusClick = async (e) => {

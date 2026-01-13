@@ -121,7 +121,7 @@ export default function Digest() {
         <div className="flex flex-col items-center gap-3 mb-4">
           <h1 className="text-2xl font-semibold text-white">Digest</h1>
           <p className="text-gray-400 text-sm text-center">
-            Songs with recent activity (ratings, notes, comments, or responses)
+            Songs with recent activity
           </p>
         </div>
 
