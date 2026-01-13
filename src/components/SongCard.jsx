@@ -350,7 +350,7 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                 ) : (
                   <div></div>
                 )}
-                {isViewer && notes && !showComments && (
+                {(isViewer || isAdmin) && notes && !showComments && (
                   <button
                     onClick={(e) => {
                       e.preventDefault();
@@ -459,8 +459,8 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                             ) : (
                               <p className="text-gray-300 text-xs sm:text-sm whitespace-pre-wrap break-words">{response.content}</p>
                             )}
-                            {/* Response form for VIEWER users */}
-                            {isViewer && notes && !response.isReply && (
+                            {/* Response form for VIEWER and ADMIN users */}
+                            {(isViewer || isAdmin) && notes && !response.isReply && (
                               <div className="mt-2">
                                 {respondingTo === response.id ? (
                                   <form onSubmit={handleSubmitResponse} className="flex flex-col gap-2">
@@ -506,7 +506,7 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                               </div>
                             )}
                             {/* Response form for replies */}
-                            {isViewer && notes && response.isReply && (
+                            {(isViewer || isAdmin) && notes && response.isReply && (
                               <div className="mt-2">
                                 {respondingTo === response.id ? (
                                   <form onSubmit={handleSubmitResponse} className="flex flex-col gap-2">
@@ -555,8 +555,8 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                         ));
                       })()}
                       
-                      {/* Response form for VIEWER users - always show if there's a note and not responding to a specific comment */}
-                      {isViewer && notes && !respondingTo && (
+                      {/* Response form for VIEWER and ADMIN users - always show if there's a note and not responding to a specific comment */}
+                      {(isViewer || isAdmin) && notes && !respondingTo && (
                         <div className="mt-2 sm:mt-3 bg-[#1f1f23] rounded p-2 sm:p-3">
                           <form onSubmit={(e) => {
                             e.preventDefault();
