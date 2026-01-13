@@ -180,12 +180,11 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
         body: JSON.stringify({
           songId: song.id,
           content: responseText.trim(),
-          parentCommentId: respondingTo || null,
+          parentCommentId: null, // All responses are now top-level
         }),
       });
       if (!res.ok) throw new Error('Failed to submit response');
       setResponseText('');
-      setRespondingTo(null);
       await fetchComments();
       mutate('/api/playlists');
     } catch (err) {
@@ -350,13 +349,12 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                 ) : (
                   <div></div>
                 )}
-                {(isViewer || isAdmin) && notes && !showComments && (
+                {(isViewer || isAdmin) && (song.notes || (song.commentCount > 0) || (song.responseCount > 0)) && !showComments && (
                   <button
                     onClick={(e) => {
                       e.preventDefault();
                       setShowComments(true);
                       if (comments.length === 0) fetchComments();
-                      setRespondingTo(null);
                       setResponseText('');
                     }}
                     className="px-2 py-1 sm:px-3 sm:py-1 bg-blue-600 rounded hover:bg-blue-500 text-xs sm:text-sm text-white whitespace-nowrap"
@@ -459,104 +457,12 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                             ) : (
                               <p className="text-gray-300 text-xs sm:text-sm whitespace-pre-wrap break-words">{response.content}</p>
                             )}
-                            {/* Response form for VIEWER and ADMIN users */}
-                            {(isViewer || isAdmin) && notes && !response.isReply && (
-                              <div className="mt-2">
-                                {respondingTo === response.id ? (
-                                  <form onSubmit={handleSubmitResponse} className="flex flex-col gap-2">
-                                    <div className="text-[10px] sm:text-xs text-gray-400 mb-1">
-                                      Responding to original comment
-                                    </div>
-                                    <textarea
-                                      value={responseText}
-                                      onChange={e => setResponseText(e.target.value)}
-                                      placeholder="Write a response..."
-                                      className="w-full p-2 rounded bg-gray-900 border border-gray-700 text-white"
-                                      rows={2}
-                                      style={{ fontSize: '16px' }}
-                                    />
-                                    <div className="flex gap-2">
-                                      <button
-                                        type="submit"
-                                        disabled={!responseText.trim() || submittingResponse}
-                                        className="px-2 py-1 sm:px-3 sm:py-1 bg-blue-600 rounded hover:bg-blue-500 text-xs sm:text-sm disabled:opacity-50"
-                                      >
-                                        {submittingResponse ? 'Submitting...' : 'Submit'}
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setRespondingTo(null);
-                                          setResponseText('');
-                                        }}
-                                        className="px-2 py-1 sm:px-3 sm:py-1 bg-gray-700 rounded hover:bg-gray-600 text-xs sm:text-sm"
-                                      >
-                                        Cancel
-                                      </button>
-                                    </div>
-                                  </form>
-                                ) : (
-                                  <button
-                                    onClick={() => setRespondingTo(response.id)}
-                                    className="text-[10px] sm:text-xs text-blue-400 hover:text-blue-300"
-                                  >
-                                    Respond
-                                  </button>
-                                )}
-                              </div>
-                            )}
-                            {/* Response form for replies */}
-                            {(isViewer || isAdmin) && notes && response.isReply && (
-                              <div className="mt-2">
-                                {respondingTo === response.id ? (
-                                  <form onSubmit={handleSubmitResponse} className="flex flex-col gap-2">
-                                    <div className="text-[10px] sm:text-xs text-gray-400 mb-1">
-                                      Responding to a response
-                                    </div>
-                                    <textarea
-                                      value={responseText}
-                                      onChange={e => setResponseText(e.target.value)}
-                                      placeholder="Write a response..."
-                                      className="w-full p-2 rounded bg-gray-900 border border-gray-700 text-white"
-                                      rows={2}
-                                      style={{ fontSize: '16px' }}
-                                    />
-                                    <div className="flex gap-2">
-                                      <button
-                                        type="submit"
-                                        disabled={!responseText.trim() || submittingResponse}
-                                        className="px-2 py-1 sm:px-3 sm:py-1 bg-blue-600 rounded hover:bg-blue-500 text-xs sm:text-sm disabled:opacity-50"
-                                      >
-                                        {submittingResponse ? 'Submitting...' : 'Submit'}
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setRespondingTo(null);
-                                          setResponseText('');
-                                        }}
-                                        className="px-2 py-1 sm:px-3 sm:py-1 bg-gray-700 rounded hover:bg-gray-600 text-xs sm:text-sm"
-                                      >
-                                        Cancel
-                                      </button>
-                                    </div>
-                                  </form>
-                                ) : (
-                                  <button
-                                    onClick={() => setRespondingTo(response.id)}
-                                    className="text-[10px] sm:text-xs text-blue-400 hover:text-blue-300"
-                                  >
-                                    Respond
-                                  </button>
-                                )}
-                              </div>
-                            )}
                           </div>
                         ));
                       })()}
                       
-                      {/* Response form for VIEWER and ADMIN users - always show if there's a note and not responding to a specific comment */}
-                      {(isViewer || isAdmin) && notes && !respondingTo && (
+                      {/* Response form for VIEWER and ADMIN users - always show if there's a saved note or existing comments/responses */}
+                      {(isViewer || isAdmin) && (song.notes || (song.commentCount > 0) || (song.responseCount > 0)) && (
                         <div className="mt-2 sm:mt-3 bg-[#1f1f23] rounded p-2 sm:p-3">
                           <form onSubmit={(e) => {
                             e.preventDefault();

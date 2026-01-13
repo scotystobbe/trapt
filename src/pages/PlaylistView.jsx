@@ -247,8 +247,9 @@ export default function PlaylistView() {
       (song.commentCount > 0) || (song.responseCount > 0) || song.notes
     );
   } else if (filter === 'withResponses') {
-    // Show songs with responses/threads (replies to comments)
-    filteredSongs = filteredSongs.filter(song => song.responseCount > 0);
+    // Show songs with responses (any comments, since all responses are now top-level)
+    // This means songs that have comments/responses beyond just the original note
+    filteredSongs = filteredSongs.filter(song => song.commentCount > 0);
   }
   
   const sortedSongs = filteredSongs
