@@ -313,19 +313,23 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
           {(notes || (song.commentCount > 0) || (song.responseCount > 0)) && (
             <div className="mt-3 border-t border-gray-700 pt-3">
               <div className="flex items-center justify-between mb-2">
-                <button
-                  onClick={() => {
-                    setShowComments(!showComments);
-                    if (!showComments) fetchComments();
-                  }}
-                  className="flex items-center gap-2 text-sm text-gray-400 hover:text-white"
-                >
-                  <FaComment />
-                  <span>
-                    {song.responseCount > 0 && `${song.responseCount} response${song.responseCount !== 1 ? 's' : ''}`}
-                    {song.commentCount > 0 && song.responseCount === 0 && `${song.commentCount} comment${song.commentCount !== 1 ? 's' : ''}`}
-                  </span>
-                </button>
+                {((song.commentCount > 0) || (song.responseCount > 0)) ? (
+                  <button
+                    onClick={() => {
+                      setShowComments(!showComments);
+                      if (!showComments) fetchComments();
+                    }}
+                    className="flex items-center gap-2 text-sm text-gray-400 hover:text-white"
+                  >
+                    <FaComment />
+                    <span>
+                      {song.responseCount > 0 && `${song.responseCount} response${song.responseCount !== 1 ? 's' : ''}`}
+                      {song.commentCount > 0 && song.responseCount === 0 && `${song.commentCount} response${song.commentCount !== 1 ? 's' : ''}`}
+                    </span>
+                  </button>
+                ) : (
+                  <div></div>
+                )}
                 {isViewer && notes && (
                   <button
                     onClick={(e) => {
