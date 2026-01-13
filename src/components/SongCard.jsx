@@ -330,7 +330,7 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                 ) : (
                   <div></div>
                 )}
-                {isViewer && notes && (
+                {isViewer && notes && !showComments && (
                   <button
                     onClick={(e) => {
                       e.preventDefault();
@@ -350,10 +350,9 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                 <div className="mt-3 space-y-3">
                   {loadingComments ? (
                     <div className="text-gray-400 text-sm">Loading comments...</div>
-                  ) : comments.length === 0 ? (
-                    <div className="text-gray-500 text-sm italic">No responses yet</div>
                   ) : (
-                    comments.map(comment => (
+                    <>
+                      {comments.map(comment => (
                       <div key={comment.id} className="bg-[#1f1f23] rounded p-3">
                         <div className="flex items-start justify-between mb-1">
                           <div className="flex items-center gap-2">
@@ -527,11 +526,10 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                           </div>
                         )}
                       </div>
-                    ))
-                  )}
-                  
-                  {/* Response form for VIEWER users - always show if there's a note and not responding to a specific comment */}
-                  {isViewer && notes && !respondingTo && showComments && (
+                      ))}
+                      
+                      {/* Response form for VIEWER users - always show if there's a note and not responding to a specific comment */}
+                      {isViewer && notes && !respondingTo && (
                     <div className="mt-3 bg-[#1f1f23] rounded p-3">
                       <form onSubmit={(e) => {
                         e.preventDefault();
@@ -555,6 +553,8 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                         </button>
                       </form>
                     </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}
