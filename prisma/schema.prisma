@@ -43,6 +43,7 @@ model Song {
   geniusSongId Int?
   geniusUrl    String?
   geniusNoMatch Boolean @default(false)
+  updatedAt    DateTime @updatedAt
   comments     Comment[]
 }
 

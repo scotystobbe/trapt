@@ -42,10 +42,10 @@ module.exports = async (req, res) => {
             }
             // Merge fields: new data overrides current
             const merged = { ...current, ...data };
-            // Remove fields not in the model (e.g., id, createdAt, updatedAt if present)
+            // Remove fields not in the model (e.g., id, createdAt)
             delete merged.id;
             delete merged.createdAt;
-            delete merged.updatedAt;
+            // Prisma's @updatedAt will automatically update updatedAt on any change
             const song = await prisma.song.update({
               where: { id },
               data: merged,

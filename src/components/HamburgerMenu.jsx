@@ -67,6 +67,13 @@ export default function HamburgerMenu({ className = '' }) {
           >
             Browse
           </Link>
+          <Link
+            to="/digest"
+            className="block px-4 py-2 text-white hover:bg-[#3f3f46]"
+            onClick={() => setOpen(false)}
+          >
+            Digest
+          </Link>
           {user?.role === 'ADMIN' && (
             <Link
               to="/admin"

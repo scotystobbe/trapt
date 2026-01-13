@@ -11,6 +11,7 @@ import ScrollTest from './pages/ScrollTest.jsx';
 import GeniusEmbedPage from './pages/genius-embed/[songId]';
 import Login from './pages/Login.jsx';
 import Profile from './pages/Profile.jsx';
+import Digest from './pages/Digest.jsx';
 import { FaMoon, FaSun } from 'react-icons/fa';
 import ScrollToTop from './components/ScrollToTop';
 import { AuthProvider } from './components/AuthProvider';
@@ -113,6 +114,7 @@ export default function App() {
                 <Route path="/scroll-test" element={<ProtectedRoute><ScrollTest /></ProtectedRoute>} />
                 <Route path="/genius-embed/:songId" element={<ProtectedRoute><GeniusEmbedPage /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                <Route path="/digest" element={<ProtectedRoute><Digest /></ProtectedRoute>} />
               </Routes>
             </Router>
           </div>
