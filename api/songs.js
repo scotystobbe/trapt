@@ -34,21 +34,17 @@ module.exports = async (req, res) => {
         } else if (req.method === 'PUT') {
           try {
             const { id, ...data } = req.body;
-            // Fetch current song
+            // Verify song exists
             const current = await prisma.song.findUnique({ where: { id } });
             if (!current) {
               res.status(404).json({ error: 'Song not found' });
               return;
             }
-            // Merge fields: new data overrides current
-            const merged = { ...current, ...data };
-            // Remove fields not in the model (e.g., id, createdAt)
-            delete merged.id;
-            delete merged.createdAt;
+            // Only update the fields that are provided in data
             // Prisma's @updatedAt will automatically update updatedAt on any change
             const song = await prisma.song.update({
               where: { id },
-              data: merged,
+              data: data,
             });
             res.status(200).json(song);
           } catch (error) {

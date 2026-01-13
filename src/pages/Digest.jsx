@@ -5,9 +5,11 @@ import LogoHeader from '../components/LogoHeader';
 import Skeleton from '../components/Skeleton';
 import useSWR from 'swr';
 import { useAuth } from '../components/AuthProvider';
+import { useLocation } from 'react-router-dom';
 
 export default function Digest() {
   const { user } = useAuth();
+  const location = useLocation();
   const [dateMode, setDateMode] = useState('days'); // 'days', 'customDays', 'customDate'
   const [days, setDays] = useState(7);
   const [customDays, setCustomDays] = useState(30);
@@ -45,7 +47,17 @@ export default function Digest() {
     });
   };
 
-  const { data: songs = [], error, mutate } = useSWR(apiUrl, fetcher);
+  const { data: songs = [], error, mutate } = useSWR(apiUrl, fetcher, {
+    revalidateOnFocus: true,
+    revalidateOnReconnect: true,
+    revalidateOnMount: true,
+    refreshInterval: 0, // Don't auto-refresh, but revalidate on mount/focus
+  });
+
+  // Re-fetch when navigating to this page
+  useEffect(() => {
+    mutate();
+  }, [location.pathname, mutate]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -203,7 +215,7 @@ export default function Digest() {
               {sortDropdownOpen && (
                 <div
                   ref={sortDropdownRef}
-                  className="absolute right-0 top-full mt-2 w-40 rounded shadow-lg z-10"
+                  className="absolute left-0 top-full mt-2 w-40 rounded shadow-lg z-10"
                   style={{ backgroundColor: '#27272a', border: '1px solid #3f3f46' }}
                 >
                   <button
