@@ -399,7 +399,7 @@ export default function PlaylistView() {
           <div className="flex gap-2 flex-wrap">
             <button
               onClick={() => setFilter('all')}
-              className={`px-4 py-2 rounded text-sm ${
+              className={`px-2 py-1 sm:px-4 sm:py-2 rounded text-xs sm:text-sm ${
                 filter === 'all'
                   ? 'bg-blue-600 text-white'
                   : 'bg-[#27272a] text-gray-300 hover:bg-[#3f3f46]'
@@ -409,7 +409,7 @@ export default function PlaylistView() {
             </button>
             <button
               onClick={() => setFilter('withComments')}
-              className={`px-4 py-2 rounded text-sm ${
+              className={`px-2 py-1 sm:px-4 sm:py-2 rounded text-xs sm:text-sm ${
                 filter === 'withComments'
                   ? 'bg-blue-600 text-white'
                   : 'bg-[#27272a] text-gray-300 hover:bg-[#3f3f46]'
@@ -420,7 +420,7 @@ export default function PlaylistView() {
             {isAdmin ? (
               <button
                 onClick={() => setFilter('withResponses')}
-                className={`px-4 py-2 rounded text-sm ${
+                className={`px-2 py-1 sm:px-4 sm:py-2 rounded text-xs sm:text-sm ${
                   filter === 'withResponses'
                     ? 'bg-blue-600 text-white'
                     : 'bg-[#27272a] text-gray-300 hover:bg-[#3f3f46]'
@@ -431,7 +431,7 @@ export default function PlaylistView() {
             ) : (
               <button
                 onClick={() => setFilter('withResponses')}
-                className={`px-4 py-2 rounded text-sm ${
+                className={`px-2 py-1 sm:px-4 sm:py-2 rounded text-xs sm:text-sm ${
                   filter === 'withResponses'
                     ? 'bg-blue-600 text-white'
                     : 'bg-[#27272a] text-gray-300 hover:bg-[#3f3f46]'
