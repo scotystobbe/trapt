@@ -133,6 +133,8 @@ export default function Profile() {
                 value={username}
                 onChange={e => setUsername(e.target.value)}
                 className="px-4 py-2 rounded bg-[#232326] border border-[#3f3f46] focus:outline-none text-white"
+                autoCapitalize="none"
+                autoCorrect="off"
                 autoFocus
               />
               <button

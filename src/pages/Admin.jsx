@@ -1024,6 +1024,8 @@ export default function Admin() {
                         value={newUser.username}
                         onChange={e => setNewUser({ ...newUser, username: e.target.value })}
                         className="w-full px-3 py-2 rounded bg-[#18181b] border border-[#3f3f46] text-white text-sm"
+                        autoCapitalize="none"
+                        autoCorrect="off"
                       />
                     </div>
                     <div>
