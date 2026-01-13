@@ -287,6 +287,7 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
                   className="w-full p-2 rounded bg-gray-900 border border-gray-700 text-white"
+                  style={{ fontSize: '16px' }}
                   disabled={!isAdmin}
                 />
                 {isAdmin && (
@@ -390,7 +391,7 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                             <textarea
                               value={editingText}
                               onChange={e => setEditingText(e.target.value)}
-                              className="w-full p-2 rounded bg-gray-900 border border-gray-700 text-white text-sm"
+                              className="w-full p-2 rounded bg-gray-900 border border-gray-700 text-white"
                               rows={3}
                               style={{ fontSize: '16px' }}
                             />
@@ -455,7 +456,7 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                                     <textarea
                                       value={editingText}
                                       onChange={e => setEditingText(e.target.value)}
-                                      className="w-full p-2 rounded bg-gray-900 border border-gray-700 text-white text-xs"
+                                      className="w-full p-2 rounded bg-gray-900 border border-gray-700 text-white"
                                       rows={2}
                                       style={{ fontSize: '16px' }}
                                     />
@@ -478,22 +479,72 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                                 ) : (
                                   <p className="text-gray-300 text-xs whitespace-pre-wrap">{reply.content}</p>
                                 )}
+                                {/* Response form for replies */}
+                                {isViewer && notes && (
+                                  <div className="mt-2">
+                                    {respondingTo === reply.id ? (
+                                      <form onSubmit={handleSubmitResponse} className="flex flex-col gap-2">
+                                        <div className="text-xs text-gray-400 mb-1">
+                                          Responding to a response
+                                        </div>
+                                        <textarea
+                                          value={responseText}
+                                          onChange={e => setResponseText(e.target.value)}
+                                          placeholder="Write a response..."
+                                          className="w-full p-2 rounded bg-gray-900 border border-gray-700 text-white"
+                                          rows={2}
+                                          style={{ fontSize: '16px' }}
+                                        />
+                                        <div className="flex gap-2">
+                                          <button
+                                            type="submit"
+                                            disabled={!responseText.trim() || submittingResponse}
+                                            className="px-2 py-1 bg-blue-600 rounded hover:bg-blue-500 text-xs disabled:opacity-50"
+                                          >
+                                            {submittingResponse ? 'Submitting...' : 'Submit'}
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setRespondingTo(null);
+                                              setResponseText('');
+                                            }}
+                                            className="px-2 py-1 bg-gray-700 rounded hover:bg-gray-600 text-xs"
+                                          >
+                                            Cancel
+                                          </button>
+                                        </div>
+                                      </form>
+                                    ) : (
+                                      <button
+                                        onClick={() => setRespondingTo(reply.id)}
+                                        className="text-xs text-blue-400 hover:text-blue-300"
+                                      >
+                                        Respond
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
                         )}
                         
-                        {/* Response form for VIEWER users */}
+                        {/* Response form for VIEWER users - responding to original comment */}
                         {isViewer && notes && (
                           <div className="mt-2">
                             {respondingTo === comment.id ? (
                               <form onSubmit={handleSubmitResponse} className="flex flex-col gap-2">
+                                <div className="text-xs text-gray-400 mb-1">
+                                  Responding to original comment
+                                </div>
                                 <textarea
                                   value={responseText}
                                   onChange={e => setResponseText(e.target.value)}
                                   placeholder="Write a response..."
-                                  className="w-full p-2 rounded bg-gray-900 border border-gray-700 text-white text-sm"
+                                  className="w-full p-2 rounded bg-gray-900 border border-gray-700 text-white"
                                   rows={2}
+                                  style={{ fontSize: '16px' }}
                                 />
                                 <div className="flex gap-2">
                                   <button
