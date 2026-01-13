@@ -1,7 +1,7 @@
 import React from "react";
 import { useState, useEffect, useRef } from 'react';
 import StarRating from './StarRating';
-import { FaRegEdit, FaComment } from 'react-icons/fa';
+import { FaRegEdit, FaComment, FaTrash } from 'react-icons/fa';
 import { mutate } from 'swr';
 import { SiGenius } from 'react-icons/si';
 import { useAuth } from './AuthProvider';
@@ -25,6 +25,9 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
   const [respondingTo, setRespondingTo] = useState(null);
   const [submittingResponse, setSubmittingResponse] = useState(false);
   const responseTextareaRef = useRef(null);
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editingText, setEditingText] = useState('');
+  const [deletingCommentId, setDeletingCommentId] = useState(null);
 
   const saveSongUpdate = async (fields) => {
     if (!isAdmin) return;
@@ -185,6 +188,67 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const handleEditComment = (comment) => {
+    setEditingCommentId(comment.id);
+    setEditingText(comment.content);
+    setRespondingTo(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCommentId(null);
+    setEditingText('');
+  };
+
+  const handleSaveEdit = async (commentId) => {
+    if (!editingText.trim()) return;
+    
+    try {
+      const res = await fetch('/api/comments', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          id: commentId,
+          content: editingText.trim(),
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to update comment');
+      setEditingCommentId(null);
+      setEditingText('');
+      await fetchComments();
+      mutate('/api/playlists');
+    } catch (err) {
+      console.error('Error updating comment:', err);
+      setError('Could not update comment.');
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    if (!window.confirm('Are you sure you want to delete this response?')) return;
+    
+    setDeletingCommentId(commentId);
+    try {
+      const res = await fetch('/api/comments', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ id: commentId }),
+      });
+      if (!res.ok) throw new Error('Failed to delete comment');
+      await fetchComments();
+      mutate('/api/playlists');
+    } catch (err) {
+      console.error('Error deleting comment:', err);
+      setError('Could not delete comment.');
+    } finally {
+      setDeletingCommentId(null);
+    }
+  };
+
   return (
     <div style={{ backgroundColor: '#27272a' }} className="p-4 rounded-xl flex flex-row gap-4 items-start">
       <div className="flex-shrink-0 w-24 h-24 rounded-md overflow-hidden flex items-center justify-center" style={{ backgroundColor: '#3f3f46' }}>
@@ -260,22 +324,16 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                   <span>
                     {song.responseCount > 0 && `${song.responseCount} response${song.responseCount !== 1 ? 's' : ''}`}
                     {song.commentCount > 0 && song.responseCount === 0 && `${song.commentCount} comment${song.commentCount !== 1 ? 's' : ''}`}
-                    {song.commentCount === 0 && song.responseCount === 0 && notes && 'No responses yet'}
                   </span>
                 </button>
                 {isViewer && notes && (
                   <button
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.preventDefault();
                       setShowComments(true);
                       if (comments.length === 0) fetchComments();
                       setRespondingTo(null);
                       setResponseText('');
-                      // Focus the textarea after a brief delay to ensure it's rendered
-                      setTimeout(() => {
-                        if (responseTextareaRef.current) {
-                          responseTextareaRef.current.focus();
-                        }
-                      }, 100);
                     }}
                     className="px-3 py-1 bg-blue-600 rounded hover:bg-blue-500 text-sm text-white"
                   >
@@ -302,9 +360,56 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                               <span className="text-xs bg-blue-600 px-2 py-0.5 rounded">ADMIN</span>
                             )}
                           </div>
-                          <span className="text-xs text-gray-500">{formatDate(comment.createdAt)}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500">{formatDate(comment.createdAt)}</span>
+                            {user && comment.user.id === user.id && (
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => handleEditComment(comment)}
+                                  className="text-xs text-gray-400 hover:text-blue-400"
+                                  disabled={editingCommentId === comment.id || deletingCommentId === comment.id}
+                                >
+                                  <FaRegEdit />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteComment(comment.id)}
+                                  className="text-xs text-gray-400 hover:text-red-400"
+                                  disabled={editingCommentId === comment.id || deletingCommentId === comment.id}
+                                >
+                                  <FaTrash />
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <p className="text-gray-300 text-sm whitespace-pre-wrap">{comment.content}</p>
+                        {editingCommentId === comment.id ? (
+                          <div className="flex flex-col gap-2 mt-2">
+                            <textarea
+                              value={editingText}
+                              onChange={e => setEditingText(e.target.value)}
+                              className="w-full p-2 rounded bg-gray-900 border border-gray-700 text-white text-sm"
+                              rows={3}
+                              style={{ fontSize: '16px' }}
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleSaveEdit(comment.id)}
+                                disabled={!editingText.trim()}
+                                className="px-3 py-1 bg-blue-600 rounded hover:bg-blue-500 text-sm disabled:opacity-50"
+                              >
+                                Save
+                              </button>
+                              <button
+                                onClick={handleCancelEdit}
+                                className="px-3 py-1 bg-gray-700 rounded hover:bg-gray-600 text-sm"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-gray-300 text-sm whitespace-pre-wrap">{comment.content}</p>
+                        )}
                         
                         {/* Replies */}
                         {comment.replies && comment.replies.length > 0 && (
@@ -320,9 +425,56 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                                       <span className="text-xs bg-blue-600 px-1.5 py-0.5 rounded text-[10px]">ADMIN</span>
                                     )}
                                   </div>
-                                  <span className="text-xs text-gray-500">{formatDate(reply.createdAt)}</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs text-gray-500">{formatDate(reply.createdAt)}</span>
+                                    {user && reply.user.id === user.id && (
+                                      <div className="flex items-center gap-1">
+                                        <button
+                                          onClick={() => handleEditComment(reply)}
+                                          className="text-xs text-gray-400 hover:text-blue-400"
+                                          disabled={editingCommentId === reply.id || deletingCommentId === reply.id}
+                                        >
+                                          <FaRegEdit />
+                                        </button>
+                                        <button
+                                          onClick={() => handleDeleteComment(reply.id)}
+                                          className="text-xs text-gray-400 hover:text-red-400"
+                                          disabled={editingCommentId === reply.id || deletingCommentId === reply.id}
+                                        >
+                                          <FaTrash />
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
-                                <p className="text-gray-300 text-xs whitespace-pre-wrap">{reply.content}</p>
+                                {editingCommentId === reply.id ? (
+                                  <div className="flex flex-col gap-2 mt-2">
+                                    <textarea
+                                      value={editingText}
+                                      onChange={e => setEditingText(e.target.value)}
+                                      className="w-full p-2 rounded bg-gray-900 border border-gray-700 text-white text-xs"
+                                      rows={2}
+                                      style={{ fontSize: '16px' }}
+                                    />
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={() => handleSaveEdit(reply.id)}
+                                        disabled={!editingText.trim()}
+                                        className="px-2 py-1 bg-blue-600 rounded hover:bg-blue-500 text-xs disabled:opacity-50"
+                                      >
+                                        Save
+                                      </button>
+                                      <button
+                                        onClick={handleCancelEdit}
+                                        className="px-2 py-1 bg-gray-700 rounded hover:bg-gray-600 text-xs"
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <p className="text-gray-300 text-xs whitespace-pre-wrap">{reply.content}</p>
+                                )}
                               </div>
                             ))}
                           </div>
@@ -386,7 +538,8 @@ export default function SongCard({ song, playlistName, onSongUpdate }) {
                           value={responseText}
                           onChange={e => setResponseText(e.target.value)}
                           placeholder={comments.length === 0 ? "Respond to this note..." : "Add a response..."}
-                          className="w-full p-2 rounded bg-gray-900 border border-gray-700 text-white text-sm"
+                          className="w-full p-2 rounded bg-gray-900 border border-gray-700 text-white"
+                          style={{ fontSize: '16px' }}
                           rows={3}
                         />
                         <button
