@@ -234,8 +234,7 @@ export default function NowPlaying() {
       if (res.status === 401) {
         setIsAuthenticated(false);
         if (isInitial) {
-          setInitialLoading(false);
-          // Redirect to Spotify login so user doesn't have to tap "Connect to Spotify"
+          // Redirect in background; keep skeleton visible so no flash of "Connect to Spotify"
           window.location.replace('/api/spotify-proxy/login');
           return;
         }
