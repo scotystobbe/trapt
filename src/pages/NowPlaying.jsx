@@ -233,7 +233,12 @@ export default function NowPlaying() {
       const res = await fetch('/api/spotify-proxy/currently-playing');
       if (res.status === 401) {
         setIsAuthenticated(false);
-        if (isInitial) setInitialLoading(false);
+        if (isInitial) {
+          setInitialLoading(false);
+          // Redirect to Spotify login so user doesn't have to tap "Connect to Spotify"
+          window.location.replace('/api/spotify-proxy/login');
+          return;
+        }
         return;
       }
       setIsAuthenticated(true);
