@@ -1,6 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { authenticateJWT, requireRole } = require('../middleware');
+const { isYearlyRobPlaylist } = require('../../lib/yearlyRobPlaylist');
 
 module.exports = async (req, res) => {
   if (req.method !== 'GET') {
@@ -9,15 +10,19 @@ module.exports = async (req, res) => {
 
   authenticateJWT(req, res, async () => {
       try {
-        // Get all songs
-        const allSongs = await prisma.song.findMany({
+        // Get all songs (scoped to yearly Rob playlists; exclude TRAPT / TRAPT+ compilations)
+        const allSongsRaw = await prisma.song.findMany({
           include: { playlist: true },
         });
 
-        // Get all playlists
-        const allPlaylists = await prisma.playlist.findMany({
+        const allPlaylistsRaw = await prisma.playlist.findMany({
           include: { songs: true },
         });
+
+        const mainPlaylists = allPlaylistsRaw.filter(p => isYearlyRobPlaylist(p.name));
+        const mainPlaylistIds = new Set(mainPlaylists.map(p => p.id));
+        const allSongs = allSongsRaw.filter(s => mainPlaylistIds.has(s.playlistId));
+        const allPlaylists = mainPlaylists;
 
         const totalSongs = allSongs.length;
         const totalPlaylists = allPlaylists.length;

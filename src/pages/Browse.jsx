@@ -6,7 +6,7 @@ import Skeleton from '../components/Skeleton';
 import SongCard from '../components/SongCard';
 import useSWR from 'swr';
 
-/** Yearly source playlists (e.g. Rob 2025); excludes TRAPT / TRAPT+ compilations. */
+/** Same rule as lib/yearlyRobPlaylist.js (used by API). */
 function isYearlyRobPlaylist(name) {
   return /^Rob \d{4}$/.test(name);
 }

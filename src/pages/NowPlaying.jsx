@@ -10,40 +10,44 @@ import usePrevTrackStore from '../data/usePrevTrackStore';
 import { useAuth } from '../components/AuthProvider';
 import { useSpeech, getSpeechMode, SPEECH_MODES, isPWA } from '../hooks/useSpeech';
 import SpeechPermissionBanner from '../components/SpeechPermissionBanner';
+import RatingKeyModal from '../components/RatingKeyModal';
+import { useLongPressRatingKey } from '../hooks/useLongPressRatingKey';
 
 function EditableStarRating({ rating, onRatingChange, size = 56, nightMode, emptyColor }) {
+  const { keyOpen, setKeyOpen, longPressHandlers, wrapStarClick } = useLongPressRatingKey();
+
+  const setRating = (star) => {
+    if (!onRatingChange) return;
+    if (star === 1 && rating === 1) {
+      onRatingChange(null);
+    } else {
+      onRatingChange(star);
+    }
+  };
+
   return (
-    <div className="flex gap-2 mt-2 mb-4 w-full max-w-lg justify-center sm:gap-1">
-      {[1, 2, 3, 4, 5].map((star) => (
-        star <= rating ? (
-          <FaStar
-            key={star}
-            className={nightMode ? 'text-red-800 cursor-pointer' : 'text-yellow-400 cursor-pointer'}
-            onClick={() => {
-              if (star === 1 && rating === 1) {
-                onRatingChange(null);
-              } else {
-                onRatingChange(star);
-              }
-            }}
-            size={size}
-          />
-        ) : (
-          <FaRegStar
-            key={star}
-            className={nightMode ? 'text-red-900 cursor-pointer' : 'text-gray-400 cursor-pointer'}
-            onClick={() => {
-              if (star === 1 && rating === 1) {
-                onRatingChange(null);
-              } else {
-                onRatingChange(star);
-              }
-            }}
-            size={size}
-          />
-        )
-      ))}
-    </div>
+    <>
+      <div className="flex gap-2 mt-2 mb-4 w-full max-w-lg justify-center sm:gap-1">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <span key={star} className="inline-flex touch-manipulation" {...longPressHandlers}>
+            {star <= rating ? (
+              <FaStar
+                className={nightMode ? 'text-red-800 cursor-pointer' : 'text-yellow-400 cursor-pointer'}
+                onClick={wrapStarClick(() => setRating(star))}
+                size={size}
+              />
+            ) : (
+              <FaRegStar
+                className={nightMode ? 'text-red-900 cursor-pointer' : 'text-gray-400 cursor-pointer'}
+                onClick={wrapStarClick(() => setRating(star))}
+                size={size}
+              />
+            )}
+          </span>
+        ))}
+      </div>
+      <RatingKeyModal open={keyOpen} onClose={() => setKeyOpen(false)} />
+    </>
   );
 }
 
