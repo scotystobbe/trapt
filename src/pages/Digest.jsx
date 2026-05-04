@@ -15,6 +15,8 @@ export default function Digest() {
   const [customDays, setCustomDays] = useState(30);
   const [customDate, setCustomDate] = useState('');
   const [sort, setSort] = useState('mostRecent'); // 'playlistOrder', 'mostRecent', 'leastRecent'
+  /** Which activity types include a song: ratings (song updated), comments, or both */
+  const [activityMode, setActivityMode] = useState('both'); // 'both' | 'ratings' | 'comments'
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
   const sortButtonRef = useRef(null);
   const sortDropdownRef = useRef(null);
@@ -22,15 +24,17 @@ export default function Digest() {
   // Build API URL based on date mode
   const buildApiUrl = () => {
     const baseUrl = '/api/digest';
+    // SWR key must include activityMode so toggling refetches; server applies activity filter
+    const split = '&activitySplit=1';
+    const act = `&activity=${encodeURIComponent(activityMode)}`;
     if (dateMode === 'customDate') {
       if (!customDate) return null;
-      // Format date as YYYY-MM-DD
       const dateStr = customDate;
-      return `${baseUrl}?startDate=${dateStr}`;
+      return `${baseUrl}?startDate=${dateStr}${split}${act}`;
     } else if (dateMode === 'customDays') {
-      return `${baseUrl}?days=${customDays}`;
+      return `${baseUrl}?days=${customDays}${split}${act}`;
     } else {
-      return `${baseUrl}?days=${days}`;
+      return `${baseUrl}?days=${days}${split}${act}`;
     }
   };
 
@@ -47,12 +51,18 @@ export default function Digest() {
     });
   };
 
-  const { data: songs = [], error, mutate } = useSWR(apiUrl, fetcher, {
-    revalidateOnFocus: true,
-    revalidateOnReconnect: true,
-    revalidateOnMount: true,
-    refreshInterval: 0, // Don't auto-refresh, but revalidate on mount/focus
-  });
+  const { data: songs, error, mutate, isLoading, isValidating } = useSWR(
+    apiUrl,
+    fetcher,
+    {
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      revalidateOnMount: true,
+      refreshInterval: 0,
+    }
+  );
+
+  const songList = songs ?? [];
 
   // Re-fetch when navigating to this page
   useEffect(() => {
@@ -90,18 +100,29 @@ export default function Digest() {
     document.body.style.background = '#18181b';
   }
 
-  // Sort songs
-  const sortedSongs = [...songs].sort((a, b) => {
+  const digestSortDate = (song) => {
+    if (activityMode === 'ratings') {
+      const d = song.ratingActivityAt || song.activityDate;
+      return d ? new Date(d) : new Date(0);
+    }
+    if (activityMode === 'comments') {
+      const d =
+        song.commentActivityAt || song.noteThreadActivityAt || song.activityDate;
+      return d ? new Date(d) : new Date(0);
+    }
+    return song.activityDate ? new Date(song.activityDate) : new Date(0);
+  };
+
+  const sortedSongs = [...songList].sort((a, b) => {
     if (sort === 'mostRecent') {
-      const dateA = a.activityDate ? new Date(a.activityDate) : new Date(0);
-      const dateB = b.activityDate ? new Date(b.activityDate) : new Date(0);
-      return dateB - dateA; // Most recent first
+      const dateA = digestSortDate(a);
+      const dateB = digestSortDate(b);
+      return dateB - dateA;
     } else if (sort === 'leastRecent') {
-      const dateA = a.activityDate ? new Date(a.activityDate) : new Date(0);
-      const dateB = b.activityDate ? new Date(b.activityDate) : new Date(0);
-      return dateA - dateB; // Least recent first
+      const dateA = digestSortDate(a);
+      const dateB = digestSortDate(b);
+      return dateA - dateB;
     } else {
-      // Playlist order - sort by playlist name, then sortOrder
       const playlistCompare = a.playlist.name.localeCompare(b.playlist.name);
       if (playlistCompare !== 0) return playlistCompare;
       return a.sortOrder - b.sortOrder;
@@ -197,8 +218,39 @@ export default function Digest() {
             </div>
           </div>
 
+          {/* Activity type */}
+          <div className="flex flex-col gap-3 p-4 rounded-lg" style={{ backgroundColor: '#27272a' }}>
+            <span className="text-white font-semibold text-sm">Activity</span>
+            <p className="text-gray-400 text-xs leading-relaxed">
+              Playlists show a thread when a song has <span className="text-gray-300">admin notes</span> or{' '}
+              <span className="text-gray-300">saved replies</span> (stored separately). This digest matches that:{' '}
+              <span className="text-gray-300">Notes &amp; replies</span> includes new or edited notes in the time range,
+              not only reply rows in the database.
+            </p>
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Activity type">
+              {[
+                { id: 'both', label: 'All activity' },
+                { id: 'ratings', label: 'Ratings only' },
+                { id: 'comments', label: 'Notes & replies' },
+              ].map(({ id, label }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setActivityMode(id)}
+                  className={`px-3 py-1.5 rounded-md text-sm border transition-colors ${
+                    activityMode === id
+                      ? 'bg-blue-600 border-blue-500 text-white'
+                      : 'bg-[#3f3f46] border-[#52525b] text-gray-200 hover:bg-[#52525b]'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Sort Selector */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <div className="relative flex items-center">
               <button
                 ref={sortButtonRef}
@@ -233,8 +285,20 @@ export default function Digest() {
                 </div>
               )}
             </div>
-            <span className="text-gray-400 text-sm">
-              {sortedSongs.length} song{sortedSongs.length !== 1 ? 's' : ''} found
+            <span className="text-gray-400 text-sm inline-flex items-center gap-2">
+              {isValidating && !isLoading && (
+                <span
+                  className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border-2 border-blue-500 border-t-transparent animate-spin"
+                  aria-hidden
+                />
+              )}
+              <span>
+                {!apiUrl
+                  ? 'Select a start date'
+                  : isLoading
+                    ? 'Loading…'
+                    : `${sortedSongs.length} song${sortedSongs.length !== 1 ? 's' : ''} found`}
+              </span>
             </span>
           </div>
         </div>
@@ -246,8 +310,15 @@ export default function Digest() {
           </div>
         )}
 
-        {!error && !songs && (
-          <div className="space-y-4">
+        {!error && apiUrl && isLoading && (
+          <div className="space-y-4" aria-busy="true" aria-label="Loading digest">
+            <div className="flex items-center gap-2 text-gray-400 text-sm px-1">
+              <span
+                className="inline-block h-4 w-4 shrink-0 rounded-full border-2 border-blue-500 border-t-transparent animate-spin"
+                aria-hidden
+              />
+              <span>Loading recent songs…</span>
+            </div>
             {[...Array(5)].map((_, i) => (
               <div key={i} style={{ backgroundColor: '#27272a' }} className="p-4 rounded-xl flex flex-row gap-4 items-start">
                 <Skeleton className="flex-shrink-0 w-24 h-24 rounded-md" />
@@ -274,7 +345,7 @@ export default function Digest() {
           </div>
         )}
 
-        {!error && songs && (
+        {!error && apiUrl && !isLoading && (
           <div className="space-y-4">
             {sortedSongs.length === 0 ? (
               <div className="text-gray-400 text-center p-8">
