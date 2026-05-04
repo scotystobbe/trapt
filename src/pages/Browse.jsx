@@ -6,6 +6,11 @@ import Skeleton from '../components/Skeleton';
 import SongCard from '../components/SongCard';
 import useSWR from 'swr';
 
+/** Yearly source playlists (e.g. Rob 2025); excludes TRAPT / TRAPT+ compilations. */
+function isYearlyRobPlaylist(name) {
+  return /^Rob \d{4}$/.test(name);
+}
+
 export default function Browse() {
   const [query, setQuery] = useState('');
 
@@ -22,8 +27,10 @@ export default function Browse() {
     });
   const { data: playlists = [], error } = useSWR('/api/playlists', fetcher);
 
+  const searchPlaylists = playlists.filter(p => isYearlyRobPlaylist(p.name));
+
   const filteredSongs = query
-    ? playlists.flatMap(playlist =>
+    ? searchPlaylists.flatMap(playlist =>
         (playlist.songs || [])
           .filter(song =>
             song.title?.toLowerCase().includes(query.toLowerCase()) ||
