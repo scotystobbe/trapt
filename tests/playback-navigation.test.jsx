@@ -33,7 +33,8 @@ beforeEach(() => {
     if (url.includes('/pause?')) isPlaying = false;
     if (url.includes('/play?')) isPlaying = true;
     return { status: 200, ok: true, json: async () => url.includes('?') ? { success: true } :
-      { item: currentTrack, progress_ms: progress, is_playing: isPlaying, device: { id: 'phone' } } };
+      { item: currentTrack, progress_ms: progress, is_playing: isPlaying, device: { id: 'phone' },
+        actions: { disallows: isPlaying ? { resuming: true } : { pausing: true } } } };
   }));
 });
 afterEach(() => {

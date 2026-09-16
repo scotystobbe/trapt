@@ -3,7 +3,8 @@ import { createTrackAnnouncer } from '../src/lib/trackAnnouncements';
 
 const track = (id, progress = 0, extras = {}) => ({
   item: { id, name: id, type: 'track', duration_ms: 180000 },
-  device: { id: 'phone' }, is_playing: true, progress_ms: progress, ...extras,
+  device: { id: 'phone' }, is_playing: true, progress_ms: progress,
+  actions: { disallows: { resuming: true } }, ...extras,
 });
 let controller, mode, state, commands, spoken, errors, speechQueue, permission;
 beforeEach(() => {
@@ -20,7 +21,8 @@ beforeEach(() => {
       commands.push([action, expected.item.id, position]);
       if (state.item?.id !== expected.item.id || state.device?.id !== expected.device.id ||
           (action === 'play' && state.is_playing)) return { skipped: true };
-      state = { ...state, is_playing: action === 'play', progress_ms: position ?? state.progress_ms };
+      state = { ...state, is_playing: action === 'play', progress_ms: position ?? state.progress_ms,
+        actions: { disallows: action === 'play' ? { resuming: true } : { pausing: true } } };
       return { success: true };
     }),
     describe: (item, start) => `${start ? 'This is' : 'That was'} ${item.id}`,
@@ -238,4 +240,24 @@ it('reports a failed resume with instructions to recover in Spotify', async () =
   errorController({ command });
   const { pending } = await transition(); await pending;
   expect(errors).toEqual(['Could not resume Spotify. Press Play in Spotify to continue.']);
+});
+
+
+it('accepts the flat action flags as well as the nested Spotify response', async () => {
+  const { pending } = await transition(track('b', 0, { actions: { resuming: true } }));
+  expect(spoken).toEqual(['That was a']);
+  await finishSpeech(); await finishSpeech(); await pending;
+  expect(commands.at(-1)).toEqual(['play', 'b', 0]);
+});
+
+it.each([
+  { disallows: { pausing: true } },
+  { disallows: { seeking: true } },
+  { pausing: true },
+  { seeking: true },
+])('respects current pause/seek restrictions: %j', async actions => {
+  const { pending } = await transition(track('b', 0, { actions }));
+  await pending;
+  expect(commands).toEqual([]);
+  expect(spoken).toEqual([]);
 });

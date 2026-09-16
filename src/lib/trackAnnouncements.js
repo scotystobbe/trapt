@@ -144,9 +144,12 @@ export function createTrackAnnouncer({ getMode, canSpeak, speak, readPlayback,
         last.progress_ms <= 1000 && state.is_playing;
       const start = (changed || startedFromZero) && newId && state.is_playing && state.progress_ms <= START_WINDOW_MS;
       if (!((ended && END_MODES.has(mode)) || (start && START_MODES.has(mode)))) return;
+      // These flags apply to the current playback state. Spotify disallows
+      // resuming while already playing; that says nothing about whether it can
+      // resume after our pause. Only check the actions we need before pausing.
+      const disallows = state.actions?.disallows ?? state.actions;
       if (state.is_playing && (!newId || !state.device?.id || state.device.is_restricted ||
-          state.actions?.disallows?.pausing || state.actions?.disallows?.resuming ||
-          state.actions?.disallows?.seeking || state.progress_ms > START_WINDOW_MS)) return;
+          disallows?.pausing || disallows?.seeking || state.progress_ms > START_WINDOW_MS)) return;
       if (!state.is_playing && !ended) return;
       // At the end of a queue there is nothing to resume or introduce.
       await announce(last, state, ended, start ? mode : (END_MODES.has(mode) ? 'end' : 'off'));
