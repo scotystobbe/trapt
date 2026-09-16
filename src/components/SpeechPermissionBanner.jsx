@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaVolumeUp, FaTimes } from 'react-icons/fa';
-import { getSpeechMode, SPEECH_MODES, hasSpeechPermission, isIOS, isPWA, grantSpeechPermission } from '../hooks/useSpeech';
+import { getSpeechMode, SPEECH_MODES, hasSpeechPermission, isIOS, isPWA } from '../hooks/useSpeech';
 
 // Export these for use in the hook
 export { isIOS, isPWA };
@@ -108,18 +108,6 @@ export default function SpeechPermissionBanner() {
     try {
       // Dispatch event to trigger speech hook initialization
       window.dispatchEvent(new CustomEvent('speech-manual-init'));
-      // Also try direct initialization as backup
-      const dummyUtterance = new SpeechSynthesisUtterance('');
-      dummyUtterance.volume = 0;
-      dummyUtterance.rate = 0.1;
-      if (window.speechSynthesis) {
-        window.speechSynthesis.speak(dummyUtterance);
-        window.speechSynthesis.cancel();
-      }
-      grantSpeechPermission();
-      // Dispatch event to notify that initialization is complete
-      window.dispatchEvent(new CustomEvent('speech-initialized'));
-      setShow(false);
     } catch (err) {
       console.error('Failed to enable speech:', err);
     }

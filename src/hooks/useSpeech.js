@@ -60,30 +60,12 @@ export function grantSpeechPermission() {
 export function useSpeech() {
   const synthRef = useRef(null);
   const isSpeakingRef = useRef(false);
-  const isInitializedRef = useRef(false);
+  const isInitializedRef = useRef(hasSpeechPermission());
   const pendingSpeechesRef = useRef([]);
   const isIOSDevice = useRef(isIOS());
   const isPWAMode = useRef(isPWA());
   const executeSpeakRef = useRef(null);
   
-  // Check if we already have permission from a previous session
-  useEffect(() => {
-    if (hasSpeechPermission() && (isIOSDevice.current || isPWAMode.current)) {
-      // Try to initialize immediately if we have permission
-      try {
-        const dummyUtterance = new SpeechSynthesisUtterance('');
-        dummyUtterance.volume = 0;
-        dummyUtterance.rate = 0.1;
-        window.speechSynthesis.speak(dummyUtterance);
-        window.speechSynthesis.cancel();
-        isInitializedRef.current = true;
-        console.log('[Speech] Auto-initialized with stored permission');
-      } catch (err) {
-        console.error('[Speech] Auto-initialization failed:', err);
-      }
-    }
-  }, []);
-
   // Helper to find the best voice for natural speech
   const findBestVoice = useCallback(() => {
     const voices = window.speechSynthesis.getVoices();
@@ -297,7 +279,8 @@ export function useSpeech() {
 
   // The initialization function
   const initializeSpeech = useCallback(() => {
-    if (isInitializedRef.current) return;
+    if (isInitializedRef.current || getSpeechMode() === SPEECH_MODES.OFF) return;
+    if (!('speechSynthesis' in window)) return;
     
     try {
       // Create a dummy utterance to initialize the speech synthesis engine
@@ -327,36 +310,16 @@ export function useSpeech() {
     }
   }, []);
 
-  // Initialize speech synthesis on iOS/PWA - this needs to happen on user interaction
+  // Only an explicit Enable tap should warm up speech. Silent utterances on
+  // mount, timers, or navigation gestures can take audio focus from Spotify.
   useEffect(() => {
-    if (!('speechSynthesis' in window)) return;
-
-    // Initialize on any user interaction
-    const events = ['touchstart', 'touchend', 'click', 'keydown'];
-    events.forEach(event => {
-      document.addEventListener(event, initializeSpeech, { once: true, passive: true });
-    });
-
-    // Listen for manual initialization from banner
-    const handleManualInit = () => {
-      initializeSpeech();
-    };
-    window.addEventListener('speech-manual-init', handleManualInit);
-
-    // Also try to initialize after a short delay (in case user already interacted)
-    const timeout = setTimeout(initializeSpeech, 1000);
-
-    return () => {
-      events.forEach(event => {
-        document.removeEventListener(event, initializeSpeech);
-      });
-      window.removeEventListener('speech-manual-init', handleManualInit);
-      clearTimeout(timeout);
-    };
+    window.addEventListener('speech-manual-init', initializeSpeech);
+    return () => window.removeEventListener('speech-manual-init', initializeSpeech);
   }, [initializeSpeech]);
 
   // Public speak function that handles initialization
   const speak = useCallback((text) => {
+    if (getSpeechMode() === SPEECH_MODES.OFF) return;
     // Check if speech synthesis is available
     if (!('speechSynthesis' in window)) {
       console.warn('[Speech] Speech synthesis not supported in this browser');

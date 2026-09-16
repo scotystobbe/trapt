@@ -278,6 +278,9 @@ export default function NowPlaying() {
           setPrevTrack(track);
           setPrevDbSong(dbSong);
         }
+        // Opening this page observes an existing song; it is not a track start.
+        // Only announce subsequent track changes while the page is open.
+        const isFirstTrack = lastTrackId.current === null;
         setTrack(data.item);
         lastTrackId.current = data.item.id;
         // Use SWR-cached songs
@@ -287,7 +290,7 @@ export default function NowPlaying() {
         setEditingNotes(false);
         
         // Reset speech flags for new track
-        hasSpokenStartRef.current = false;
+        hasSpokenStartRef.current = isFirstTrack;
         hasSpokenEndRef.current = false;
         
         // Clear any existing end check interval
