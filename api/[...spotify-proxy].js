@@ -1,4 +1,5 @@
 const fetch = require('node-fetch');
+const { controlPlayback } = require('../lib/spotifyPlayback');
 require('dotenv').config();
 const url = require('url');
 const { PrismaClient } = require('@prisma/client');
@@ -136,7 +137,7 @@ async function getAccessToken(req, res) {
   const expiresAt = parseInt(getCookie(req, 'spotify_expires_at'), 10);
 
   // Refresh access token if expired
-  if (expiresAt && Date.now() > expiresAt && refreshToken) {
+  if (refreshToken && (!accessToken || !expiresAt || Date.now() >= expiresAt - 30000)) {
     try {
       const refreshRes = await fetch('https://accounts.spotify.com/api/token', {
         method: 'POST',
@@ -172,67 +173,40 @@ async function getAccessToken(req, res) {
   return accessToken;
 }
 
-async function handlePause(req, res) {
+async function handlePlaybackControl(req, res, query, action) {
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', 'no-store');
+  const { device_id: deviceId, track_id: trackId, position_ms: position } = query;
+  if (typeof deviceId !== 'string' || !deviceId || typeof trackId !== 'string' || !trackId ||
+      (position !== undefined && (action !== 'play' || position !== '0'))) {
+    res.statusCode = 400;
+    return res.end(JSON.stringify({ error: 'A device, track, and valid playback position are required.' }));
+  }
   const accessToken = await getAccessToken(req, res);
-  if (!accessToken) {
-    return res.end(JSON.stringify({ error: 'Not authenticated with Spotify' }));
-  }
-
+  if (!accessToken) return res.end(JSON.stringify({ error: 'Not authenticated with Spotify' }));
   try {
-    const pauseRes = await fetch('https://api.spotify.com/v1/me/player/pause', {
-      method: 'PUT',
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-
-    if (pauseRes.status === 204 || pauseRes.status === 200) {
-      res.statusCode = 200;
-      return res.end(JSON.stringify({ success: true }));
-    }
-
-    const errorData = await pauseRes.json().catch(() => ({}));
-    res.statusCode = pauseRes.status;
-    return res.end(JSON.stringify({ error: 'Failed to pause', details: errorData }));
+    const result = await controlPlayback({ fetch, accessToken, action, deviceId, trackId,
+      positionMs: position === '0' ? 0 : undefined });
+    res.statusCode = result.status;
+    if (result.retryAfter) res.setHeader('Retry-After', result.retryAfter);
+    return res.end(JSON.stringify(result.body));
   } catch (err) {
-    res.statusCode = 500;
-    return res.end(JSON.stringify({ error: 'Failed to pause playback', details: err.message }));
-  }
-}
-
-async function handlePlay(req, res) {
-  const accessToken = await getAccessToken(req, res);
-  if (!accessToken) {
-    return res.end(JSON.stringify({ error: 'Not authenticated with Spotify' }));
-  }
-
-  try {
-    const playRes = await fetch('https://api.spotify.com/v1/me/player/play', {
-      method: 'PUT',
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-
-    if (playRes.status === 204 || playRes.status === 200) {
-      res.statusCode = 200;
-      return res.end(JSON.stringify({ success: true }));
-    }
-
-    const errorData = await playRes.json().catch(() => ({}));
-    res.statusCode = playRes.status;
-    return res.end(JSON.stringify({ error: 'Failed to play', details: errorData }));
-  } catch (err) {
-    res.statusCode = 500;
-    return res.end(JSON.stringify({ error: 'Failed to play playback', details: err.message }));
+    res.statusCode = 502;
+    return res.end(JSON.stringify({ error: 'Could not reach Spotify playback controls.' }));
   }
 }
 
 async function handleCurrentlyPlaying(req, res) {
+  res.setHeader('Cache-Control', 'no-store');
   const accessToken = await getAccessToken(req, res);
   if (!accessToken) {
     return res.end(JSON.stringify({ error: 'Not authenticated with Spotify' }));
   }
 
   try {
-    const nowRes = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
+    const nowRes = await fetch('https://api.spotify.com/v1/me/player', {
       headers: { Authorization: `Bearer ${accessToken}` },
+      timeout: 8000,
     });
 
     if (nowRes.status === 204) {
@@ -241,7 +215,9 @@ async function handleCurrentlyPlaying(req, res) {
     }
 
     const nowData = await nowRes.json();
-    res.statusCode = 200;
+    res.statusCode = nowRes.status;
+    const retryAfter = nowRes.headers.get('retry-after');
+    if (retryAfter) res.setHeader('Retry-After', retryAfter);
     res.setHeader('Content-Type', 'application/json');
     return res.end(JSON.stringify(nowData));
   } catch (err) {
@@ -276,11 +252,11 @@ module.exports = async (req, res) => {
   }
 
   if (subroute === 'pause' && req.method === 'POST') {
-    return handlePause(req, res);
+    return handlePlaybackControl(req, res, parsedUrl.query, 'pause');
   }
 
   if (subroute === 'play' && req.method === 'POST') {
-    return handlePlay(req, res);
+    return handlePlaybackControl(req, res, parsedUrl.query, 'play');
   }
 
   if (subroute === 'create-unrated-playlist' && req.method === 'POST') {

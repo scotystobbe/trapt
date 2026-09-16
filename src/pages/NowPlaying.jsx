@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import LogoHeader from '../components/LogoHeader';
 import HamburgerMenu from '../components/HamburgerMenu';
 import { FaSpotify, FaStar, FaRegEdit, FaHistory, FaRegStar } from 'react-icons/fa';
@@ -8,7 +8,8 @@ import useSWR from 'swr';
 import { SiGenius } from 'react-icons/si';
 import usePrevTrackStore from '../data/usePrevTrackStore';
 import { useAuth } from '../components/AuthProvider';
-import { useSpeech, getSpeechMode, SPEECH_MODES, isPWA } from '../hooks/useSpeech';
+import { useSpeech, getSpeechMode, canSpeak } from '../hooks/useSpeech';
+import { createTrackAnnouncer, spotifyRequest, playbackCommand } from '../lib/trackAnnouncements';
 import SpeechPermissionBanner from '../components/SpeechPermissionBanner';
 import RatingKeyModal from '../components/RatingKeyModal';
 import { useLongPressRatingKey } from '../hooks/useLongPressRatingKey';
@@ -188,188 +189,117 @@ export default function NowPlaying() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
   const { speak } = useSpeech();
-  const trackProgressRef = useRef(null);
-  const trackDurationRef = useRef(null);
-  const hasSpokenStartRef = useRef(false);
-  const hasSpokenEndRef = useRef(false);
-  const endCheckIntervalRef = useRef(null);
+  const [announcementStatus, setAnnouncementStatus] = useState('');
+  const [announcementError, setAnnouncementError] = useState('');
 
   // SWR for songs
   const fetcher = url => fetch(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now()).then(res => res.json());
-  const { data: songs = [], error: songsError, mutate: mutateSongs } = useSWR('/api/songs', fetcher);
+  const { data: songs = [], mutate: mutateSongs } = useSWR('/api/songs', fetcher);
 
-  // Helper to speak track information
-  const speakTrackInfo = useCallback((isStart = true) => {
-    const speechMode = getSpeechMode();
-    if (speechMode === SPEECH_MODES.OFF) {
-      console.log('[Speech] Mode is OFF, skipping');
-      return;
-    }
-    if (isStart && speechMode !== SPEECH_MODES.BEGINNING_ONLY && speechMode !== SPEECH_MODES.BOTH) {
-      console.log('[Speech] Start speech disabled for mode:', speechMode);
-      return;
-    }
-    if (!isStart && speechMode !== SPEECH_MODES.END_ONLY && speechMode !== SPEECH_MODES.BOTH) {
-      console.log('[Speech] End speech disabled for mode:', speechMode);
-      return;
-    }
-
-    // Use dbSong if available (more accurate), otherwise use track data from Spotify
-    const trackName = dbSong?.title || track?.name || '';
-    const artistName = dbSong?.artist || (track?.artists?.[0]?.name) || '';
-
-    if (!trackName || !artistName) {
-      console.log('[Speech] Missing track info:', { trackName, artistName, hasTrack: !!track, hasDbSong: !!dbSong });
-      return;
-    }
-
-    const text = isStart 
-      ? `This is ${trackName} by ${artistName}`
-      : `That was ${trackName} by ${artistName}`;
-    
-    console.log('[Speech] Speaking:', text);
-    speak(text);
-  }, [track, dbSong, speak]);
-
-  // Helper to check auth and fetch currently playing
-  const fetchCurrentlyPlaying = useCallback(async (isInitial = false) => {
-    try {
-      const res = await fetch('/api/spotify-proxy/currently-playing');
-      if (res.status === 401) {
-        setIsAuthenticated(false);
-        if (isInitial) {
-          // Redirect in background; keep skeleton visible so no flash of "Connect to Spotify"
-          window.location.replace('/api/spotify-proxy/login');
-          return;
-        }
-        return;
-      }
-      setIsAuthenticated(true);
-      const data = await res.json();
-      if (!data || data.playing === false || !data.item) {
-        if (isInitial) setTrack(null);
-        if (isInitial) setDbSong(null);
-        if (isInitial) setInitialLoading(false);
-        // Clear tracking when nothing is playing
-        trackProgressRef.current = null;
-        trackDurationRef.current = null;
-        hasSpokenStartRef.current = false;
-        hasSpokenEndRef.current = false;
-        if (endCheckIntervalRef.current) {
-          clearInterval(endCheckIntervalRef.current);
-          endCheckIntervalRef.current = null;
-        }
-        return;
-      }
-
-      // Store progress and duration for end detection (update on every poll)
-      trackProgressRef.current = data.progress_ms || 0;
-      trackDurationRef.current = data.item.duration_ms || 0;
-
-      // Only update if the track has changed
-      if (lastTrackId.current !== data.item.id) {
-        console.log('[Speech] Track changed:', data.item.name, 'Previous:', lastTrackId.current);
-        if (editingNotes) {
-          // Don't update if editing notes
-          return;
-        }
-        // Only save current track as previous if we actually have a track and dbSong
-        if (track && dbSong) {
-          setPrevTrack(track);
-          setPrevDbSong(dbSong);
-        }
-        // Opening this page observes an existing song; it is not a track start.
-        // Only announce subsequent track changes while the page is open.
-        const isFirstTrack = lastTrackId.current === null;
-        setTrack(data.item);
-        lastTrackId.current = data.item.id;
-        // Use SWR-cached songs
-        const match = songs.find(s => s.spotifyLink && s.spotifyLink.includes(data.item.id));
-        setDbSong(match || null);
-        setNotes(match?.notes || '');
-        setEditingNotes(false);
-        
-        // Reset speech flags for new track
-        hasSpokenStartRef.current = isFirstTrack;
-        hasSpokenEndRef.current = false;
-        
-        // Clear any existing end check interval
-        if (endCheckIntervalRef.current) {
-          clearInterval(endCheckIntervalRef.current);
-          endCheckIntervalRef.current = null;
-        }
-      }
-      if (isInitial) setInitialLoading(false);
-    } catch (err) {
-      setError('Failed to fetch currently playing track.');
-      if (isInitial) setInitialLoading(false);
-    }
-  }, [editingNotes, track, dbSong, songs, setPrevTrack, setPrevDbSong]);
-
-
-  // Effect to speak at track start
+  // Spotify may respond before the song library. Attach ratings/notes once
+  // that library arrives without restarting playback observation.
   useEffect(() => {
-    if (!track) {
-      console.log('[Speech] No track, skipping start speech');
-      return;
+    if (!track || dbSong || editingNotes) return;
+    const match = songs.find(song => song.spotifyLink?.includes(track.id));
+    if (match) {
+      setDbSong(match);
+      setNotes(match.notes || '');
     }
-    if (hasSpokenStartRef.current) {
-      console.log('[Speech] Already spoken start for track:', track.id);
-      return;
-    }
-    
-    console.log('[Speech] Setting up start speech for track:', track.name);
-    // Small delay to ensure track data is fully loaded (and dbSong if available)
-    const timeout = setTimeout(() => {
-      console.log('[Speech] Executing start speech, hasDbSong:', !!dbSong);
-      speakTrackInfo(true);
-      hasSpokenStartRef.current = true;
-    }, 1000); // Increased delay to allow dbSong to match
-    
-    return () => clearTimeout(timeout);
-  }, [track?.id, speakTrackInfo, dbSong?.id]);
+  }, [songs, track, dbSong, editingNotes]);
 
-  // Effect to monitor track progress and speak at end
+  // Keep polling independent of renders, song edits and SWR cache refreshes.
+  const pageRef = useRef();
+  pageRef.current = { songs, editingNotes, track, dbSong };
+
   useEffect(() => {
-    if (!track) return;
-    if (!trackDurationRef.current) {
-      console.log('[Speech] No duration yet, waiting...');
-      return;
-    }
-    
-    console.log('[Speech] Setting up end detection for track:', track.name, 'Duration:', trackDurationRef.current);
-    // Check every second if we're near the end
-    endCheckIntervalRef.current = setInterval(() => {
-      const progress = trackProgressRef.current || 0;
-      const duration = trackDurationRef.current || 0;
-      
-      // Speak when we're within 2 seconds of the end (or if progress >= duration)
-      if (duration > 0 && progress > 0 && !hasSpokenEndRef.current) {
-        const remaining = duration - progress;
-        if (remaining <= 2000 || progress >= duration) {
-          console.log('[Speech] Track ending, speaking. Progress:', progress, 'Duration:', duration, 'Remaining:', remaining);
-          speakTrackInfo(false);
-          hasSpokenEndRef.current = true;
+    let mounted = true;
+    let timer;
+    let initial = true;
+    const readPlayback = () => spotifyRequest('currently-playing');
+    const announcer = createTrackAnnouncer({
+      getMode: getSpeechMode,
+      canSpeak,
+      speak,
+      readPlayback,
+      command: playbackCommand,
+      describe: (item, isStart) => {
+        const match = pageRef.current.songs.find(song => song.spotifyLink?.includes(item.id));
+        const title = match?.title || item.name;
+        const artist = match?.artist || item.artists?.map(a => a.name).join(', ');
+        return title && artist ? `${isStart ? 'This is' : 'That was'} ${title} by ${artist}` : '';
+      },
+      onStatus: status => {
+        if (!mounted) return;
+        setAnnouncementStatus(status);
+        if (status === 'Pausing Spotify for announcements…') setAnnouncementError('');
+      },
+      onError: err => { if (mounted) setAnnouncementError(err.message); },
+    });
+
+    async function poll() {
+      let delay = 3000;
+      try {
+        const data = await readPlayback();
+        if (!mounted) return;
+        setIsAuthenticated(true);
+        setError('');
+        const { songs, editingNotes, track, dbSong } = pageRef.current;
+        if (!data.item) {
+          if (!editingNotes) {
+            setTrack(null);
+            setDbSong(null);
+            lastTrackId.current = null;
+          }
+        } else if (lastTrackId.current !== data.item.id && !editingNotes) {
+          if (track && dbSong) {
+            setPrevTrack(track);
+            setPrevDbSong(dbSong);
+          }
+          lastTrackId.current = data.item.id;
+          setTrack(data.item);
+          const match = songs.find(song => song.spotifyLink?.includes(data.item.id));
+          setDbSong(match || null);
+          setNotes(match?.notes || '');
         }
+        setInitialLoading(false);
+        initial = false;
+        await announcer.observe(data);
+        delay = announcer.nextPollDelay(data);
+      } catch (err) {
+        if (!mounted) return;
+        if (err.status === 401) {
+          setIsAuthenticated(false);
+          if (initial) {
+            window.location.replace('/api/spotify-proxy/login');
+            return;
+          }
+        } else {
+          setError('Failed to fetch currently playing track.');
+        }
+        setInitialLoading(false);
+        delay = Math.max(3000, err.retryAfterMs || 0);
+      } finally {
+        if (mounted) timer = setTimeout(poll, delay);
       }
-    }, 1000);
-    
-    return () => {
-      if (endCheckIntervalRef.current) {
-        clearInterval(endCheckIntervalRef.current);
-        endCheckIntervalRef.current = null;
-      }
+    }
+    const onModeChange = () => announcer.cancel();
+    const onVisibilityChange = () => {
+      if (document.hidden) announcer.suspend();
+      else announcer.resume();
     };
-  }, [track?.id, speakTrackInfo]);
-
-  useEffect(() => {
-    if (songs.length === 0 && !songsError) return; // Wait for songs to load or error
-    fetchCurrentlyPlaying(true);
-    // Poll every 3 seconds for faster track data updates (reduced from 5 seconds)
-    const interval = setInterval(() => fetchCurrentlyPlaying(false), 3000);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line
-  }, [fetchCurrentlyPlaying, songs.length, songsError]);
+    window.addEventListener('speech-mode-changed', onModeChange);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    if (document.hidden) announcer.suspend();
+    poll();
+    return () => {
+      mounted = false;
+      clearTimeout(timer);
+      window.removeEventListener('speech-mode-changed', onModeChange);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      // Cancel speech and release any Spotify pause that we initiated.
+      announcer.dispose();
+    };
+  }, [speak, setPrevTrack, setPrevDbSong]);
 
   const handleConnect = () => {
     window.location.href = '/api/spotify-proxy/login';
@@ -604,6 +534,8 @@ export default function NowPlaying() {
             )}
           </div>
         ) : null}
+        {announcementStatus && <p role="status" className="text-gray-400 text-sm mt-4 text-center">{announcementStatus}</p>}
+        {announcementError && <p role="alert" className="text-amber-400 text-sm mt-4 text-center">{announcementError}</p>}
         {error && <div className={"text-red-400 mt-4 " + textClass}>{error}</div>}
       </div>
       {/* Previous Song Card */}

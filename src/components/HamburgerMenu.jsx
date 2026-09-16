@@ -125,6 +125,12 @@ export default function HamburgerMenu({ className = '' }) {
                 <option value={SPEECH_MODES.END_ONLY}>End Only</option>
                 <option value={SPEECH_MODES.BOTH}>Both</option>
               </select>
+              {speechMode !== SPEECH_MODES.OFF && (
+                <p className="text-gray-400 text-xs mt-2 leading-relaxed">
+                  Pauses Spotify for announcements, then restarts the next song.
+                  Keep Now Playing open. Requires Spotify Premium.
+                </p>
+              )}
             </div>
             <button
               onClick={() => setNightMode((v) => !v)}

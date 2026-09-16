@@ -48,8 +48,7 @@ export default function SpeechPermissionBanner() {
       if (shouldShow) {
         setShow(true);
         setHasChecked(true);
-      } else if (hasPermission) {
-        // Only hide if we actually have permission
+      } else {
         setShow(false);
       }
     };
@@ -74,6 +73,7 @@ export default function SpeechPermissionBanner() {
 
     window.addEventListener('speech-initialized', handleInitialized);
     window.addEventListener('storage', handleModeChange);
+    window.addEventListener('speech-mode-changed', handleModeChange);
     
     // Check periodically in case speech mode changed (but less frequently)
     const interval = setInterval(() => {
@@ -86,6 +86,7 @@ export default function SpeechPermissionBanner() {
       clearTimeout(initialTimeout);
       window.removeEventListener('speech-initialized', handleInitialized);
       window.removeEventListener('storage', handleModeChange);
+      window.removeEventListener('speech-mode-changed', handleModeChange);
       clearInterval(interval);
     };
   }, [dismissed, hasChecked]);
@@ -129,7 +130,7 @@ export default function SpeechPermissionBanner() {
             Enable track announcements
           </p>
           <p className="text-gray-400 text-xs mt-0.5">
-            iOS requires one tap to activate. After that, announcements work automatically.
+            Tap Enable once, then keep Now Playing open. Spotify pauses for each announcement.
           </p>
         </div>
         <button

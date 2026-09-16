@@ -33,6 +33,7 @@ export function getSpeechMode() {
 export function setSpeechMode(mode) {
   try {
     localStorage.setItem(SPEECH_STORAGE_KEY, mode);
+    window.dispatchEvent(new Event('speech-mode-changed'));
   } catch (err) {
     console.error('Failed to save speech mode:', err);
   }
@@ -57,15 +58,14 @@ export function grantSpeechPermission() {
   }
 }
 
+export function canSpeak() {
+  return 'speechSynthesis' in window &&
+    (!(isIOS() || isPWA()) || hasSpeechPermission());
+}
+
 export function useSpeech() {
-  const synthRef = useRef(null);
-  const isSpeakingRef = useRef(false);
-  const isInitializedRef = useRef(hasSpeechPermission());
-  const pendingSpeechesRef = useRef([]);
-  const isIOSDevice = useRef(isIOS());
-  const isPWAMode = useRef(isPWA());
-  const executeSpeakRef = useRef(null);
-  
+  const activeRef = useRef(null);
+
   // Helper to find the best voice for natural speech
   const findBestVoice = useCallback(() => {
     const voices = window.speechSynthesis.getVoices();
@@ -156,215 +156,102 @@ export function useSpeech() {
     return voices[0];
   }, []);
 
-  // The actual speech execution function
-  const executeSpeak = useCallback((text) => {
-    // Cancel any ongoing speech to allow new speech
-    if (window.speechSynthesis.speaking) {
-      console.log('[Speech] Cancelling previous speech');
-      window.speechSynthesis.cancel();
-      // Wait a bit for cancellation to complete
-      setTimeout(() => {
-        isSpeakingRef.current = false;
-      }, 100);
-    }
-
-    try {
-      const utterance = new SpeechSynthesisUtterance(text);
-      
-      // Use more natural speech parameters
-      // Rate: 0.85-0.9 is optimal for natural speech (slower = more natural)
-      utterance.rate = 0.88; // Slightly slower for more natural, conversational pace
-      // Pitch: Slightly lower (0.95-1.0) sounds more natural than default
-      utterance.pitch = 0.98; // Slightly lower pitch for more natural sound
-      utterance.volume = 0.95; // High volume for clarity
-      
-      // Find and use the best available voice
-      const bestVoice = findBestVoice();
-      if (bestVoice) {
-        utterance.voice = bestVoice;
-        console.log('[Speech] Selected voice:', bestVoice.name, 'Lang:', bestVoice.lang, 'Local:', bestVoice.localService);
-      }
-      
-      utterance.onstart = () => {
-        console.log('[Speech] Speech started');
-        isSpeakingRef.current = true;
-      };
-      
-      utterance.onend = () => {
-        console.log('[Speech] Speech ended');
-        isSpeakingRef.current = false;
-      };
-      
-      utterance.onerror = (event) => {
-        console.error('[Speech] Speech error:', event.error);
-        isSpeakingRef.current = false;
-      };
-
-      synthRef.current = utterance;
-      
-      // Ensure voices are loaded before speaking (important for neural voices)
-      const voices = window.speechSynthesis.getVoices();
-      
-      // If voices aren't loaded yet, wait for them (especially important for neural voices)
-      if (voices.length === 0) {
-        console.log('[Speech] Voices not loaded yet, waiting...');
-        const loadVoices = () => {
-          const loadedVoices = window.speechSynthesis.getVoices();
-          if (loadedVoices.length > 0) {
-            // Re-select best voice now that voices are loaded
-            const bestVoice = findBestVoice();
-            if (bestVoice) {
-              utterance.voice = bestVoice;
-              console.log('[Speech] Updated voice after load:', bestVoice.name);
-            }
-            window.speechSynthesis.speak(utterance);
-            console.log('[Speech] Speech queued (voices loaded)');
-          } else {
-            // Fallback: speak without voice selection if voices still not available
-            window.speechSynthesis.speak(utterance);
-            console.log('[Speech] Speech queued (no voices available)');
-          }
-        };
-        
-        // Listen for voices to be loaded
-        if ('onvoiceschanged' in window.speechSynthesis) {
-          const originalHandler = window.speechSynthesis.onvoiceschanged;
-          window.speechSynthesis.onvoiceschanged = () => {
-            loadVoices();
-            // Restore original handler if it existed
-            if (originalHandler) {
-              window.speechSynthesis.onvoiceschanged = originalHandler;
-            } else {
-              window.speechSynthesis.onvoiceschanged = null;
-            }
-          };
-        }
-        
-        // Also try immediately in case voices are already loading
-        // Trigger voices to load by calling getVoices (some browsers need this)
-        window.speechSynthesis.getVoices();
-        
-        // Fallback timeout: if voices don't load within 500ms, speak anyway
-        setTimeout(() => {
-          const loadedVoices = window.speechSynthesis.getVoices();
-          if (loadedVoices.length > 0) {
-            const bestVoice = findBestVoice();
-            if (bestVoice) {
-              utterance.voice = bestVoice;
-            }
-          }
-          if (!window.speechSynthesis.speaking) {
-            window.speechSynthesis.speak(utterance);
-            console.log('[Speech] Speech queued (timeout fallback)');
-          }
-        }, 500);
-      } else {
-        // Voices are already loaded, ensure we have the best voice selected
-        const bestVoice = findBestVoice();
-        if (bestVoice && (!utterance.voice || utterance.voice.name !== bestVoice.name)) {
-          utterance.voice = bestVoice;
-          console.log('[Speech] Updated to best voice:', bestVoice.name);
-        }
-        window.speechSynthesis.speak(utterance);
-        console.log('[Speech] Speech queued');
-      }
-    } catch (err) {
-      console.error('[Speech] Speech error:', err);
-      isSpeakingRef.current = false;
-    }
-  }, [findBestVoice]);
-
-  // Store reference for use in initialization
-  executeSpeakRef.current = executeSpeak;
-
-  // The initialization function
-  const initializeSpeech = useCallback(() => {
-    if (isInitializedRef.current || getSpeechMode() === SPEECH_MODES.OFF) return;
-    if (!('speechSynthesis' in window)) return;
-    
-    try {
-      // Create a dummy utterance to initialize the speech synthesis engine
-      const dummyUtterance = new SpeechSynthesisUtterance('');
-      dummyUtterance.volume = 0;
-      dummyUtterance.rate = 0.1;
-      window.speechSynthesis.speak(dummyUtterance);
-      window.speechSynthesis.cancel(); // Cancel immediately
-      isInitializedRef.current = true;
-      grantSpeechPermission(); // Store permission for this session
-      console.log('[Speech] Initialized for iOS/PWA');
-      
-      // Process any pending speeches
-      if (pendingSpeechesRef.current.length > 0) {
-        const pending = pendingSpeechesRef.current.shift();
-        setTimeout(() => {
-          if (executeSpeakRef.current) {
-            executeSpeakRef.current(pending.text);
-          }
-        }, 100);
-      }
-      
-      // Dispatch event to hide permission banner
-      window.dispatchEvent(new CustomEvent('speech-initialized'));
-    } catch (err) {
-      console.error('[Speech] Initialization error:', err);
-    }
-  }, []);
-
-  // Only an explicit Enable tap should warm up speech. Silent utterances on
-  // mount, timers, or navigation gestures can take audio focus from Spotify.
-  useEffect(() => {
-    window.addEventListener('speech-manual-init', initializeSpeech);
-    return () => window.removeEventListener('speech-manual-init', initializeSpeech);
-  }, [initializeSpeech]);
-
-  // Public speak function that handles initialization
-  const speak = useCallback((text) => {
-    if (getSpeechMode() === SPEECH_MODES.OFF) return;
-    // Check if speech synthesis is available
-    if (!('speechSynthesis' in window)) {
-      console.warn('[Speech] Speech synthesis not supported in this browser');
-      return;
-    }
-
-    console.log('[Speech] Attempting to speak:', text, 'iOS:', isIOSDevice.current, 'PWA:', isPWAMode.current);
-
-    // For iOS/PWA, ensure we're initialized first
-    if ((isIOSDevice.current || isPWAMode.current) && !isInitializedRef.current) {
-      console.log('[Speech] Not initialized yet, queuing speech');
-      pendingSpeechesRef.current.push({ text, timestamp: Date.now() });
-      // Try to initialize now
-      try {
-        const dummyUtterance = new SpeechSynthesisUtterance('');
-        dummyUtterance.volume = 0;
-        dummyUtterance.rate = 0.1;
-        window.speechSynthesis.speak(dummyUtterance);
-        window.speechSynthesis.cancel();
-        isInitializedRef.current = true;
-        grantSpeechPermission(); // Store permission
-        // Dispatch event to hide permission banner
-        window.dispatchEvent(new CustomEvent('speech-initialized'));
-        // Process the queued speech after a short delay
-        setTimeout(() => {
-          const pending = pendingSpeechesRef.current.shift();
-          if (pending && executeSpeakRef.current) {
-            executeSpeakRef.current(pending.text);
-          }
-        }, 200);
-      } catch (err) {
-        console.error('[Speech] Failed to initialize:', err);
-      }
-      return;
-    }
-
-    executeSpeak(text);
-  }, [executeSpeak]);
-
   const cancel = useCallback(() => {
-    if (window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-      isSpeakingRef.current = false;
-    }
+    const active = activeRef.current;
+    if (!active) return;
+    active.finish(new DOMException('Speech cancelled', 'AbortError'));
+    if (active.started) window.speechSynthesis.cancel();
   }, []);
+
+  // Resolve only when the utterance ends, so Spotify stays paused throughout.
+  const speak = useCallback((text, { signal } = {}) => {
+    if (getSpeechMode() === SPEECH_MODES.OFF) return Promise.resolve(false);
+    if (signal?.aborted) return Promise.reject(new DOMException('Speech cancelled', 'AbortError'));
+    if (!canSpeak()) return Promise.reject(new Error('Tap Enable to activate track announcements.'));
+    cancel();
+
+    return new Promise((resolve, reject) => {
+      const synth = window.speechSynthesis;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.88;
+      utterance.pitch = 0.98;
+      utterance.volume = 0.95;
+      let voiceTimer;
+      let deadline;
+      let settled = false;
+      const onAbort = () => cancel();
+      const active = {
+        started: false,
+        finish(error) {
+          if (settled) return;
+          settled = true;
+          clearTimeout(voiceTimer);
+          clearTimeout(deadline);
+          synth.removeEventListener?.('voiceschanged', start);
+          signal?.removeEventListener('abort', onAbort);
+          utterance.onend = null;
+          utterance.onerror = null;
+          if (activeRef.current === active) activeRef.current = null;
+          if (error) reject(error);
+          else resolve(true);
+        },
+      };
+      const start = () => {
+        if (settled || active.started) return;
+        clearTimeout(voiceTimer);
+        synth.removeEventListener?.('voiceschanged', start);
+        try {
+          const voice = findBestVoice();
+          if (voice) utterance.voice = voice;
+          active.started = true;
+          synth.speak(utterance);
+        } catch (error) {
+          active.finish(error);
+        }
+      };
+      // Keep a strong reference until completion (required by some browsers).
+      active.utterance = utterance;
+      activeRef.current = active;
+      utterance.onend = () => active.finish();
+      utterance.onerror = event => active.finish(new Error(`Track announcement failed: ${event.error}`));
+      signal?.addEventListener('abort', onAbort, { once: true });
+      // A missing browser completion event must never leave Spotify paused forever.
+      deadline = setTimeout(() => {
+        active.finish(new Error('Track announcement timed out.'));
+        if (active.started) synth.cancel();
+      }, Math.min(60000, Math.max(15000, text.split(/\s+/).length * 1000)));
+      if (synth.getVoices().length) start();
+      else {
+        synth.addEventListener?.('voiceschanged', start, { once: true });
+        voiceTimer = setTimeout(start, 500);
+      }
+    });
+  }, [cancel, findBestVoice]);
+
+  // Only the explicit Enable button may warm up speech; navigation is silent.
+  useEffect(() => {
+    const initializeSpeech = () => {
+      if (getSpeechMode() === SPEECH_MODES.OFF || !('speechSynthesis' in window)) return;
+      if (!hasSpeechPermission()) {
+        try {
+          const utterance = new SpeechSynthesisUtterance('');
+          utterance.volume = 0;
+          window.speechSynthesis.speak(utterance);
+          window.speechSynthesis.cancel();
+          grantSpeechPermission();
+        } catch (error) {
+          console.error('Failed to enable speech:', error);
+          return;
+        }
+      }
+      window.dispatchEvent(new Event('speech-initialized'));
+    };
+    window.addEventListener('speech-manual-init', initializeSpeech);
+    return () => {
+      window.removeEventListener('speech-manual-init', initializeSpeech);
+      cancel();
+    };
+  }, [cancel]);
 
   return { speak, cancel };
 }
