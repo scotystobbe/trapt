@@ -5,7 +5,7 @@ import { getSpeechMode, SPEECH_MODES, hasSpeechPermission, isIOS, isPWA } from '
 // Export these for use in the hook
 export { isIOS, isPWA };
 
-export default function SpeechPermissionBanner() {
+export default function SpeechPermissionBanner({ onEnable, disabled = false }) {
   const [show, setShow] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [hasChecked, setHasChecked] = useState(false);
@@ -108,7 +108,8 @@ export default function SpeechPermissionBanner() {
     // Trigger initialization - this is a user interaction so it should work
     try {
       // Dispatch event to trigger speech hook initialization
-      window.dispatchEvent(new CustomEvent('speech-manual-init'));
+      if (onEnable) onEnable();
+      else window.dispatchEvent(new CustomEvent('speech-manual-init'));
     } catch (err) {
       console.error('Failed to enable speech:', err);
     }
@@ -135,7 +136,8 @@ export default function SpeechPermissionBanner() {
         </div>
         <button
           onClick={handleEnable}
-          className="px-3 py-1.5 bg-purple-600 text-white text-sm font-medium rounded hover:bg-purple-500 transition flex-shrink-0"
+          disabled={disabled}
+          className="px-3 py-1.5 bg-purple-600 text-white text-sm font-medium rounded hover:bg-purple-500 disabled:opacity-50 transition flex-shrink-0"
         >
           Enable
         </button>

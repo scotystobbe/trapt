@@ -8,8 +8,9 @@ import useSWR from 'swr';
 import { SiGenius } from 'react-icons/si';
 import usePrevTrackStore from '../data/usePrevTrackStore';
 import { useAuth } from '../components/AuthProvider';
-import { useSpeech, getSpeechMode, canSpeak } from '../hooks/useSpeech';
+import { useSpeech, getSpeechMode, canSpeak, hasSpeechPermission } from '../hooks/useSpeech';
 import { createTrackAnnouncer, spotifyRequest, playbackCommand } from '../lib/trackAnnouncements';
+import { restorePlaybackAfterSpeechActivation } from '../lib/enableAnnouncements';
 import SpeechPermissionBanner from '../components/SpeechPermissionBanner';
 import RatingKeyModal from '../components/RatingKeyModal';
 import { useLongPressRatingKey } from '../hooks/useLongPressRatingKey';
@@ -191,6 +192,11 @@ export default function NowPlaying() {
   const { speak } = useSpeech();
   const [announcementStatus, setAnnouncementStatus] = useState('');
   const [announcementError, setAnnouncementError] = useState('');
+  const playbackSnapshotRef = useRef(null);
+  const announcerRef = useRef(null);
+  const enablingSpeechRef = useRef(false);
+  const [enablingSpeech, setEnablingSpeech] = useState(false);
+  const mountedRef = useRef(false);
 
   // SWR for songs
   const fetcher = url => fetch(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now()).then(res => res.json());
@@ -213,6 +219,7 @@ export default function NowPlaying() {
 
   useEffect(() => {
     let mounted = true;
+    mountedRef.current = true;
     let timer;
     let initial = true;
     const readPlayback = () => spotifyRequest('currently-playing');
@@ -236,11 +243,14 @@ export default function NowPlaying() {
       onError: err => { if (mounted) setAnnouncementError(err.message); },
     });
 
+    announcerRef.current = announcer;
+
     async function poll() {
       let delay = 3000;
       try {
         const data = await readPlayback();
         if (!mounted) return;
+        playbackSnapshotRef.current = { state: data, observedAt: Date.now() };
         setIsAuthenticated(true);
         setError('');
         const { songs, editingNotes, track, dbSong } = pageRef.current;
@@ -285,7 +295,7 @@ export default function NowPlaying() {
     const onModeChange = () => announcer.cancel();
     const onVisibilityChange = () => {
       if (document.hidden) announcer.suspend();
-      else announcer.resume();
+      else if (!enablingSpeechRef.current) announcer.resume();
     };
     window.addEventListener('speech-mode-changed', onModeChange);
     document.addEventListener('visibilitychange', onVisibilityChange);
@@ -293,6 +303,7 @@ export default function NowPlaying() {
     poll();
     return () => {
       mounted = false;
+      mountedRef.current = false;
       clearTimeout(timer);
       window.removeEventListener('speech-mode-changed', onModeChange);
       document.removeEventListener('visibilitychange', onVisibilityChange);
@@ -300,6 +311,40 @@ export default function NowPlaying() {
       announcer.dispose();
     };
   }, [speak, setPrevTrack, setPrevDbSong]);
+
+  const handleEnableAnnouncements = async () => {
+    if (enablingSpeechRef.current) return;
+    const snapshot = playbackSnapshotRef.current;
+    // Don't activate audio using stale playback information after a long sleep.
+    if (!snapshot || Date.now() - snapshot.observedAt > 5000) {
+      setAnnouncementError('Waiting for Spotify playback status. Please tap Enable again in a moment.');
+      return;
+    }
+    enablingSpeechRef.current = true;
+    setEnablingSpeech(true);
+    setAnnouncementError('');
+    const announcer = announcerRef.current;
+    announcer?.suspend();
+    const needsActivation = !hasSpeechPermission();
+    try {
+      // Keep activation in the original tap handler: iOS requires this gesture.
+      window.dispatchEvent(new Event('speech-manual-init'));
+      if (needsActivation) {
+        await restorePlaybackAfterSpeechActivation(snapshot.state, {
+          readPlayback: () => spotifyRequest('currently-playing'),
+          command: playbackCommand,
+        });
+      }
+    } catch (err) {
+      if (mountedRef.current) setAnnouncementError('Could not restore Spotify after enabling announcements. Press Play in Spotify if it paused.');
+    } finally {
+      enablingSpeechRef.current = false;
+      if (mountedRef.current) {
+        setEnablingSpeech(false);
+        if (!document.hidden) announcer?.resume();
+      }
+    }
+  };
 
   const handleConnect = () => {
     window.location.href = '/api/spotify-proxy/login';
@@ -645,7 +690,7 @@ export default function NowPlaying() {
           </div>
         </div>
       )}
-      <SpeechPermissionBanner />
+      <SpeechPermissionBanner onEnable={handleEnableAnnouncements} disabled={initialLoading || enablingSpeech} />
     </div>
   );
 } 

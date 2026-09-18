@@ -82,6 +82,8 @@ it('enables speech once through the banner and still announces subsequent tracks
   expect(page.queryByRole('button', { name: 'Enable' })).toBeNull();
   synth.speak.mockClear();
   synth.cancel.mockClear();
+  // Let activation recovery finish and establish the current-song baseline.
+  await advance(4000);
   currentTrack = { ...currentTrack, id: 'second', name: 'Second' };
   progress = 0;
   await advance(3000);
@@ -155,4 +157,45 @@ it('loads ratings and notes when the song library arrives after Spotify', async 
   expect(page.getByText('Library notes')).toBeTruthy();
   expect(synth.speak).not.toHaveBeenCalled();
   expect(fetch.mock.calls.every(([url]) => url === '/api/spotify-proxy/currently-playing')).toBe(true);
+});
+
+
+it('restores a playing Spotify track when enabling iPhone speech interrupts it', async () => {
+  setSpeechMode('both');
+  synth.speak.mockImplementation(utterance => {
+    if (!utterance.text) isPlaying = false;
+  });
+  const page = render(<NowPlaying />);
+  await advance(500);
+  fireEvent.click(page.getByRole('button', { name: 'Enable' }));
+  expect(isPlaying).toBe(false);
+  await advance(500);
+  expect(isPlaying).toBe(true);
+  const controls = fetch.mock.calls.filter(([url]) => url.includes('/play?'));
+  expect(controls).toHaveLength(1);
+  expect(controls[0][0]).not.toContain('position_ms');
+  expect(fetch.mock.calls.some(([url]) => url.includes('/pause?'))).toBe(false);
+  expect(synth.speak.mock.calls.every(([utterance]) => !utterance.text)).toBe(true);
+});
+
+it('does not start Spotify if it was paused before Enable was tapped', async () => {
+  setSpeechMode('both');
+  isPlaying = false;
+  const page = render(<NowPlaying />);
+  await advance(500);
+  fireEvent.click(page.getByRole('button', { name: 'Enable' }));
+  await advance(2500);
+  expect(isPlaying).toBe(false);
+  expect(fetch.mock.calls.some(([url]) => url.includes('/play?'))).toBe(false);
+});
+
+it('finishes activation recovery even if the page is closed immediately afterwards', async () => {
+  setSpeechMode('both');
+  synth.speak.mockImplementation(() => { isPlaying = false; });
+  const page = render(<NowPlaying />);
+  await advance(500);
+  fireEvent.click(page.getByRole('button', { name: 'Enable' }));
+  page.unmount();
+  await advance(500);
+  expect(isPlaying).toBe(true);
 });
